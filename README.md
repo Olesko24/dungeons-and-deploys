@@ -125,5 +125,6 @@ pnpm dev                                # Postgres on :5433, API on :3000
 curl localhost:3000/health              # ok
 pnpm test
 pnpm typecheck
+pnpm lint
 pnpm --filter @tokenquest/api migrate   # create/apply migrations
 ```

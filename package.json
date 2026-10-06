@@ -9,10 +9,13 @@
   "scripts": {
     "dev": "docker compose up -d --wait && pnpm --filter @tokenquest/api dev",
     "test": "pnpm -r test",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "lint": "oxlint --type-aware --deny-warnings"
   },
   "devDependencies": {
     "@types/node": "^24.19.1",
+    "oxlint": "1.87.0",
+    "oxlint-tsgolint": "7.0.2003",
     "typescript": "^7.0.2"
   }
 }
