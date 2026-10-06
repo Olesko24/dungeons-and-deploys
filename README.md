@@ -1,0 +1,117 @@
+# Tokenquest
+
+An idle RPG that runs alongside Claude Code. Start a quest, keep working, collect loot.
+Inspired by Twitch idle RPGs: presence and luck, not performance.
+
+> Works with Claude Code. Not affiliated with Anthropic.
+
+## Principles
+
+- **Fun on the side.** No performance tracking. Rewards depend on presence and dice, never on tokens, tickets or commits.
+- **Solo-friendly.** Quests and dungeons are playable alone. Groups give bonuses, never requirements.
+- **Raids need a guild.** The only content that is group-only.
+- **Zero token cost.** Game logic never runs through the model. Commands use the `!` shell prefix, hooks only send timestamps.
+- **Server is authoritative.** Clients report presence. Dice, loot and outcomes are decided on the server.
+
+## Gameplay
+
+| Content | Players | Notes |
+|---|---|---|
+| Quest | 1 | `! quest`, 45 min, then cooldown. Success depends on presence during the quest |
+| Random encounter | 1 | Small chance per heartbeat. `! fight` within 5 min |
+| Dungeon | 1–5 | Chain of quests with a boss. Difficulty and loot scale with party size |
+| Raid | ~5+ | Guild only, scheduled. Shared boss HP, damage from presence in the raid window |
+
+### Presence
+
+A quest is split into 5-minute slots. Each slot with at least one heartbeat counts as present.
+Enough present slots → quest succeeds. More slots → better loot rolls.
+
+### Access
+
+Public, invite-only. Players need the server URL (shipped with the plugin) and an access code.
+
+```
+! quest login --code <ACCESS_CODE>   # register, magic link sent to email
+! quest                              # start quest
+! quest status
+! char                               # character sheet
+! inv / ! equip <item>
+! fight                              # random encounter
+! dungeon start|join <id>
+! guild create|join|leave
+! raid join
+```
+
+## Architecture
+
+```
+Plugin (per player)                       Server
+├─ CLI `quest`  ──── HTTPS + token ───►  API (Fastify)
+├─ Heartbeat hook ── max 1/min ──────►    ├─ dice, loot, outcomes
+└─ Statusline ◄── cached state ────────   ├─ queue workers (pg-boss)
+                                          └─ Postgres
+                                         Web (Next.js)
+                                          └─ character, guild hall, raid log
+```
+
+### Repository layout
+
+```
+tokenquest/
+├─ apps/
+│  ├─ api/        Fastify API + queue workers
+│  ├─ web/        Next.js website
+│  └─ cli/        `quest` CLI, hooks, statusline (shipped as Claude Code plugin)
+├─ packages/
+│  └─ shared/     Types, game rules, loot tables
+└─ plugin/        Claude Code plugin manifest (commands, hooks, statusline)
+```
+
+### Stack
+
+| Part | Choice | Why |
+|---|---|---|
+| Language | TypeScript on Node.js | One language, shared types across API, web and CLI |
+| Monorepo | pnpm workspaces | Simple, no extra build tooling |
+| API | Fastify | Fast, small, good TypeScript support |
+| Database | Postgres | Relational data (characters, items, guilds) |
+| ORM | Prisma | Typed queries and migrations |
+| Queue | pg-boss | Job queue inside Postgres, no Redis needed |
+| Web | Next.js (React) | Website only, no long-running jobs |
+
+### Queues
+
+A queue holds jobs that should run later or outside the request. Workers pick jobs up and execute them.
+
+- `quest.resolve` – scheduled when a quest starts, runs 45 min later: check presence, roll loot.
+- `raid.start` / `raid.tick` – scheduled by guild leaders, processes the shared boss fight.
+- `dungeon.stage` – advances a dungeon to the next stage.
+
+Why a queue instead of a timer in memory: jobs survive restarts, run exactly once across multiple API instances, and retry on failure.
+
+### Load estimate (10,000 concurrent players)
+
+| Source | Load |
+|---|---|
+| Heartbeats | ~170 req/s, batched before writing to the database |
+| Quest resolutions | ~4 jobs/s |
+| Statusline | 0, reads local cache |
+| Raid start | short burst, absorbed by the queue |
+
+A single Node process handles this. The database is the bottleneck to watch, not the runtime.
+See [docs/hosting.md](docs/hosting.md) for sizing, presence storage and operations.
+
+## Roadmap
+
+1. Login with access code, character, quest resolved on the server, CLI, heartbeat hook, statusline
+2. Random encounters, loot tables
+3. Dungeons (1–5 players)
+4. Guilds
+5. Raids
+
+Detailed phases with steps: [docs/roadmap.md](docs/roadmap.md)
+
+## Development
+
+_Not set up yet._
