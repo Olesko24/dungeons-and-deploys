@@ -70,7 +70,7 @@ Every phase ends in a playable or deployable state.
 
 ## Phase 6 – Website
 
-- [ ] Next.js app, login via magic link
+- [ ] Next.js app, login via magic link, styled per [style.md](style.md)
 - [ ] Character sheet, inventory, quest history
 - [ ] Deployed via Coolify
 
