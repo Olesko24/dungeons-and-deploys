@@ -5,12 +5,12 @@ Every phase ends in a playable or deployable state.
 
 ## Phase 0 – Foundation
 
-- [ ] pnpm workspace with `apps/api`, `apps/cli`, `apps/web`, `packages/shared`
-- [ ] TypeScript config shared across packages
-- [ ] `docker-compose.yml` with Postgres for local development
-- [ ] Prisma schema and migrations (`prisma migrate`)
-- [ ] Fastify API with `GET /health`
-- [ ] Test runner: `node:test`
+- [x] pnpm workspace with `apps/api`, `apps/cli`, `apps/web`, `packages/shared`
+- [x] TypeScript config shared across packages
+- [x] `docker-compose.yml` with Postgres for local development
+- [x] Prisma schema and migrations (`prisma migrate`)
+- [x] Fastify API with `GET /health`
+- [x] Test runner: `node:test`
 
 **Done when:** `pnpm dev` starts Postgres and API, `curl /health` returns `ok`, `pnpm test` runs.
 

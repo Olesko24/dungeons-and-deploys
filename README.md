@@ -116,4 +116,14 @@ Detailed phases with steps: [docs/roadmap.md](docs/roadmap.md)
 
 ## Development
 
-_Not set up yet._
+Requires Node.js 24+, pnpm and Docker. TypeScript runs directly in Node (type stripping), there is no build step.
+
+```sh
+pnpm install
+cp apps/api/.env.example apps/api/.env
+pnpm dev                                # Postgres on :5433, API on :3000
+curl localhost:3000/health              # ok
+pnpm test
+pnpm typecheck
+pnpm --filter @tokenquest/api migrate   # create/apply migrations
+```

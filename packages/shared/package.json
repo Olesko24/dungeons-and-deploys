@@ -1,0 +1,5 @@
+{
+  "name": "@tokenquest/shared",
+  "private": true,
+  "type": "module"
+}

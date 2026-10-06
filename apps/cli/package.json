@@ -1,0 +1,5 @@
+{
+  "name": "@tokenquest/cli",
+  "private": true,
+  "type": "module"
+}

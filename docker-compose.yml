@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: tokenquest
+      POSTGRES_PASSWORD: tokenquest
+      POSTGRES_DB: tokenquest
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "tokenquest"]
+      interval: 2s
+      retries: 15
+
+volumes:
+  postgres:
