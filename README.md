@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/icon.svg" alt="Tokenquest icon: gold coin with a sword" width="128"></p>
+
 # Tokenquest
 
 An idle RPG that runs alongside Claude Code. Start a quest, keep working, collect loot.
