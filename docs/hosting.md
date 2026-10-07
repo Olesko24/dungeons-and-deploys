@@ -11,8 +11,7 @@ Target: 10,000 concurrent players.
 | Coolify (incl. proxy) | ~1–1.5 GB | low |
 | Postgres | 1–2 GB | main load |
 | API + workers (Node) | ~300–500 MB | low at ~170 req/s |
-| Next.js | ~300–500 MB | low |
-| **Total** | **~3–4.5 GB** | |
+| **Total** | **~2.5–4 GB** | |
 
 | Phase | Server |
 |---|---|
@@ -58,9 +57,6 @@ Environment variables:
 | Variable | Example |
 |---|---|
 | `DATABASE_URL` | Internal URL of the Coolify Postgres resource |
-| `SMTP_URL` | `smtp://resend:<RESEND_API_KEY>@smtp.resend.com:587` |
-| `MAIL_FROM` | `Tokenquest <login@your-verified-domain>` |
-| `PUBLIC_URL` | `https://<api-domain>`, used in magic links |
 
 Access codes are created inside the running container:
 

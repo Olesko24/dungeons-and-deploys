@@ -4,7 +4,6 @@ import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline/promises";
-import { setTimeout as sleep } from "node:timers/promises";
 import { parseArgs } from "node:util";
 import { bar, minutesUntil, type Status, shortStatus } from "./status.ts";
 
@@ -38,9 +37,9 @@ async function readConfig(): Promise<Config | null> {
 
 async function authed(path: string, method = "GET") {
   const config = await readConfig();
-  if (!config) throw new Error("Not logged in. Run: quest login --code <ACCESS_CODE>");
+  if (!config) throw new Error("Not logged in. Run: quest login");
   const res = await api(config.server, path, { method, token: config.token });
-  if (res.status === 401) throw new Error("Session expired. Run: quest login");
+  if (res.status === 401) throw new Error("Session invalid. Run: quest login");
   return res;
 }
 
@@ -54,30 +53,30 @@ async function refresh() {
   return data as Status & { quest: { success: boolean | null; xp: number; gold: number } | null };
 }
 
-async function login(code: string | undefined) {
+async function login(code: string | undefined, pair: string | undefined) {
   const server = process.env.TOKENQUEST_URL ?? DEFAULT_SERVER;
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  const email = (await rl.question("Email: ")).trim();
-  rl.close();
-
-  const reg = await api(server, "/auth/register", { method: "POST", body: { email, code } });
-  if (reg.status !== 200) throw new Error(reg.data.error ?? `Register failed (${reg.status})`);
-  console.log(`Check your email. Confirm code: ${reg.data.confirmCode}`);
-  process.stdout.write("Waiting...");
-
-  while (true) {
-    await sleep(2000);
-    const poll = await api(server, "/auth/poll", { method: "POST", body: { loginId: reg.data.loginId } });
-    if (poll.status === 202) continue;
-    if (poll.status !== 200) throw new Error(`\n${poll.data.error ?? `Login failed (${poll.status})`}`);
-
-    await mkdir(dir, { recursive: true, mode: 0o700 });
-    await writeFile(configFile, JSON.stringify({ server, token: poll.data.token }, null, 2), { mode: 0o600 });
-    const me = await api(server, "/me", { token: poll.data.token });
-    console.log(` ✓ Logged in as ${me.data.email}`);
-    await refresh();
-    return;
+  let res: Awaited<ReturnType<typeof api>>;
+  if (pair) {
+    res = await api(server, "/auth/pair/redeem", { method: "POST", body: { code: pair } });
+  } else if (code) {
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    const name = (await rl.question("Character name (2-20 letters, digits, _ or -): ")).trim();
+    rl.close();
+    res = await api(server, "/auth/register", { method: "POST", body: { code, name } });
+  } else {
+    throw new Error("New player: quest login --code <ACCESS_CODE>\nOther device: quest pair, then quest login --pair <CODE>");
   }
+  if (res.status !== 200) throw new Error(res.data.error ?? res.data.message ?? `Login failed (${res.status})`);
+
+  await mkdir(dir, { recursive: true, mode: 0o700 });
+  await writeFile(configFile, JSON.stringify({ server, token: res.data.token }, null, 2), { mode: 0o600 });
+  const status = await refresh();
+  console.log(`✓ Logged in as ${status.character.name}`);
+}
+
+async function pair() {
+  const { data } = await authed("/auth/pair", "POST");
+  console.log(`On your other device, within ${minutesUntil(data.expiresAt)} minutes:\n\n  quest login --pair ${data.code}`);
 }
 
 /**
@@ -150,13 +149,15 @@ const USAGE = `Usage: quest [command]
   quest                     start a quest
   quest status [--short]    current quest (--short: one cached line, no network)
   quest char                character sheet
-  quest login [--code <C>]  log in, new players need an access code
+  quest login --code <C>    new player, needs an access code
+  quest pair                log in another device
+  quest login --pair <C>    log in with a code from quest pair
   quest init zsh|bash       shell integration, add to your rc file: eval "$(quest init zsh)"
   quest heartbeat           report presence (called by hooks)`;
 
 const { positionals, values } = parseArgs({
   allowPositionals: true,
-  options: { code: { type: "string" }, short: { type: "boolean" }, send: { type: "boolean" } },
+  options: { code: { type: "string" }, pair: { type: "string" }, short: { type: "boolean" }, send: { type: "boolean" } },
 });
 
 try {
@@ -172,7 +173,10 @@ try {
       await character();
       break;
     case "login":
-      await login(values.code);
+      await login(values.code, values.pair);
+      break;
+    case "pair":
+      await pair();
       break;
     case "heartbeat":
       await heartbeat(!!values.send).catch(() => {});

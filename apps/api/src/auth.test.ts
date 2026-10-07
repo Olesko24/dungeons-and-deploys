@@ -4,64 +4,59 @@ import { buildApp } from "./app.ts";
 import type { PrismaClient } from "./generated/prisma/client.ts";
 import { testDb } from "./testing.ts";
 
-type Mail = { to: string; subject: string; text: string };
 let db: PrismaClient;
-const mails: Mail[] = [];
 before(async () => { db = await testDb(); });
 after(() => db.$disconnect());
 
-const app = () => buildApp({ db, sendMail: async (m) => { mails.push(m); }, publicUrl: "http://test", scheduleResolve: async () => {} });
-const register = async (email: string, code?: string) =>
-  (await app()).inject({ method: "POST", url: "/auth/register", payload: { email, code } });
-const poll = async (loginId: string) => (await app()).inject({ method: "POST", url: "/auth/poll", payload: { loginId } });
-const linkToken = () => mails.at(-1)!.text.match(/token=(\S+)/)![1];
+const app = () => buildApp({ db, scheduleResolve: async () => {} });
+const post = async (url: string, payload?: object, token?: string) =>
+  (await app()).inject({ method: "POST", url, payload, headers: token ? { authorization: `Bearer ${token}` } : {} });
+const characterName = async (token: string) =>
+  (await (await app()).inject({ url: "/character", headers: { authorization: `Bearer ${token}` } })).json().name;
 
-async function loginFlow(email: string, code?: string) {
-  const res = await register(email, code);
-  assert.equal(res.statusCode, 200, res.body);
-  const { loginId, confirmCode } = res.json();
-  assert.equal((await poll(loginId)).statusCode, 202);
+test("register with access code", async () => {
+  await db.accessCode.create({ data: { code: "TEST-0001", maxUses: 2, expiresAt: new Date(Date.now() + 60_000) } });
 
-  const page = await (await app()).inject(`/auth/verify?token=${linkToken()}`);
-  assert.match(page.body, new RegExp(confirmCode));
-  const confirm = await (await app()).inject({
-    method: "POST",
-    url: "/auth/verify",
-    headers: { "content-type": "application/x-www-form-urlencoded" },
-    payload: `token=${linkToken()}`,
-  });
-  assert.equal(confirm.statusCode, 200, confirm.body);
+  assert.equal((await post("/auth/register", { code: "WRONG", name: "hero" })).statusCode, 400);
+  assert.equal((await post("/auth/register", { code: "TEST-0001", name: "x" })).statusCode, 400, "name too short");
 
-  const done = await poll(loginId);
-  assert.equal(done.statusCode, 200);
-  assert.equal((await poll(loginId)).statusCode, 404, "token is handed out only once");
-  return done.json().token as string;
-}
+  const res = await post("/auth/register", { code: "test-0001", name: "hero" });
+  assert.equal(res.statusCode, 200);
+  assert.equal(await characterName(res.json().token), "hero");
 
-test("access code login flow", async () => {
-  await db.accessCode.create({ data: { code: "TEST-0001", maxUses: 1, expiresAt: new Date(Date.now() + 60_000) } });
-
-  assert.equal((await register("a@example.com", "WRONG")).statusCode, 400);
-
-  const token = await loginFlow("A@example.com", "test-0001");
-  const me = await (await app()).inject({ url: "/me", headers: { authorization: `Bearer ${token}` } });
-  assert.deepEqual(me.json(), { email: "a@example.com" });
-  assert.equal((await (await app()).inject({ url: "/me", headers: { authorization: "Bearer nope" } })).statusCode, 401);
-
-  assert.equal((await register("b@example.com", "TEST-0001")).statusCode, 400, "code is used up");
-  assert.ok(await loginFlow("a@example.com"), "existing players log in again without a code");
+  assert.equal((await post("/auth/register", { code: "TEST-0001", name: "hero" })).statusCode, 409, "name taken");
+  assert.equal((await db.accessCode.findUniqueOrThrow({ where: { code: "TEST-0001" } })).uses, 1, "taken name keeps the use");
+  assert.equal((await post("/auth/register", { code: "TEST-0001", name: "mage" })).statusCode, 200);
+  assert.equal((await post("/auth/register", { code: "TEST-0001", name: "rogue" })).statusCode, 400, "code used up");
 });
 
 test("expired access code is rejected", async () => {
   await db.accessCode.create({ data: { code: "TEST-0002", maxUses: 5, expiresAt: new Date(Date.now() - 1) } });
-  assert.equal((await register("c@example.com", "TEST-0002")).statusCode, 400);
+  assert.equal((await post("/auth/register", { code: "TEST-0002", name: "late" })).statusCode, 400);
+});
+
+test("pair a second device", async () => {
+  await db.accessCode.create({ data: { code: "TEST-0003", maxUses: 1, expiresAt: new Date(Date.now() + 60_000) } });
+  const { token } = (await post("/auth/register", { code: "TEST-0003", name: "paladin" })).json();
+
+  assert.equal((await post("/auth/pair")).statusCode, 401);
+  const { code } = (await post("/auth/pair", undefined, token)).json();
+  const second = await post("/auth/pair/redeem", { code: code.toLowerCase() });
+  assert.equal(second.statusCode, 200);
+  assert.notEqual(second.json().token, token);
+  assert.equal(await characterName(second.json().token), "paladin");
+  assert.equal((await post("/auth/pair/redeem", { code })).statusCode, 400, "pair code is single-use");
+
+  const { code: old } = (await post("/auth/pair", undefined, token)).json();
+  await db.pairCode.updateMany({ data: { expiresAt: new Date(Date.now() - 1) } });
+  assert.equal((await post("/auth/pair/redeem", { code: old })).statusCode, 400, "expired pair code");
 });
 
 test("register is rate limited", async () => {
   const instance = await app();
   const codes = [];
   for (let i = 0; i < 6; i++) {
-    codes.push((await instance.inject({ method: "POST", url: "/auth/register", payload: { email: "d@example.com" } })).statusCode);
+    codes.push((await instance.inject({ method: "POST", url: "/auth/register", payload: { code: "NOPE", name: "spam" } })).statusCode);
   }
   assert.equal(codes.at(-1), 429);
 });

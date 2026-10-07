@@ -16,22 +16,22 @@ Every phase ends in a playable or deployable state.
 
 ## Phase 1 – Accounts
 
-- [x] Tables: `users`, `access_codes`, `sessions`, `logins` (pending logins)
+No email: the API token on the player's devices is the identity. Losing all devices loses the character.
+
+- [x] Tables: `users`, `access_codes`, `sessions`, `pair_codes`
 - [x] Access codes with max uses and expiry, created via admin script
-- [x] `POST /auth/register` – access code + email → magic link, returns a login id and a short confirm code. Existing players need no code
-- [x] `GET /auth/verify` – magic link opens a confirm page showing the confirm code, `POST /auth/verify` approves the login (mail scanners only send GET)
-- [x] `POST /auth/poll` – CLI polls until approved, then receives the API token once (like device login in GitHub CLI). POST keeps the login id out of URLs and logs
-- [x] `GET /me` – checks the API token
-- [x] Email sending via SMTP (nodemailer), Mailpit for local development
+- [x] `POST /auth/register` – access code + character name → API token
+- [x] `POST /auth/pair` – logged-in device gets a single-use code, valid 10 min
+- [x] `POST /auth/pair/redeem` – pair code → API token for another device
 - [x] Rate limit on auth routes
-- [x] CLI: `quest login --code <CODE>`, shows the confirm code, waits, stores the token in `~/.tokenquest/config.json`
+- [x] CLI: `quest login --code <CODE>`, `quest pair`, `quest login --pair <CODE>`, token stored in `~/.tokenquest/config.json`
 
 **Done when:** A new player registers with a valid code, an invalid or used-up code is rejected, the CLI holds a working token.
 
 ## Phase 2 – Quest core
 
 - [x] Tables: `characters`, `quests` (incl. `slots` bitmask, see [hosting.md](hosting.md))
-- [x] Character created on first login (name, level, XP, gold), name from the email address
+- [x] Character created on registration (name, level, XP, gold)
 - [x] pg-boss set up in the API process, hourly cleanup of expired logins
 - [x] `POST /quests` – start quest, enforce cooldown, schedule `quest.resolve` in 45 min
 - [x] `POST /heartbeat` – set slot bit of the active quest, max 1/min per player
@@ -51,7 +51,7 @@ Every phase ends in a playable or deployable state.
 - [x] CLI build for npm (`tokenquest` package)
 - [ ] CLI published to npm
 - [x] Dockerfile for the API (web follows in Phase 6)
-- [ ] Deploy to Coolify, Postgres backups to S3 enabled, mail via Resend
+- [ ] Deploy to Coolify, Postgres backups to S3 enabled
 - [x] Install guide in README, deploy guide in [hosting.md](hosting.md)
 
 **Done when:** One person plays via the Claude Code plugin, another via the shell integration. Both log in with a code and finish a quest against the deployed server.
@@ -77,9 +77,10 @@ Every phase ends in a playable or deployable state.
 
 ## Phase 6 – Website
 
-- [ ] Next.js app, login via magic link, styled per [style.md](style.md)
+- [ ] Vite + React SPA in `apps/web`, styled per [style.md](style.md)
+- [ ] Served as static files by the API (same origin, no extra container)
+- [ ] Login with a code from `quest pair`, session cookie
 - [ ] Character sheet, inventory, quest history
-- [ ] Deployed via Coolify
 
 **Done when:** A player sees their character in the browser after logging in.
 

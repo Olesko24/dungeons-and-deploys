@@ -18,20 +18,18 @@ const scheduled: { questId: number; at: Date }[] = [];
 const app = () =>
   buildApp({
     db,
-    sendMail: async () => {},
-    publicUrl: "http://test",
     scheduleResolve: async (questId, at) => { scheduled.push({ questId, at }); },
     now: () => new Date(clock),
   });
 
-async function player(email: string) {
-  const token = `tq_${email}`;
+async function player(name: string) {
+  const token = `tq_${name}`;
   await db.user.create({
-    data: { email, character: { create: { name: email } }, sessions: { create: { tokenHash: hash(token) } } },
+    data: { character: { create: { name } }, sessions: { create: { tokenHash: hash(token) } } },
   });
   const call = async (method: "GET" | "POST", url: string) =>
     (await app()).inject({ method, url, headers: { authorization: `Bearer ${token}` } });
-  return { call, character: () => db.character.findFirstOrThrow({ where: { name: email } }) };
+  return { call, character: () => db.character.findFirstOrThrow({ where: { name } }) };
 }
 
 const at = (ms: number) => { clock = T0 + ms; };
@@ -39,7 +37,7 @@ const lastQuestId = async () => (await db.quest.findFirstOrThrow({ orderBy: { id
 
 test("quest succeeds with enough presence and grants rewards once", async () => {
   at(0);
-  const p = await player("hero@example.com");
+  const p = await player("hero");
   const start = await p.call("POST", "/quests");
   assert.equal(start.statusCode, 201);
   assert.equal(scheduled.at(-1)!.at.getTime(), T0 + QUEST_MS);
@@ -52,19 +50,19 @@ test("quest succeeds with enough presence and grants rewards once", async () => 
   at(QUEST_MS + 1000);
   const late = (await p.call("POST", "/heartbeat")).json();
   assert.equal(late.quest.presentSlots, 5, "heartbeat after the end is ignored");
-  assert.deepEqual(late.character, { name: "hero@example.com", gold: 0, level: 1 });
+  assert.deepEqual(late.character, { name: "hero", gold: 0, level: 1 });
 
   const id = await lastQuestId();
   assert.deepEqual(await resolveQuest(db, id, () => 0), { success: true, xp: 50, gold: 10 });
   assert.equal(await resolveQuest(db, id, () => 0), null, "second run changes nothing");
   assert.deepEqual((await p.call("GET", "/character")).json(), {
-    name: "hero@example.com", xp: 50, gold: 10, level: 1, xpIntoLevel: 50, xpForNext: 100,
+    name: "hero", xp: 50, gold: 10, level: 1, xpIntoLevel: 50, xpForNext: 100,
   });
 });
 
 test("quest fails without enough presence", async () => {
   at(0);
-  const p = await player("idle@example.com");
+  const p = await player("idle");
   await p.call("POST", "/quests");
   assert.deepEqual(await resolveQuest(db, await lastQuestId(), () => 0), { success: false, xp: 2, gold: 0 });
   assert.equal((await p.character()).xp, 2);
@@ -72,7 +70,7 @@ test("quest fails without enough presence", async () => {
 
 test("cooldown after a quest", async () => {
   at(0);
-  const p = await player("eager@example.com");
+  const p = await player("eager");
   await p.call("POST", "/quests");
   await resolveQuest(db, await lastQuestId(), () => 0);
 
@@ -87,7 +85,7 @@ test("cooldown after a quest", async () => {
 
 test("database allows only one running quest per character", async () => {
   at(0);
-  const p = await player("twin@example.com");
+  const p = await player("twin");
   await p.call("POST", "/quests");
   const { id: characterId } = await p.character();
   await assert.rejects(

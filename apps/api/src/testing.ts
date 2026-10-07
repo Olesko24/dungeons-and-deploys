@@ -11,7 +11,7 @@ export async function testDb() {
   await db.quest.deleteMany();
   await db.character.deleteMany();
   await db.session.deleteMany();
-  await db.login.deleteMany();
+  await db.pairCode.deleteMany();
   await db.user.deleteMany();
   await db.accessCode.deleteMany();
   return db;

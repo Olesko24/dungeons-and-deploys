@@ -46,7 +46,8 @@ Public, invite-only. Players need the server URL (shipped with the CLI) and an a
 In Claude Code, prefix commands with `!`.
 
 ```
-quest login --code <ACCESS_CODE>   # register, magic link sent to email
+quest login --code <ACCESS_CODE>   # register, pick a character name
+quest pair                         # log in another device: quest login --pair <CODE>
 quest                              # start quest
 quest status
 quest char                         # character sheet
@@ -105,7 +106,7 @@ Client (per player)                       Server
 │  (Claude Code or shell)                 │
 └─ Statusline ◄── cached state ────────   ├─ queue workers (pg-boss)
                                           └─ Postgres
-                                         Web (Next.js)
+                                         Web (Vite SPA, served by the API)
                                           └─ character, guild hall, raid log
 ```
 
@@ -115,7 +116,7 @@ Client (per player)                       Server
 tokenquest/
 ├─ apps/
 │  ├─ api/        Fastify API + queue workers
-│  ├─ web/        Next.js website
+│  ├─ web/        Vite + React website (static)
 │  └─ cli/        `quest` CLI, hooks, statusline, shell integration
 ├─ packages/
 │  └─ shared/     Types, game rules, loot tables
@@ -132,7 +133,7 @@ tokenquest/
 | Database | Postgres | Relational data (characters, items, guilds) |
 | ORM | Prisma | Typed queries and migrations |
 | Queue | pg-boss | Job queue inside Postgres, no Redis needed |
-| Web | Next.js (React) | Website only, no long-running jobs |
+| Web | Vite + React (SPA) | Mostly dynamic and behind login, static files served by the API, no second server |
 
 ### Queues
 
@@ -173,10 +174,10 @@ Requires Node.js 24+, pnpm and Docker. TypeScript runs directly in Node (type st
 ```sh
 pnpm install
 cp apps/api/.env.example apps/api/.env
-pnpm dev                                # Postgres on :5433, Mailpit on :8025, API on :3000
+pnpm dev                                # Postgres on :5433, API on :3000
 curl localhost:3000/health              # ok
 pnpm --filter @tokenquest/api access-code --uses 5 --days 30
-pnpm quest login --code <CODE>          # magic link arrives in Mailpit: http://localhost:8025
+pnpm quest login --code <CODE>
 pnpm quest                              # start a quest, then: pnpm quest status, pnpm quest char
 pnpm test                               # needs Postgres running, uses the `test` schema
 pnpm typecheck
