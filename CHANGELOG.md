@@ -13,7 +13,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   open with points spent and prerequisites. `quest talents` or the talent trees with icons on the website.
   A reset costs 10 gold per spent point.
 - Level cap 100.
-- Combat power, shown on the character and as a recommendation for every monster and dungeon stage.
+- Combat power, shown on the character and as a recommendation for every monster and dungeon stage, with its own
+  leaderboard (`quest top power`).
 - Six raid bosses from The Monolith to The Big Rewrite, each needing more combat power and paying more XP, gold
   and better loot. Guilds unlock them one by one.
 - Guild bank and guild buffs: members donate gold and every quest adds 10% of its gold on top. The leader buys

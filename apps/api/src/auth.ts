@@ -1,8 +1,10 @@
 import { createHash, randomBytes, randomInt } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import { playerPower } from "@dnd/shared";
 import { Prisma, type PrismaClient } from "./generated/prisma/client.ts";
 
 const PAIR_TTL_MS = 10 * 60 * 1000;
+const NO_GEAR = { attack: 0, defense: 0, luck: 0, fortune: 0 };
 export const SESSION_COOKIE = "tq_session";
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -47,7 +49,7 @@ function register(db: PrismaClient, code: string, name: string) {
         data: { uses: { increment: 1 } },
       });
       if (consumed.count === 0) return { error: "invalid or used-up access code" };
-      const user = await tx.user.create({ data: { character: { create: { name } } } });
+      const user = await tx.user.create({ data: { character: { create: { name, power: playerPower(1, NO_GEAR) } } } });
       return { token: await createSession(tx, user.id) };
     })
     .catch((err): { error: string } => {

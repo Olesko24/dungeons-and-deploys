@@ -382,7 +382,7 @@ least their loot level, so their average loot is better.
 
 `quest stats` shows what you have done so far and your achievements. There are 19 achievements, from finishing your first quest to defeating a Dependency Dragon or winning a raid. They give no rewards. Once unlocked, an achievement stays, with its date.
 
-`quest top` shows leaderboards: by level, by achievements and by guild level. You see the top 20 and your own rank. There is no gold leaderboard.
+`quest top` shows leaderboards: by level, by combat power, by achievements and by guild level. The power board counts level, gear and talents, not temporary guild buffs. You see the top 20 and your own rank. There is no gold leaderboard.
 
 ## Website
 
@@ -423,7 +423,7 @@ Dungeons & Deploys has no email and no password. Your login token on your device
 | `quest raid [schedule <minutes> [boss]\|join]` | Raids |
 | `quest talents [learn <key>\|reset]` | Talents |
 | `quest stats` | Statistics and achievements |
-| `quest top [xp\|achievements\|guilds]` | Leaderboards |
+| `quest top [xp\|power\|achievements\|guilds]` | Leaderboards |
 | `quest login --code <code>` | New player |
 | `quest pair` / `quest login --pair <code>` | Another device or the website |
 | `quest init zsh\|bash` | Shell integration |

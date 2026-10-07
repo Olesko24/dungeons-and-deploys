@@ -3,7 +3,7 @@ import type { PrismaClient } from "./generated/prisma/client.ts";
 import { resolveStage, stageEndsAt } from "./dungeons.ts";
 import { resolveQuest } from "./quests.ts";
 import { advanceRaid, raidTickAt } from "./raids.ts";
-import { trySyncAchievements } from "./stats.ts";
+import { trySyncProgress } from "./stats.ts";
 
 /**
  * Follow-up jobs are planned from the stored state, not from what the resolve call returned. A retried job finds
@@ -11,7 +11,7 @@ import { trySyncAchievements } from "./stats.ts";
  */
 export async function startJobs(boss: PgBoss, db: PrismaClient) {
   const syncMembers = async (members: { characterId: number }[]) => {
-    for (const m of members) await trySyncAchievements(db, m.characterId);
+    for (const m of members) await trySyncProgress(db, m.characterId);
   };
 
   await boss.start();
@@ -25,7 +25,7 @@ export async function startJobs(boss: PgBoss, db: PrismaClient) {
     for (const job of jobs) {
       await resolveQuest(db, job.data.questId);
       const quest = await db.quest.findUnique({ where: { id: job.data.questId } });
-      if (quest) await trySyncAchievements(db, quest.characterId);
+      if (quest) await trySyncProgress(db, quest.characterId);
     }
   });
   await boss.work("pair-codes.cleanup", () => db.pairCode.deleteMany({ where: { expiresAt: { lt: new Date() } } }));

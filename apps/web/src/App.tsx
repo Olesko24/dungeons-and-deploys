@@ -582,13 +582,13 @@ function StatsView() {
   );
 }
 
-const BOARDS = [["xp", "Level"], ["achievements", "Achievements"], ["guilds", "Guilds"]] as const;
+const BOARDS = [["xp", "Level"], ["power", "Power"], ["achievements", "Achievements"], ["guilds", "Guilds"]] as const;
 
 function RanksView() {
   const [board, setBoard] = useState<(typeof BOARDS)[number][0]>("xp");
   const [data, setData] = useState<Leaderboard | null>(null);
   useEffect(() => void api<Leaderboard>(`/leaderboard?board=${board}`).then(setData), [board]);
-  const unit = board === "achievements" ? "achievements" : "XP";
+  const unit = { xp: "XP", power: "Power", achievements: "Achievements", guilds: "XP" }[board];
   const showYou = data?.you && !data.top.some((r) => r.rank === data.you?.rank && r.name === data.you?.name);
   return (
     <section className="panel">

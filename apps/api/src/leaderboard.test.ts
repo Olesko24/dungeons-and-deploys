@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
+import { playerPower } from "@dnd/shared";
 import { buildApp } from "./app.ts";
 import { hash } from "./auth.ts";
 import type { PrismaClient } from "./generated/prisma/client.ts";
+import { syncProgress } from "./stats.ts";
 import { testDb } from "./testing.ts";
 
 let db: PrismaClient;
@@ -31,6 +33,14 @@ test("xp, achievements and guild boards with your own rank", async () => {
   assert.deepEqual([xp.top[0].name, xp.top[0].rank, xp.top[0].level], ["ace", 1, 7]);
   assert.ok(!xp.top.some((r: { name: string }) => r.name === "cheat"), "banned players are hidden");
   assert.deepEqual([xp.you.name, xp.you.rank], ["rookie", 28]);
+
+  await db.item.create({ data: { characterId: mid, key: "battleAxe.legendary", attack: 40, equippedSlot: "mainHand" } });
+  await db.character.update({ where: { id: mid }, data: { talents: { sharpSyntax: 5 } } });
+  await syncProgress(db, mid);
+  const power = await get("rookie", "power");
+  assert.deepEqual([power.top[0].name, power.top[0].value], ["mid", playerPower(3, { attack: 40, defense: 0, luck: 0, fortune: 0 }, 5)]);
+  assert.ok(!power.top.some((r: { name: string }) => r.name === "cheat"), "banned players are hidden");
+  assert.equal(power.you.name, "rookie");
 
   await db.achievement.createMany({ data: [{ characterId: mid, key: "firstQuest" }, { characterId: mid, key: "founder" }] });
   const ach = await get("mid", "achievements");

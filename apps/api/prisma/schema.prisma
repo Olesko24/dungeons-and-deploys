@@ -59,6 +59,8 @@ model Character {
   name         String          @unique
   xp           Int             @default(0)
   gold         Int             @default(0)
+  /// Shown combat power from level, gear and talents, without guild buffs. Kept for the leaderboard by syncProgress.
+  power        Int             @default(0)
   /// Learned talent ranks by talent key, see packages/shared/src/talents.ts.
   talents      Json            @default("{}")
   /// Website tour: new, skipped or done. Done unlocks an achievement.
@@ -74,6 +76,7 @@ model Character {
   achievements Achievement[]
   createdAt    DateTime        @default(now()) @map("created_at")
 
+  @@index([power])
   @@map("characters")
 }
 

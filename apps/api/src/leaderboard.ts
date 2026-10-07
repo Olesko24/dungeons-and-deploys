@@ -3,7 +3,7 @@ import { guildLevel, levelFromXp } from "@dnd/shared";
 import { requireCharacter } from "./characters.ts";
 import type { PrismaClient } from "./generated/prisma/client.ts";
 
-const BOARDS = ["xp", "achievements", "guilds"] as const;
+const BOARDS = ["xp", "power", "achievements", "guilds"] as const;
 type Board = (typeof BOARDS)[number];
 const TOP = 20;
 
@@ -12,11 +12,12 @@ type Row = { rank: number; name: string; value: number; level?: number };
 const notBanned = { user: { bannedAt: null } };
 
 async function board(db: PrismaClient, name: Board, characterId: number): Promise<{ top: Row[]; you: Row | null }> {
-  if (name === "xp") {
-    const top = await db.character.findMany({ where: notBanned, orderBy: [{ xp: "desc" }, { id: "asc" }], take: TOP });
+  // Both are stored on the character: XP directly, combat power by syncProgress after every action.
+  if (name === "xp" || name === "power") {
+    const top = await db.character.findMany({ where: notBanned, orderBy: [{ [name]: "desc" }, { id: "asc" }], take: TOP });
     const me = await db.character.findUniqueOrThrow({ where: { id: characterId } });
-    const ahead = await db.character.count({ where: { ...notBanned, xp: { gt: me.xp } } });
-    const row = (c: typeof me, rank: number) => ({ rank, name: c.name, value: c.xp, level: levelFromXp(c.xp).level });
+    const ahead = await db.character.count({ where: { ...notBanned, [name]: { gt: me[name] } } });
+    const row = (c: typeof me, rank: number) => ({ rank, name: c.name, value: c[name], level: levelFromXp(c.xp).level });
     return { top: top.map((c, i) => row(c, i + 1)), you: row(me, ahead + 1) };
   }
 

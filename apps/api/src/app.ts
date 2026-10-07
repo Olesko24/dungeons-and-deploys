@@ -14,7 +14,7 @@ import { marketRoutes } from "./market.ts";
 import { questRoutes } from "./quests.ts";
 import { raidRoutes } from "./raids.ts";
 import { shopRoutes } from "./shop.ts";
-import { statsRoutes, trySyncAchievements } from "./stats.ts";
+import { statsRoutes, trySyncProgress } from "./stats.ts";
 import { talentRoutes } from "./talents.ts";
 
 export type Deps = {
@@ -70,7 +70,7 @@ export async function buildApp(deps: Deps, opts: FastifyServerOptions = {}) {
   // Every successful player action may unlock achievements. Heartbeats are skipped: they are frequent and change little.
   app.addHook("onResponse", async (req, reply) => {
     if (req.method === "POST" && reply.statusCode < 400 && req.characterId && req.routeOptions.url !== "/heartbeat") {
-      await trySyncAchievements(db, req.characterId);
+      await trySyncProgress(db, req.characterId);
     }
   });
 

@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { ACHIEVEMENTS, type PlayerStats, item, levelFromXp } from "@dnd/shared";
+import { ACHIEVEMENTS, type PlayerStats, type Talents, item, levelFromXp, playerBonus, playerPower } from "@dnd/shared";
 import { requireCharacter } from "./characters.ts";
 import type { Character, PrismaClient } from "./generated/prisma/client.ts";
 
@@ -61,22 +61,30 @@ export async function playerStats(db: PrismaClient, c: Character): Promise<Playe
   };
 }
 
-/** Stores achievements whose condition holds now. Stored ones stay unlocked even if the condition is lost later. */
-export async function syncAchievements(db: PrismaClient, characterId: number) {
+/**
+ * Runs after every player action and job. Stores achievements whose condition holds now, which stay
+ * unlocked even if the condition is lost later, and the combat power for the leaderboard.
+ */
+export async function syncProgress(db: PrismaClient, characterId: number) {
   const character = await db.character.findUnique({ where: { id: characterId } });
   if (!character) return null;
+  const items = await db.item.findMany({ where: { characterId, equippedSlot: { not: null } } });
+  const { level } = levelFromXp(character.xp);
+  const bonus = playerBonus(items, character.talents as Talents);
+  const power = playerPower(level, bonus.gear, bonus.power);
+  if (power !== character.power) await db.character.update({ where: { id: characterId }, data: { power } });
   const stats = await playerStats(db, character);
   const unlocked = ACHIEVEMENTS.filter((a) => a.done(stats)).map((a) => ({ characterId, key: a.key }));
   if (unlocked.length) await db.achievement.createMany({ data: unlocked, skipDuplicates: true });
   return stats;
 }
 
-/** For callers that must not fail because of achievements: a missed sync is caught up on the next action. */
-export async function trySyncAchievements(db: PrismaClient, characterId: number) {
+/** For callers that must not fail because of the sync: a missed one is caught up on the next action. */
+export async function trySyncProgress(db: PrismaClient, characterId: number) {
   try {
-    await syncAchievements(db, characterId);
+    await syncProgress(db, characterId);
   } catch (err) {
-    console.error(`Achievement sync failed for character ${characterId}`, err);
+    console.error(`Progress sync failed for character ${characterId}`, err);
   }
 }
 
@@ -84,7 +92,7 @@ export function statsRoutes(app: FastifyInstance, db: PrismaClient) {
   app.get("/stats", async (req, reply) => {
     const character = await requireCharacter(db, req, reply);
     if (!character) return;
-    const stats = await syncAchievements(db, character.id);
+    const stats = await syncProgress(db, character.id);
     const stored = await db.achievement.findMany({ where: { characterId: character.id } });
     const unlockedAt = new Map(stored.map((a) => [a.key, a.unlockedAt]));
     return {

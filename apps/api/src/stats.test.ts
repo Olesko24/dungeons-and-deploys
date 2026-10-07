@@ -73,3 +73,28 @@ test("finishing the tour unlocks Hello, World, skipping never undoes it", async 
   assert.equal(await unlocked(), true);
   assert.equal((await call("POST", "/tour", { done: false })).json().tour, "done");
 });
+
+test("every action keeps the stored combat power current", async () => {
+  await db.accessCode.create({ data: { code: "POWER-1", maxUses: 1, expiresAt: new Date(Date.now() + 60_000) } });
+  const app = () => buildApp({ db, random: () => 0 });
+  const { token } = (await (await app()).inject({ method: "POST", url: "/auth/register", payload: { code: "POWER-1", name: "climber" } })).json();
+  const call = async (url: string, payload?: object) =>
+    (await app()).inject({ method: "POST", url, payload, headers: { authorization: `Bearer ${token}` } });
+  const stored = async () => (await db.character.findFirstOrThrow({ where: { name: "climber" } })).power;
+  // The sync runs after the response, so wait for the value to change.
+  const changed = async (from: number) => {
+    for (let i = 0; i < 40 && (await stored()) === from; i++) await new Promise((r) => setTimeout(r, 25));
+    return stored();
+  };
+
+  assert.equal(await stored(), 53, "a new character starts with its real power");
+  const { id: characterId } = await db.character.findFirstOrThrow({ where: { name: "climber" } });
+  const sword = await db.item.create({ data: { characterId, key: "sword.common", attack: 3 } });
+  await call(`/inventory/${sword.id}/equip`);
+  assert.equal(await changed(53), 84, "equipping counts");
+  await call("/talents/learn", { key: "sharpSyntax" });
+  assert.equal(await changed(84), 85, "talents count");
+  await db.character.update({ where: { id: characterId }, data: { xp: 95 } });
+  await call("/quests");
+  assert.ok((await changed(85)) > 85, "a level-up from a quest counts");
+});

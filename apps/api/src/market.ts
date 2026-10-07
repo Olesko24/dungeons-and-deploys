@@ -10,7 +10,7 @@ import {
 } from "@dnd/shared";
 import type { Deps } from "./app.ts";
 import { itemView, requireCharacter } from "./characters.ts";
-import { trySyncAchievements } from "./stats.ts";
+import { trySyncProgress } from "./stats.ts";
 import type { Prisma } from "./generated/prisma/client.ts";
 
 const startOfDay = (t: Date) => new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate()));
@@ -96,7 +96,7 @@ export function marketRoutes(app: FastifyInstance, { db, now, random }: Required
       });
 
       if ("error" in result) return reply.code(400).send(result);
-      await trySyncAchievements(db, result.sellerId);
+      await trySyncProgress(db, result.sellerId);
       return { item: result.item, price: result.price };
     },
   );
