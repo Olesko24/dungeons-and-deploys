@@ -263,6 +263,28 @@ async function shop(action: string | undefined, offer: string | undefined) {
   console.log("\nquest shop buy <1-3> · stats are rolled when you buy");
 }
 
+type Talent = { key: string; tree: string; row: number; rank: number; max: number; current: string | null; next: string | null; error: string | null };
+
+async function talents(action: string | undefined, key: string | undefined) {
+  if (action === "learn" && !key) throw new Error("Usage: quest talents learn <key>");
+  const res =
+    action === "learn" ? await authed("/talents/learn", "POST", { key })
+    : action === "reset" ? await authed("/talents/reset", "POST")
+    : await authed("/talents");
+  if (res.status >= 400) throw new Error(res.data.error ?? res.data.message ?? `Failed (${res.status})`);
+  const d = res.data;
+  console.log(`Talents · ${d.points - d.spent} of ${d.points} points free · reset costs ${d.resetCost}g, you have ${d.gold}g`);
+  for (const { tree, spent } of d.trees as { tree: string; spent: number }[]) {
+    console.log(`\n${tree[0].toUpperCase()}${tree.slice(1)} · ${spent} points`);
+    for (const t of d.talents.filter((t: Talent) => t.tree === tree)) {
+      const lock = t.error?.startsWith("needs") ? ` · ${t.error}` : "";
+      const effect = t.current ?? `next: ${t.next}`;
+      console.log(`  R${t.row + 1} ${t.key.padEnd(20)}${`${t.rank}/${t.max}`.padStart(4)}  ${effect}${lock}`);
+    }
+  }
+  console.log("\nquest talents learn <key> · quest talents reset");
+}
+
 async function stats() {
   const { data } = await authed("/stats");
   const s = data.stats;
@@ -350,6 +372,7 @@ const USAGE = `Usage: quest [command]
   quest market                                   draw a random item of a rarity, list your own
   quest shop [buy <1-3>]                         three new offers every day
   quest stats                                    statistics and achievements
+  quest talents [learn <key>|reset]              one talent point per level, reset costs 10g per point
   quest top [xp|achievements|guilds]             leaderboards
   quest manual                                   player manual
   quest changelog                                what changed
@@ -403,6 +426,9 @@ try {
       break;
     case "top":
       await top(positionals[1]);
+      break;
+    case "talents":
+      await talents(positionals[1], positionals[2]);
       break;
     case "stats":
       await stats();

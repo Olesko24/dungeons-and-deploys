@@ -59,6 +59,8 @@ model Character {
   name         String          @unique
   xp           Int             @default(0)
   gold         Int             @default(0)
+  /// Learned talent ranks by talent key, see packages/shared/src/talents.ts.
+  talents      Json            @default("{}")
   quests       Quest[]
   items        Item[]
   encounters   Encounter[]

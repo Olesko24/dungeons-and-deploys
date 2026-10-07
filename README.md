@@ -30,6 +30,7 @@ New here? Read the [player manual](docs/manual.md).
 | Raid | 5+ | Guild only, scheduled by the leader. Shared boss HP, every raider deals damage each tick |
 | Market | – | Fixed prices by rarity, buyers draw a random listing, one draw per day |
 | Shop | – | Three new offers every day, each once per player |
+| Talents | – | One point per level up to 100, four trees of 8 talents with 36 ranks each, reset for 10 gold per point |
 | Achievements | – | 18 achievements and a statistics page, just for fun |
 | Leaderboards | – | Top 20 by level, achievements and guild level |
 

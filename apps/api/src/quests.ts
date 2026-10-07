@@ -2,13 +2,17 @@ import type { FastifyInstance } from "fastify";
 import {
   COOLDOWN_MS,
   QUEST_LOOT_ROLLS,
+  type Talents,
   equipmentBonus,
   levelFromXp,
+  playerBonus,
   questName,
   questOutcome,
   questStory,
   rollLoot,
   rollStats,
+  talentBonus,
+  withBonus,
 } from "@tokenquest/shared";
 import type { Deps } from "./app.ts";
 import { equippedItems, itemView, requireCharacter } from "./characters.ts";
@@ -29,6 +33,8 @@ const questView = (q: Quest & { lootItem?: Item | null }) => ({
   loot: q.lootItem ? itemView(q.lootItem) : null,
 });
 
+const cooldownMs = (character: Character) => COOLDOWN_MS * (1 - talentBonus(character.talents as Talents).cooldown / 100);
+
 export function questRoutes(app: FastifyInstance, { db, now, random }: Required<Deps>) {
   app.post("/quests", async (req, reply) => {
     const character = await requireCharacter(db, req, reply);
@@ -39,12 +45,13 @@ export function questRoutes(app: FastifyInstance, { db, now, random }: Required<
       await tx.$queryRaw`SELECT id FROM characters WHERE id = ${character.id} FOR UPDATE`;
       const last = await tx.quest.findFirst({ where: { characterId: character.id }, orderBy: { startedAt: "desc" } });
       if (last && !last.resolvedAt) return { error: "quest already running" };
-      if (last && last.endsAt.getTime() + COOLDOWN_MS > t.getTime()) {
-        return { error: "cooldown", readyAt: new Date(last.endsAt.getTime() + COOLDOWN_MS) };
+      const cooldown = cooldownMs(character);
+      if (last && last.endsAt.getTime() + cooldown > t.getTime()) {
+        return { error: "cooldown", readyAt: new Date(last.endsAt.getTime() + cooldown) };
       }
       const quest = await tx.quest.create({ data: { characterId: character.id, startedAt: t, endsAt: t } });
       const outcome = await grantQuest(tx, quest.id, random, t);
-      return { name: questName(quest.id), story: questStory(quest.id, outcome?.success ?? null), ...outcome, readyAt: new Date(t.getTime() + COOLDOWN_MS) };
+      return { name: questName(quest.id), story: questStory(quest.id, outcome?.success ?? null), ...outcome, readyAt: new Date(t.getTime() + cooldown) };
     });
     return reply.code("error" in result ? 409 : 201).send(result);
   });
@@ -55,7 +62,7 @@ export function questRoutes(app: FastifyInstance, { db, now, random }: Required<
 
   const status = async (character: Character, last: (Quest & { lootItem: Item | null }) | null) => ({
     quest: last ? questView(last) : null,
-    readyAt: last ? new Date(last.endsAt.getTime() + COOLDOWN_MS) : now(),
+    readyAt: last ? new Date(last.endsAt.getTime() + cooldownMs(character)) : now(),
     character: { name: character.name, gold: character.gold, level: levelFromXp(character.xp).level },
     encounter: await encounterView(db, character, now()),
     dungeon: await dungeonView(db, character.id, now()),
@@ -117,9 +124,10 @@ async function grantQuest(tx: Prisma.TransactionClient, questId: number, random:
   if (!quest || quest.resolvedAt) return null;
 
   const { character } = quest;
-  const { luck, fortune } = equipmentBonus(character.items);
-  const outcome = questOutcome(random, luck, fortune);
-  const loot = outcome.success ? rollLoot(levelFromXp(character.xp).level, QUEST_LOOT_ROLLS, random) : null;
+  const bonus = playerBonus(character.items, character.talents as Talents);
+  const outcome = questOutcome(random, bonus.gear.luck + bonus.questLuck, bonus.gear.fortune + bonus.questGold);
+  outcome.xp = withBonus(outcome.success ? outcome.xp : outcome.xp + bonus.failXp, bonus.xp + bonus.questXp);
+  const loot = outcome.success ? rollLoot(levelFromXp(character.xp).level, QUEST_LOOT_ROLLS, random, bonus) : null;
 
   const updated = await tx.quest.updateMany({ where: { id: questId, resolvedAt: null }, data: { ...outcome, resolvedAt: t } });
   if (updated.count === 0) return null;

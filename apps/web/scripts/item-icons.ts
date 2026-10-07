@@ -1,6 +1,6 @@
-// Generates 16x16 pixel-art SVG icons for every item in the catalog and for the UI: node scripts/item-icons.ts
+// Generates 16x16 pixel-art SVG icons for every item in the catalog, every talent and the UI: node scripts/item-icons.ts
 import { mkdirSync, writeFileSync } from "node:fs";
-import { ITEM_BASES, RARITIES, type Rarity } from "@tokenquest/shared";
+import { ITEM_BASES, RARITIES, type Rarity, TALENTS, type TalentTree } from "@tokenquest/shared";
 
 // Material shades per rarity, derived from the rarity colors in docs/style.md.
 const MATERIAL: Record<Rarity, { l: string; m: string; d: string }> = {
@@ -175,3 +175,99 @@ for (const [name, [rows, material]] of Object.entries(UI_SPRITES)) {
   writeFileSync(new URL(`${name}.svg`, ui), svg(rows, material));
 }
 console.log(`Wrote ${Object.keys(UI_SPRITES).length} UI icons to ${ui.pathname}`);
+
+/** Talent icons share sprites with items and the UI where one fits, colored by tree. */
+const TREE: Record<TalentTree, Material> = {
+  offense: { l: "#ffb8a8", m: "#e86a56", d: "#a83a2a" },
+  defense: MATERIAL.rare,
+  luck: { l: "#c8f0b0", m: "#6ac85a", d: "#3a8a3a" },
+  general: GOLD,
+};
+const TALENT_SPRITES: Record<string, string[]> = {
+  sword: SPRITES.sword,
+  axe: SPRITES.axe,
+  shield: SPRITES.shield,
+  helm: SPRITES.helm,
+  chest: SPRITES.chest,
+  ring: SPRITES.ring,
+  gold: UI_SPRITES.gold[0],
+  skull: UI_SPRITES.raid[0],
+  crown: UI_SPRITES.crown[0],
+  bag: UI_SPRITES.bag[0],
+  star: UI_SPRITES.star[0],
+  book: UI_SPRITES.book[0],
+  scroll: UI_SPRITES.scroll[0],
+  shop: UI_SPRITES.shop[0],
+  stats: UI_SPRITES.stats[0],
+  flag: UI_SPRITES.guild[0],
+  lightning: pad([
+    "................", ".........llll...", "........lmmd....", ".......lmmd.....", "......lmmd......", ".....lmmmmmmd...",
+    ".........lmd....", "........lmd.....", ".......lmd......", "......lmd.......", ".....ld.........",
+  ]),
+  flame: sym([
+    "........", "........", ".......l", "......lm", "......lm", ".....lmm", "...l.lmm", "...lmlmm", "..lmmmmw",
+    "..lmmmww", "..lmmwww", "..lmmwww", "...lmmww", "....lmmm", ".....ddd",
+  ]),
+  chip: sym([
+    "........", "........", "...m.m.m", "...m.m.m", "..dddddd", "..dlllll", "mmdlmmmm", "..dlmwmm", "..dlmmmm",
+    "mmdlmmmm", "..dlmmmm", "..dddddd", "...m.m.m", "...m.m.m",
+  ]),
+  heart: sym([
+    "........", "........", "..lll...", ".lmmml..", ".lmwmmll", ".lmmmmmm", ".lmmmmmm", "..mmmmmm", "...mmmmm",
+    "....mmmm", ".....mmm", "......mm", ".......m",
+  ]),
+  retry: pad([
+    "................", "................", ".....lllll......", "....l.....m.m...", "...l.......mm...", "...l......mmm...",
+    "...l............", "...l........m...", "............m...", "...mmm......m...", "...mm.......d...", "...m.m.....d....",
+    "......ddddd.....",
+  ]),
+  lock: sym([
+    "........", "........", "....llll", "...l....", "...l....", "...l....", "..dddddd", "..lmmmmm", "..lmmmmo",
+    "..lmmmmo", "..lmmmmm", "..lmmmmm", "..dddddd",
+  ]),
+  server: sym([
+    "........", "........", "..dddddd", "..lmemmm", "..dddddd", "........", "..dddddd", "..lmemmm", "..dddddd",
+    "........", "..dddddd", "..lmemmm", "..dddddd",
+  ]),
+  clover: sym([
+    "........", "........", "...ll...", "..lmml..", "..lmmml.", "...lmmml", ".....mmm", "...lmmml", "..lmmml.",
+    "..lmml..", "...ll...",
+  ]),
+  ticket: pad([
+    "................", "................", "................", "..lllllllllllll.", "..lmmmmm.mmmmmd.", "...mmwmm.mmmmm..",
+    "...mmmmm.mmmmm..", "..lmmmmm.mmmmmd.", "..ddddddddddddd.",
+  ]),
+  magnet: sym([
+    "........", "........", "..wwww..", "..wwww..", "..lmmm..", "..lmmm..", "..lmmm..", "..lmmm..", "..lmmm..",
+    "..lmmmmm", "...lmmmm", "....dddd",
+  ]),
+  duck: pad([
+    "................", "................", "......mmm.......", ".....mmmmm......", ".....mmomm......", "..eeemmmmm......",
+    "......mmmm......", "....mmmmmmmmm..m", "...mmmmmmmmmmmm.", "...lmmmmmmmmmmd.", "...lmmmmmmmmmd..", "....ddddddddd...",
+  ]),
+  bug: sym([
+    "........", "........", "....d...", ".....d..", "......mm", "..d.lmmm", "...dlmmm", "..ddlmmw", "...dlmmm",
+    "..d.lmmm", "....lmmm", ".....ddd",
+  ]),
+  coffee: pad([
+    "................", "................", ".....l..l.......", "......l..l......", ".....l..l.......", "................",
+    "...lmmmmmmmd....", "...lmwwmmmmdmm..", "...lmmmmmmmd..m.", "...lmmmmmmmd..m.", "...lmmmmmmmdmm..", "....lmmmmmd.....",
+    "..ddddddddddd...",
+  ]),
+  coins: pad([
+    "................", "................", "................", ".....lmmmmd.....", ".....dddddd.....", "....lmmmmd......",
+    "....dddddd......", ".....lmmmmd.....", ".....dddddd.....", "...lmmmmd.lmmmd.", "...dddddd.ddddd.", "....lmmmmdlmmmd.",
+    "....dddddddddddd",
+  ]),
+};
+/** Icons that keep their own colors instead of the tree's. */
+const TALENT_MATERIAL: Record<string, Material> = { duck: GOLD, coffee: BONE, gold: GOLD, coins: GOLD };
+
+const talents = new URL("../public/talents/", import.meta.url);
+mkdirSync(talents, { recursive: true });
+for (const [key, t] of Object.entries(TALENTS)) {
+  const rows = TALENT_SPRITES[t.icon];
+  if (!rows || rows.length !== 16 || rows.some((r) => r.length !== 16)) throw new Error(`${key}: sprite ${t.icon} must be 16x16`);
+  writeFileSync(new URL(`${key}.svg`, talents), svg(rows, TALENT_MATERIAL[t.icon] ?? TREE[t.tree]));
+}
+console.log(`Wrote ${Object.keys(TALENTS).length} talent icons to ${talents.pathname}`);

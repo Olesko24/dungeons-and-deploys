@@ -97,7 +97,57 @@ quest status --short    # the one-line status used by status lines, no network
 | 10 | ~11,000 | 200 quests |
 | 20 | ~67,000 | 1,200 quests |
 
-Higher levels mainly mean better loot (see below).
+Higher levels mainly mean better loot (see below) and talent points. The level cap is 100.
+
+### Talents
+
+Every level gives one talent point, 100 at the cap. Four trees hold 36 ranks each, so you cannot max everything.
+A row opens after 5 more points in its tree (shown in brackets). Some talents need the talent right above them maxed.
+On the website every talent is a tile: click it for the details and to learn a rank.
+
+| Tree | Row (points) | Talent | Effect | Ranks | Needs maxed |
+|---|---|---|---|---|---|
+| Offense | 1 (0) | Sharp Syntax | +1% combat power per rank | 5 | |
+| Offense | 1 (0) | Quick Fix | +2% combat power in monster fights per rank | 5 | |
+| Offense | 2 (5) | Hot Path | +2% raid damage per rank | 5 | |
+| Offense | 2 (5) | Bounty Hunter | +5% gold from monster fights per rank | 5 | |
+| Offense | 3 (10) | Overclock | +2% combat power per rank | 5 | Hot Path |
+| Offense | 3 (10) | Boss Slayer | +3% combat power against dungeon bosses per rank | 5 | |
+| Offense | 4 (15) | Hotfix Frenzy | +4% XP from monster fights per rank | 5 | |
+| Offense | 5 (20) | Ten-x Developer | +10% combat power per rank | 1 | Hotfix Frenzy |
+| Defense | 1 (0) | Type Safety | +1% combat power in dungeons and raids per rank | 5 | |
+| Defense | 1 (0) | Graceful Degradation | +3 XP for failed quests and lost fights per rank | 5 | |
+| Defense | 2 (5) | Retry Policy | +1% chance on every dungeon stage per rank | 5 | |
+| Defense | 2 (5) | Circuit Breaker | +2% combat power in monster fights per rank | 5 | |
+| Defense | 3 (10) | Load Balancer | +2% combat power in dungeons and raids per rank | 5 | Retry Policy |
+| Defense | 3 (10) | Disaster Recovery | +4% XP and gold from raids per rank | 5 | |
+| Defense | 4 (15) | Redundancy | +2% chance on every dungeon stage per rank | 5 | |
+| Defense | 5 (20) | Zero Downtime | +10% combat power in dungeons and raids per rank | 1 | Redundancy |
+| Luck | 1 (0) | Lucky Guess | +1% quest and fight success per rank | 5 | |
+| Luck | 1 (0) | Scavenger | +1% loot drop chance on quests and fights per rank | 5 | |
+| Luck | 2 (5) | Golden Ticket | +2% chance for an extra rarity roll on loot per rank | 5 | |
+| Luck | 2 (5) | Bug Magnet | +10% more monster encounters per rank | 5 | |
+| Luck | 3 (10) | Lucky Commit | +4% chance for an extra rarity roll on loot per rank | 5 | Golden Ticket |
+| Luck | 3 (10) | Rubber Duck | +2% quest success per rank | 5 | |
+| Luck | 4 (15) | Heisenbug Whisperer | +1% quest and fight success per rank | 5 | |
+| Luck | 5 (20) | Cosmic Ray | +15% chance for an extra rarity roll on loot per rank | 1 | Heisenbug Whisperer |
+| General | 1 (0) | Fast Learner | +2% XP per rank | 5 | |
+| General | 1 (0) | Haggler | +2% gold per rank | 5 | |
+| General | 2 (5) | Stack Overflow | +5% XP from quests per rank | 5 | |
+| General | 2 (5) | Expense Report | +5% gold from quests per rank | 5 | |
+| General | 3 (10) | Pair Programming | +5% XP and gold from dungeon stages per rank | 5 | Stack Overflow |
+| General | 3 (10) | Coffee Break | 3% shorter rest after a quest per rank | 5 | |
+| General | 4 (15) | Mentor | +3% XP per rank | 5 | |
+| General | 5 (20) | Principal Engineer | +10% XP per rank | 1 | Mentor |
+
+Combat power in raids makes you hit harder, it does not make the boss tougher. A reset returns all points and
+costs 10 gold per spent point.
+
+```sh
+quest talents                 # trees, ranks and free points
+quest talents learn <key>     # one rank, e.g. quest talents learn sharpSyntax
+quest talents reset           # all points back, 10 gold each
+```
 
 ## Items
 
@@ -282,7 +332,7 @@ A win gives every raider who dealt damage XP, gold and an item with three rarity
 
 ## Website
 
-The website shows your character, equipment, bag, quest history, guild, shop, statistics and leaderboards. To log in, run `quest pair` and enter the code it shows.
+The website shows your character, equipment, bag, quest history, guild, talents, shop, statistics and leaderboards. To log in, run `quest pair` and enter the code it shows.
 
 ## Account and devices
 
@@ -302,7 +352,7 @@ Tokenquest has no email and no password. Your login token on your devices is you
 
 | Command | What it does |
 |---|---|
-| `quest` | Start a quest |
+| `quest` | Do a quest, result at once |
 | `quest status [--short]` | Current quest and the last result |
 | `quest char` | Character sheet |
 | `quest inv` | Inventory |
@@ -314,6 +364,7 @@ Tokenquest has no email and no password. Your login token on your devices is you
 | `quest dungeon [start\|join <code>]` | Dungeons |
 | `quest guild [create <name>\|join <code>\|leave]` | Guilds |
 | `quest raid [schedule <minutes>\|join]` | Raids |
+| `quest talents [learn <key>\|reset]` | Talents |
 | `quest stats` | Statistics and achievements |
 | `quest top [xp\|achievements\|guilds]` | Leaderboards |
 | `quest login --code <code>` | New player |

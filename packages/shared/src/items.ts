@@ -161,10 +161,14 @@ export function rollRarity(level: number, rolls: number, random: () => number): 
   return RARITIES[best];
 }
 
-/** Loot after a win, or null. More rarity rolls mean better odds, the best roll counts. */
-export function rollLoot(level: number, rarityRolls: number, random: () => number) {
-  if (random() >= DROP_CHANCE) return null;
-  return randomItemKey(level, rarityRolls, random);
+/**
+ * Loot after a win, or null. More rarity rolls mean better odds, the best roll counts.
+ * `bonus.drop` adds percentage points to the drop chance, `bonus.rarityRoll` is the percent chance of one more roll.
+ */
+export function rollLoot(level: number, rarityRolls: number, random: () => number, bonus = { drop: 0, rarityRoll: 0 }) {
+  if (random() >= DROP_CHANCE + bonus.drop / 100) return null;
+  const extra = bonus.rarityRoll > 0 && random() < bonus.rarityRoll / 100 ? 1 : 0;
+  return randomItemKey(level, rarityRolls + extra, random);
 }
 
 /** A random item: the slot type evenly, a weapon kind with the same number of hands, then the rarity. */

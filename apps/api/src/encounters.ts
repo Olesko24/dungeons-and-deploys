@@ -4,14 +4,17 @@ import {
   ENCOUNTER_MS,
   MONSTERS,
   type MonsterKey,
-  equipmentBonus,
+  type Talents,
   fightRewards,
   fightStory,
   levelFromXp,
+  playerBonus,
   rollLoot,
   rollMonster,
   rollStats,
+  talentBonus,
   winChance,
+  withBonus,
 } from "@tokenquest/shared";
 import type { Deps } from "./app.ts";
 import { equippedItems, itemView, requireCharacter } from "./characters.ts";
@@ -22,7 +25,8 @@ const activeEncounter = (db: PrismaClient, characterId: number, t: Date) =>
 
 /** Called on every accepted heartbeat. Spawns at most one monster at a time. */
 export async function maybeSpawnEncounter(db: PrismaClient, character: Character, t: Date, random: () => number) {
-  if (random() >= ENCOUNTER_CHANCE || (await activeEncounter(db, character.id, t))) return;
+  const chance = ENCOUNTER_CHANCE * (1 + talentBonus(character.talents as Talents).encounter / 100);
+  if (random() >= chance || (await activeEncounter(db, character.id, t))) return;
   await db.encounter.create({
     data: {
       characterId: character.id,
@@ -37,13 +41,13 @@ export async function maybeSpawnEncounter(db: PrismaClient, character: Character
 export async function encounterView(db: PrismaClient, character: Character, t: Date) {
   const encounter = await activeEncounter(db, character.id, t);
   if (!encounter) return null;
-  const gear = equipmentBonus(await equippedItems(db, character.id));
+  const bonus = playerBonus(await equippedItems(db, character.id), character.talents as Talents);
   const monster = encounter.monster as MonsterKey;
   return {
     name: MONSTERS[monster].name,
     level: encounter.level,
     expiresAt: encounter.expiresAt,
-    winChance: winChance(levelFromXp(character.xp).level, gear, monster),
+    winChance: winChance(levelFromXp(character.xp).level, bonus.gear, monster, bonus.power + bonus.fightPower),
   };
 }
 
@@ -60,11 +64,12 @@ export function encounterRoutes(app: FastifyInstance, { db, now, random }: Requi
       if (!encounter) return null;
       const monster = encounter.monster as MonsterKey;
       const level = levelFromXp(character.xp).level;
-      const gear = equipmentBonus(await equippedItems(tx, character.id));
-      const chance = winChance(level, gear, monster);
+      const bonus = playerBonus(await equippedItems(tx, character.id), character.talents as Talents);
+      const chance = winChance(level, bonus.gear, monster, bonus.power + bonus.fightPower);
       const won = random() < chance;
-      const rewards = won ? fightRewards(monster, level, gear.fortune) : { xp: 0, gold: 0 };
-      const lootKey = won ? rollLoot(level, 1, random) : null;
+      const rewards = won ? fightRewards(monster, level, bonus.gear.fortune + bonus.fightGold) : { xp: bonus.failXp, gold: 0 };
+      rewards.xp = withBonus(rewards.xp, bonus.xp + bonus.fightXp);
+      const lootKey = won ? rollLoot(level, 1, random, bonus) : null;
 
       // Marking the encounter fought first makes a second parallel fight a no-op.
       const marked = await tx.encounter.updateMany({

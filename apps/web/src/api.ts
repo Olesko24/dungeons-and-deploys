@@ -44,6 +44,22 @@ export type Raid = {
 
 export type ShopOffer = { offer: number; key: string; name: string; rarity: string; price: number; unlockLevel: number; locked: boolean; bought: boolean };
 export type Shop = { gold: number; refreshesAt: string; offers: ShopOffer[] };
+export type Talent = {
+  key: string;
+  name: string;
+  tree: string;
+  row: number;
+  col: number;
+  flavor: string;
+  rank: number;
+  max: number;
+  rowPoints: number;
+  requires: string | null;
+  current: string | null;
+  next: string | null;
+  error: string | null;
+};
+export type TalentSheet = { points: number; spent: number; resetCost: number; gold: number; trees: { tree: string; spent: number }[]; talents: Talent[] };
 export type Achievement = { key: string; name: string; description: string; unlockedAt: string | null };
 export type PlayerStats = Record<string, number | boolean>;
 

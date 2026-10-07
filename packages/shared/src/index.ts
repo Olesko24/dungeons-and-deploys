@@ -1,3 +1,5 @@
+import { MAX_LEVEL } from "./talents.ts";
+
 /** Rest after a quest. The quest itself resolves at once. */
 export const COOLDOWN_MS = 45 * 60 * 1000;
 export const QUEST_BASE_CHANCE = 0.75;
@@ -10,7 +12,7 @@ export const xpToNext = (level: number) => Math.round(100 * level ** 1.5);
 export function levelFromXp(totalXp: number) {
   let level = 1;
   let rest = totalXp;
-  while (rest >= xpToNext(level)) rest -= xpToNext(level++);
+  while (level < MAX_LEVEL && rest >= xpToNext(level)) rest -= xpToNext(level++);
   return { level, xpIntoLevel: rest, xpForNext: xpToNext(level) };
 }
 
@@ -22,6 +24,7 @@ export * from "./market.ts";
 export * from "./raids.ts";
 export * from "./shop.ts";
 export * from "./stories.ts";
+export * from "./talents.ts";
 
 /**
  * A quest resolves the moment it starts, the dice decide.

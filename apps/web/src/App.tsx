@@ -11,6 +11,7 @@ import {
   type Shop,
   type Stats,
   type Status,
+  type TalentSheet,
   Unauthorized,
   api,
 } from "./api.ts";
@@ -331,6 +332,85 @@ function ShopView({ onChange }: { onChange: () => void }) {
   );
 }
 
+function TalentsView({ onChange }: { onChange: () => void }) {
+  const [sheet, setSheet] = useState<TalentSheet | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
+  const [message, setMessage] = useState("");
+  useEffect(() => void api<TalentSheet>("/talents").then(setSheet), []);
+  async function act(path: string, body: object = {}) {
+    try {
+      setSheet(await api<TalentSheet>(path, body));
+      setMessage("");
+      onChange();
+    } catch (err) {
+      setMessage((err as Error).message);
+    }
+  }
+  if (!sheet) return <section className="panel"><p>Loading…</p></section>;
+  const maxed = (key: string | null) => sheet.talents.some((t) => t.key === key && t.rank === t.max);
+  return (
+    <section className="panel" onKeyDown={(e) => e.key === "Escape" && setOpen(null)}>
+      <h2><UiIcon name="star" />Talents · {sheet.points - sheet.spent} of {sheet.points} points free</h2>
+      <div className="row">
+        <p className="dim">One point per level. Each row opens after 5 more points in its tree, arrows need the talent above maxed.</p>
+        <button
+          type="button"
+          className="small ghost"
+          disabled={!sheet.spent || sheet.gold < sheet.resetCost}
+          onClick={() => confirm(`Reset all talents for ${sheet.resetCost} gold?`) && act("/talents/reset")}
+        >
+          Reset · <Gold amount={sheet.resetCost} />
+        </button>
+      </div>
+      {message && <p role="status">{message}</p>}
+      <div className="trees">
+        {sheet.trees.map(({ tree, spent }) => (
+          <div key={tree} className="tree">
+            <h3>{tree} <span className="dim">· {spent}</span></h3>
+            <div className="talent-grid">
+              {sheet.talents.filter((t) => t.tree === tree).map((t) => {
+                const locked = !!t.error?.startsWith("needs");
+                const state = t.rank === t.max ? "maxed" : locked ? "locked" : "open";
+                return (
+                  <div
+                    key={t.key}
+                    className={`talent ${state} col-${t.col} ${t.requires ? "arrow" : ""} ${maxed(t.requires) ? "lit" : ""}`}
+                    style={{ gridRow: t.row + 1, gridColumn: t.col + 1 }}
+                  >
+                    <button
+                      type="button"
+                      className="tile"
+                      aria-expanded={open === t.key}
+                      aria-label={`${t.name}, rank ${t.rank} of ${t.max}`}
+                      onClick={() => setOpen(open === t.key ? null : t.key)}
+                    >
+                      <img src={`/talents/${t.key}.svg`} alt="" width={40} height={40} />
+                      <span className="rank">{t.rank}/{t.max}</span>
+                    </button>
+                    {open === t.key && (
+                      <div className="popover" role="dialog" aria-label={t.name}>
+                        <strong>{t.name}</strong>
+                        <span className="dim">Rank {t.rank}/{t.max}</span>
+                        {t.current && <span>Now: {t.current}</span>}
+                        {t.next && <span className="next">{t.rank ? "Next rank" : "First rank"}: {t.next}</span>}
+                        {locked && <span className="bad">{t.error}</span>}
+                        <em className="dim">{t.flavor}</em>
+                        {t.rank < t.max && (
+                          <button type="button" className="small" disabled={!!t.error} onClick={() => act("/talents/learn", { key: t.key })}>Learn</button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 const STAT_LABELS: [string, string][] = [
   ["questsWon", "Quests won"], ["questsFailed", "Quests failed"], ["longestStreak", "Longest win streak"],
   ["goldEarned", "Gold earned"], ["monstersSlain", "Monsters slain"], ["fightsLost", "Fights lost"], ["itemsFound", "Items found"],
@@ -410,7 +490,7 @@ function RanksView() {
   );
 }
 
-type View = "character" | "shop" | "stats" | "ranks" | DocName;
+type View = "character" | "talents" | "shop" | "stats" | "ranks" | DocName;
 
 type Data = { character: Character; status: Status; items: Item[]; history: Quest[]; guild: Guild | null; raid: Raid | null };
 
@@ -480,7 +560,7 @@ export function App() {
       </header>
       <BetaNote onOpen={setView} />
       <nav className="tabs" aria-label="Sections">
-        {(["character", "shop", "stats", "ranks", "manual", "changelog"] as const).map((v) => (
+        {(["character", "talents", "shop", "stats", "ranks", "manual", "changelog"] as const).map((v) => (
           <button key={v} type="button" className={`small ${view === v ? "" : "ghost"}`} aria-current={view === v ? "page" : undefined} onClick={() => setView(v)}>
             {v}
           </button>
@@ -495,6 +575,7 @@ export function App() {
           <History quests={data.history} />
         </>
       )}
+      {view === "talents" && <TalentsView onChange={() => void load()} />}
       {view === "shop" && <ShopView onChange={() => void load()} />}
       {view === "stats" && <StatsView />}
       {view === "ranks" && <RanksView />}

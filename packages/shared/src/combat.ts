@@ -29,9 +29,12 @@ export function rollMonster(random: () => number): MonsterKey {
 /** Attack scales linearly, defense multiplies it with a gentle slope so tanks are not invincible. */
 export const combatPower = (level: number, gear: Stats) => (4 + level + gear.attack) * (1 + (level + gear.defense) / 20);
 
-/** Win chance against a monster of the player's level, plus luck in percentage points, kept within 5-95%. */
-export function winChance(level: number, gear: Stats, monster: MonsterKey) {
-  const player = combatPower(level, gear);
+/**
+ * Win chance against a monster of the player's level, plus luck in percentage points, kept within 5-95%.
+ * `power` adds percent to the player's combat power.
+ */
+export function winChance(level: number, gear: Stats, monster: MonsterKey, power = 0) {
+  const player = combatPower(level, gear) * (1 + power / 100);
   const naked = combatPower(level, { attack: 0, defense: 0, luck: 0, fortune: 0 });
   const chance = player / (player + naked * MONSTERS[monster].power) + gear.luck / 100;
   return Math.min(0.95, Math.max(0.05, chance));

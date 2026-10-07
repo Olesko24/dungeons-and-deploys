@@ -13,7 +13,8 @@ export const DUNGEON_STAGES: { name: string; monster: MonsterKey; power: number 
   { name: "Lair of the Dependency Dragon", monster: "dependencyDragon", power: 0.4 },
 ];
 
-export type DungeonMember = { level: number; gear: Stats };
+/** `power` adds percent combat power, `stageChance` percentage points on the stage. */
+export type DungeonMember = { level: number; gear: Stats; power?: number; stageChance?: number };
 
 /**
  * Average member odds against the stage plus 5 points of teamwork per extra member.
@@ -30,10 +31,10 @@ export function stageChance(stage: number, members: DungeonMember[]) {
 /** winChance against the stage monster, with the monster's power multiplied by the stage toughness. */
 function scaledChance(m: DungeonMember, monster: MonsterKey, toughness: number) {
   // winChance(p) = player / (player + naked * power): solve for the ratio and rescale the monster.
-  const base = winChance(m.level, { ...m.gear, luck: 0 }, monster);
+  const base = winChance(m.level, { ...m.gear, luck: 0 }, monster, m.power);
   const ratio = base / (1 - base);
   const scaled = ratio / (ratio + toughness);
-  return scaled + m.gear.luck / 100;
+  return scaled + (m.gear.luck + (m.stageChance ?? 0)) / 100;
 }
 
 /** Rewards per member for one cleared stage, 10% more per extra member. */

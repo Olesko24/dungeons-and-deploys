@@ -15,6 +15,7 @@ import { questRoutes } from "./quests.ts";
 import { raidRoutes } from "./raids.ts";
 import { shopRoutes } from "./shop.ts";
 import { statsRoutes, trySyncAchievements } from "./stats.ts";
+import { talentRoutes } from "./talents.ts";
 
 export type Deps = {
   db: PrismaClient;
@@ -64,6 +65,7 @@ export async function buildApp(deps: Deps, opts: FastifyServerOptions = {}) {
   shopRoutes(app, full);
   statsRoutes(app, db);
   leaderboardRoutes(app, db);
+  talentRoutes(app, db);
 
   // Every successful player action may unlock achievements. Heartbeats are skipped: they are frequent and change little.
   app.addHook("onResponse", async (req, reply) => {

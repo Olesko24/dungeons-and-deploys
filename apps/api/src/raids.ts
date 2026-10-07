@@ -4,6 +4,7 @@ import {
   RAID_MIN_PLAYERS,
   RAID_TICKS,
   RAID_TICK_MS,
+  type Talents,
   combatPower,
   equipmentBonus,
   levelFromXp,
@@ -14,6 +15,8 @@ import {
   raidRewards,
   raidStory,
   rollStats,
+  talentBonus,
+  withBonus,
 } from "@tokenquest/shared";
 import type { Deps } from "./app.ts";
 import { requireCharacter } from "./characters.ts";
@@ -63,7 +66,10 @@ export function advanceRaid(db: PrismaClient, raidId: number, tick: number, rand
 
     const fighters = raid.members.map((m) => {
       const level = levelFromXp(m.character.xp).level;
-      return { m, level, power: combatPower(level, equipmentBonus(m.character.items)), base: combatPower(level, NO_GEAR) };
+      const bonus = talentBonus(m.character.talents as Talents);
+      // Boss HP follows gear power only, so talents make raiders hit harder instead of growing the boss.
+      const talentScale = (1 + (bonus.power + bonus.groupPower) / 100) * (1 + bonus.raidDamage / 100);
+      return { m, level, bonus, talentScale, power: combatPower(level, equipmentBonus(m.character.items)), base: combatPower(level, NO_GEAR) };
     });
 
     if (tick === 0) {
@@ -79,7 +85,7 @@ export function advanceRaid(db: PrismaClient, raidId: number, tick: number, rand
     let total = 0;
     const phase = raidPhase(random);
     for (const f of fighters) {
-      const hit = raidDamage(f.power, phase, random);
+      const hit = raidDamage(f.power * f.talentScale, phase, random);
       total += hit;
       await tx.raidMember.update({
         where: { raidId_characterId: { raidId, characterId: f.m.characterId } },
@@ -95,7 +101,8 @@ export function advanceRaid(db: PrismaClient, raidId: number, tick: number, rand
       let guildXp = 0;
       for (const f of fighters) {
         if (!damage.get(f.m.characterId)) continue;
-        const reward = raidRewards(f.level);
+        const raw = raidRewards(f.level);
+        const reward = { xp: withBonus(raw.xp, f.bonus.xp + f.bonus.raidRewards), gold: withBonus(raw.gold, f.bonus.raidRewards) };
         guildXp += reward.xp;
         await tx.character.update({ where: { id: f.m.characterId }, data: { xp: { increment: reward.xp }, gold: { increment: reward.gold } } });
         const key = raidLoot(f.level, random);

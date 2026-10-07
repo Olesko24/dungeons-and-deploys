@@ -5,12 +5,14 @@ import {
   DUNGEON_STAGES,
   DUNGEON_STAGE_MS,
   bossLoot,
+  type Talents,
   dungeonStory,
-  equipmentBonus,
   levelFromXp,
+  playerBonus,
   rollStats,
   stageChance,
   stageRewards,
+  withBonus,
 } from "@tokenquest/shared";
 import type { Deps } from "./app.ts";
 import { randomCode } from "./auth.ts";
@@ -56,7 +58,11 @@ export function resolveStage(db: PrismaClient, dungeonId: number, stage: number,
     });
     if (!dungeon || dungeon.endedAt || dungeon.stage !== stage) return null;
 
-    const members = dungeon.members.map((m) => ({ m, level: levelFromXp(m.character.xp).level, gear: equipmentBonus(m.character.items) }));
+    const members = dungeon.members.map((m) => {
+      const bonus = playerBonus(m.character.items, m.character.talents as Talents);
+      const power = bonus.power + bonus.groupPower + (stage === STAGES - 1 ? bonus.bossPower : 0);
+      return { m, level: levelFromXp(m.character.xp).level, gear: bonus.gear, power, stageChance: bonus.stageChance, bonus };
+    });
     const chance = stageChance(stage, members);
     const cleared = random() < chance;
     const last = stage === STAGES - 1;
@@ -68,8 +74,9 @@ export function resolveStage(db: PrismaClient, dungeonId: number, stage: number,
     if (advanced.count === 0) return null;
 
     if (cleared) {
-      for (const { m, level, gear } of members) {
-        const reward = stageRewards(stage, level, members.length, gear.fortune);
+      for (const { m, level, gear, bonus } of members) {
+        const reward = stageRewards(stage, level, members.length, gear.fortune + bonus.dungeonRewards);
+        reward.xp = withBonus(reward.xp, bonus.xp + bonus.dungeonRewards);
         await tx.character.update({ where: { id: m.characterId }, data: { xp: { increment: reward.xp }, gold: { increment: reward.gold } } });
         let lootItemId: number | undefined;
         if (last) {
