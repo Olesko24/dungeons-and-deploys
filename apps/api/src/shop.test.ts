@@ -35,6 +35,7 @@ test("buy each daily offer once", async () => {
   const bought = await p.call("POST", "/shop/buy", { offer: 1 });
   assert.equal(bought.statusCode, 200);
   assert.equal(bought.json().item.key, shopOffers("2026-10-07")[0].key);
+  assert.deepEqual(bought.json().item.stats, shop.offers[0].stats, "the item has the stats the offer showed");
   assert.equal(await p.gold(), 130);
   assert.equal((await p.call("POST", "/shop/buy", { offer: 1 })).json().error, "already bought today");
   assert.equal((await p.call("POST", "/shop/buy", { offer: 2 })).json().error, "epic offers unlock at level 10");

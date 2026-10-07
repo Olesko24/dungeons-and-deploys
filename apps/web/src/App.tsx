@@ -497,7 +497,7 @@ function ShopView({ onChange }: { onChange: () => void }) {
   return (
     <section className="panel">
       <h2><UiIcon name="shop" />Shop · <Gold amount={shop.gold} /></h2>
-      <p className="dim">Three new offers every day, new ones in {Math.ceil(minutesUntil(shop.refreshesAt) / 60)}h. Stats are rolled when you buy.</p>
+      <p className="dim">Three new offers every day, new ones in {Math.ceil(minutesUntil(shop.refreshesAt) / 60)}h.</p>
       <p className="legend dim">Rarity, common to rarest: {Object.keys(RARITY_SHAPES).map((r) => <Rarity key={r} rarity={r} />)}</p>
       {message && <p role="status">{message}</p>}
       <div className="offers">
@@ -506,6 +506,7 @@ function ShopView({ onChange }: { onChange: () => void }) {
             <img className="icon" src={`/items/${o.key}.svg`} alt="" width={64} height={64} />
             <span className="name">{o.name}</span>
             <span className="dim"><Rarity rarity={o.rarity} /> · <Gold amount={o.price} /></span>
+            <span className="dim">{statParts(o.stats).join(" · ")}</span>
             <button type="button" className="small" disabled={o.bought || o.locked || shop.gold < o.price} onClick={() => buy(o.offer)}>
               {o.bought ? "Bought" : o.locked ? `Lv ${o.unlockLevel}` : "Buy"}
             </button>

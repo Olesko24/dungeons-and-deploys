@@ -283,9 +283,9 @@ async function shop(action: string | undefined, offer: string | undefined) {
   console.log(`Shop · ${data.gold}g · new offers in ${hours}h`);
   for (const o of data.offers) {
     const note = o.bought ? " · bought" : o.locked ? ` · unlocks at Lv ${o.unlockLevel}` : "";
-    console.log(`  ${o.offer}  ${rarityColor(o.name.padEnd(32), o.rarity)}${o.rarity.padEnd(10)}${String(o.price).padStart(4)}g${note}`);
+    console.log(`  ${o.offer}  ${rarityColor(o.name.padEnd(40), o.rarity)}${o.rarity.padEnd(10)}${String(o.price).padStart(5)}g  ${statsText(o.stats)}${note}`);
   }
-  console.log("\nquest shop buy <1-3> · stats are rolled when you buy");
+  console.log("\nquest shop buy <1-3>");
 }
 
 type Talent = { key: string; tree: string; row: number; rank: number; max: number; current: string | null; next: string | null; error: string | null };

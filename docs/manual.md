@@ -290,7 +290,7 @@ The shop has three offers per day, the same for every player: one uncommon, one 
 | Epic | 240 gold | level 10 |
 | Mythic | 1000 gold | level 30 |
 
-You can buy each offer once per day. The stats are rolled when you buy.
+You can buy each offer once per day. Offers show their stats, and every buyer gets exactly that item.
 
 ```sh
 quest shop

@@ -1,10 +1,10 @@
 import type { FastifyInstance } from "fastify";
-import { item, levelFromXp, rollStats, shopDay, shopOffers } from "@dnd/shared";
+import { levelFromXp, shopDay, shopOffers } from "@dnd/shared";
 import type { Deps } from "./app.ts";
 import { itemView, requireCharacter } from "./characters.ts";
 import { Prisma } from "./generated/prisma/client.ts";
 
-export function shopRoutes(app: FastifyInstance, { db, now, random }: Required<Deps>) {
+export function shopRoutes(app: FastifyInstance, { db, now }: Required<Deps>) {
   app.get("/shop", async (req, reply) => {
     const character = await requireCharacter(db, req, reply);
     if (!character) return;
@@ -21,8 +21,9 @@ export function shopRoutes(app: FastifyInstance, { db, now, random }: Required<D
       offers: shopOffers(day).map((o, i) => ({
         offer: i + 1,
         key: o.key,
-        name: item(o.key).baseName,
+        name: o.name,
         rarity: o.rarity,
+        stats: o.stats,
         price: o.price,
         unlockLevel: o.unlockLevel,
         locked: level < o.unlockLevel,
@@ -54,7 +55,7 @@ export function shopRoutes(app: FastifyInstance, { db, now, random }: Required<D
             data: { gold: { decrement: offer.price } },
           });
           if (paid.count === 0) throw new Error("not enough gold");
-          const bought = await tx.item.create({ data: { characterId: character.id, key: offer.key, ...rollStats(offer.key, random) } });
+          const bought = await tx.item.create({ data: { characterId: character.id, key: offer.key, ...offer.stats } });
           return { item: itemView(bought), price: offer.price };
         })
         .catch((err) => {

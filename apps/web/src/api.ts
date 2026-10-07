@@ -49,7 +49,7 @@ export type Raid = {
 export type RaidBoss = { tier: number; name: string; flavor: string; recommended: number; unlocked: boolean };
 export type Raids = { raid: Raid | null; bosses: RaidBoss[]; power: number };
 
-export type ShopOffer = { offer: number; key: string; name: string; rarity: string; price: number; unlockLevel: number; locked: boolean; bought: boolean };
+export type ShopOffer = { offer: number; key: string; name: string; rarity: string; stats: Stats; price: number; unlockLevel: number; locked: boolean; bought: boolean };
 export type Shop = { gold: number; refreshesAt: string; offers: ShopOffer[] };
 export type Talent = {
   key: string;

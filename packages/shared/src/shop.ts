@@ -1,4 +1,4 @@
-import { type Rarity, randomItemBase, rarityLevel } from "./items.ts";
+import { type Rarity, itemName, randomItemBase, rarityLevel, rollStats } from "./items.ts";
 import { MARKET_PRICES } from "./market.ts";
 
 /** Three offers spread over the early, middle and late game, at twice the market price. */
@@ -23,8 +23,12 @@ export function seededRandom(seed: number) {
 /** UTC day like `2026-10-07`. */
 export const shopDay = (t: Date) => t.toISOString().slice(0, 10);
 
-/** The day's offers, the same for everyone. Stats are rolled per buyer on purchase. */
+/** The day's offers with their stats, the same for everyone, so buyers know what they pay for. */
 export function shopOffers(day: string) {
   const random = seededRandom(Number(day.replaceAll("-", "")));
-  return SHOP_OFFERS.map((o) => ({ ...o, key: `${randomItemBase(random)}.${o.rarity}` }));
+  return SHOP_OFFERS.map((o) => {
+    const key = `${randomItemBase(random)}.${o.rarity}`;
+    const stats = rollStats(key, random);
+    return { ...o, key, stats, name: itemName(key, stats) };
+  });
 }
