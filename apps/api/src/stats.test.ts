@@ -20,7 +20,7 @@ test("stats and achievements come from what a player did", async () => {
 
   const fresh = await get();
   assert.equal(fresh.stats.questsWon, 0);
-  assert.ok(fresh.achievements.every((a: { unlocked: boolean }) => !a.unlocked));
+  assert.ok(fresh.achievements.every((a: { unlockedAt: string | null }) => a.unlockedAt === null));
 
   const legendary = await db.item.create({ data: { characterId: id, key: "bow.legendary", attack: 20 } });
   await db.quest.create({ data: { characterId: id, startedAt: new Date(), endsAt: new Date(), resolvedAt: new Date(), success: true, slots: 511, gold: 20, lootItemId: legendary.id } });
@@ -33,6 +33,27 @@ test("stats and achievements come from what a player did", async () => {
     [stats.questsWon, stats.questsFailed, stats.perfectQuests, stats.presentSlots, stats.goldEarned, stats.dragonsSlain, stats.legendariesFound, stats.equippedSlots],
     [1, 1, 1, 11, 27, 1, 1, 2],
   );
-  const unlocked = achievements.filter((a: { unlocked: boolean }) => a.unlocked).map((a: { key: string }) => a.key);
+  const unlocked = achievements.filter((a: { unlockedAt: string | null }) => a.unlockedAt).map((a: { key: string }) => a.key);
   assert.deepEqual(unlocked, ["firstQuest", "perfect", "firstBlood", "dragon", "legendary"]);
+});
+
+test("unlocked achievements stay unlocked", async () => {
+  await db.user.create({ data: { character: { create: { name: "keeper" } }, sessions: { create: { tokenHash: hash("tq_keeper") } } } });
+  const call = async (method: "GET" | "POST", url: string, payload?: object) =>
+    (await buildApp({ db, scheduleResolve: async () => {} })).inject({ method, url, payload, headers: { authorization: "Bearer tq_keeper" } });
+  const founder = async () =>
+    (await call("GET", "/stats")).json().achievements.find((a: { key: string }) => a.key === "founder").unlockedAt;
+
+  await call("POST", "/guild", { name: "Keepers" });
+  // The hook runs after the response, so give it a moment instead of reading /stats (which would sync itself).
+  let stored = null;
+  for (let i = 0; i < 20 && !stored; i++) {
+    await new Promise((r) => setTimeout(r, 25));
+    stored = await db.achievement.findFirst({ where: { key: "founder", character: { name: "keeper" } } });
+  }
+  assert.ok(stored, "the action itself unlocks the achievement");
+  const unlockedAt = await founder();
+  assert.ok(unlockedAt, "founding a guild unlocks Founder");
+  await call("POST", "/guild/leave");
+  assert.equal(await founder(), unlockedAt, "leaving the guild keeps it, with its original date");
 });

@@ -10,6 +10,7 @@ import {
 } from "@tokenquest/shared";
 import type { Deps } from "./app.ts";
 import { itemView, requireCharacter } from "./characters.ts";
+import { syncAchievements } from "./stats.ts";
 import type { Prisma } from "./generated/prisma/client.ts";
 
 const startOfDay = (t: Date) => new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate()));
@@ -91,11 +92,12 @@ export function marketRoutes(app: FastifyInstance, { db, now, random }: Required
         if (moved.count === 0) throw new Error("listing taken by a parallel draw");
         await tx.character.update({ where: { id: pick.characterId }, data: { gold: { increment: sellerPayout(rarity) } } });
         await tx.marketDraw.create({ data: { buyerId: character.id, sellerId: pick.characterId, itemId: pick.id, rarity, price, createdAt: t } });
-        return { item: itemView({ ...pick, characterId: character.id, listedAt: null }), price };
+        return { item: itemView({ ...pick, characterId: character.id, listedAt: null }), price, sellerId: pick.characterId };
       });
 
       if ("error" in result) return reply.code(400).send(result);
-      return result;
+      await syncAchievements(db, result.sellerId);
+      return { item: result.item, price: result.price };
     },
   );
 }

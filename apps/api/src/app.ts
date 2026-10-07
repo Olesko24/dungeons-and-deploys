@@ -13,7 +13,7 @@ import { marketRoutes } from "./market.ts";
 import { questRoutes } from "./quests.ts";
 import { raidRoutes } from "./raids.ts";
 import { shopRoutes } from "./shop.ts";
-import { statsRoutes } from "./stats.ts";
+import { statsRoutes, syncAchievements } from "./stats.ts";
 
 export type Deps = {
   db: PrismaClient;
@@ -63,6 +63,13 @@ export async function buildApp(deps: Deps, opts: FastifyServerOptions = {}) {
   raidRoutes(app, full);
   shopRoutes(app, full);
   statsRoutes(app, db);
+
+  // Every successful player action may unlock achievements. Heartbeats are skipped: they are frequent and change little.
+  app.addHook("onResponse", async (req, reply) => {
+    if (req.method === "POST" && reply.statusCode < 400 && req.characterId && req.routeOptions.url !== "/heartbeat") {
+      await syncAchievements(db, req.characterId);
+    }
+  });
 
   return app;
 }

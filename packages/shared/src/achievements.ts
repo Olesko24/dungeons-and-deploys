@@ -41,6 +41,3 @@ export const ACHIEVEMENTS: { key: string; name: string; description: string; don
   { key: "senior", name: "Senior", description: "Reach level 10", done: (s) => s.level >= 10 },
   { key: "principal", name: "Principal", description: "Reach level 25", done: (s) => s.level >= 25 },
 ];
-
-export const achievementsFor = (stats: PlayerStats) =>
-  ACHIEVEMENTS.map(({ done, ...a }) => ({ ...a, unlocked: done(stats) }));

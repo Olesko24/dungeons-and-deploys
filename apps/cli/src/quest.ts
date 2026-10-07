@@ -259,9 +259,12 @@ async function stats() {
     ["Market sold / bought, shop", `${s.marketSold} / ${s.marketBought}, ${s.shopBought}`],
   ];
   for (const [label, value] of rows) console.log(`  ${label.padEnd(30)}${value}`);
-  const done = data.achievements.filter((a: { unlocked: boolean }) => a.unlocked).length;
+  const done = data.achievements.filter((a: { unlockedAt: string | null }) => a.unlockedAt).length;
   console.log(`\nAchievements ${done}/${data.achievements.length}`);
-  for (const a of data.achievements) console.log(`  ${a.unlocked ? "★" : "·"} ${a.name.padEnd(24)}${a.description}`);
+  for (const a of data.achievements) {
+    const date = a.unlockedAt ? new Date(a.unlockedAt).toLocaleDateString() : "";
+    console.log(`  ${a.unlockedAt ? "★" : "·"} ${a.name.padEnd(24)}${a.description.padEnd(42)}${date}`);
+  }
 }
 
 async function character() {

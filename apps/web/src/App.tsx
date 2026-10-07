@@ -289,7 +289,7 @@ function StatsView() {
   const [data, setData] = useState<{ stats: PlayerStats; achievements: Achievement[] } | null>(null);
   useEffect(() => void api<{ stats: PlayerStats; achievements: Achievement[] }>("/stats").then(setData), []);
   if (!data) return <section className="panel"><p>Loading…</p></section>;
-  const done = data.achievements.filter((a) => a.unlocked).length;
+  const done = data.achievements.filter((a) => a.unlockedAt).length;
   return (
     <>
       <section className="panel">
@@ -304,9 +304,14 @@ function StatsView() {
         <h2>Achievements · {done}/{data.achievements.length}</h2>
         <ul className="achievements">
           {data.achievements.map((a) => (
-            <li key={a.key} className={a.unlocked ? "unlocked" : ""}>
-              <span className="star" aria-hidden="true">{a.unlocked ? "★" : "☆"}</span>
-              <span><strong>{a.name}</strong><span className="dim">{a.description}{a.unlocked ? "" : " · locked"}</span></span>
+            <li key={a.key} className={a.unlockedAt ? "unlocked" : ""}>
+              <span className="star" aria-hidden="true">{a.unlockedAt ? "★" : "☆"}</span>
+              <span>
+                <strong>{a.name}</strong>
+                <span className="dim">
+                  {a.description} · {a.unlockedAt ? new Date(a.unlockedAt).toLocaleDateString() : "locked"}
+                </span>
+              </span>
             </li>
           ))}
         </ul>

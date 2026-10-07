@@ -146,7 +146,7 @@ Measured locally (single Node process, Postgres in Docker, Apple Silicon): 165 h
 ## Phase 11 – Achievements, statistics and shop
 
 - [x] Statistics counted from existing tables (`GET /stats`, `quest stats`, Stats page on the website)
-- [x] 18 achievements derived from the statistics, no rewards, no unlock date
+- [x] 18 achievements checked after every player action and job, stored with their unlock date in `achievements`. Once unlocked they stay, no rewards
 - [x] Daily shop: three offers (common, rare, epic) the same for every player, new at midnight UTC
 - [x] Each offer once per player and day, prices 40 / 120 / 400 gold, epic from level 5, no legendaries
 - [x] CLI: `quest shop`, `quest shop buy <1-3>`, website Shop page

@@ -3,13 +3,22 @@ import { item, itemName } from "@tokenquest/shared";
 import { requireUser } from "./auth.ts";
 import type { Item, PrismaClient } from "./generated/prisma/client.ts";
 
+declare module "fastify" {
+  interface FastifyRequest {
+    /** Set once a route resolved the player, used to check achievements after the response. */
+    characterId?: number;
+  }
+}
+
 export async function requireCharacter(db: PrismaClient, req: FastifyRequest, reply: FastifyReply) {
   const user = await requireUser(db, req);
   if (!user) {
     reply.code(401).send({ error: "unauthorized" });
     return null;
   }
-  return db.character.findUniqueOrThrow({ where: { userId: user.id } });
+  const character = await db.character.findUniqueOrThrow({ where: { userId: user.id } });
+  req.characterId = character.id;
+  return character;
 }
 
 export const itemView = (i: Item) => ({

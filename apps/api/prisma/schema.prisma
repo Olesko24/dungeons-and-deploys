@@ -53,21 +53,22 @@ model PairCode {
 }
 
 model Character {
-  id         Int             @id @default(autoincrement())
-  userId     Int             @unique @map("user_id")
-  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name       String          @unique
-  xp         Int             @default(0)
-  gold       Int             @default(0)
-  quests     Quest[]
-  items      Item[]
-  encounters Encounter[]
-  draws      MarketDraw[]
-  dungeons   DungeonMember[]
-  guild      GuildMember?
-  raids      RaidMember[]
-  purchases  ShopPurchase[]
-  createdAt  DateTime        @default(now()) @map("created_at")
+  id           Int             @id @default(autoincrement())
+  userId       Int             @unique @map("user_id")
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String          @unique
+  xp           Int             @default(0)
+  gold         Int             @default(0)
+  quests       Quest[]
+  items        Item[]
+  encounters   Encounter[]
+  draws        MarketDraw[]
+  dungeons     DungeonMember[]
+  guild        GuildMember?
+  raids        RaidMember[]
+  purchases    ShopPurchase[]
+  achievements Achievement[]
+  createdAt    DateTime        @default(now()) @map("created_at")
 
   @@map("characters")
 }
@@ -251,4 +252,15 @@ model ShopPurchase {
 
   @@id([characterId, day, offer])
   @@map("shop_purchases")
+}
+
+/// An unlocked achievement. Once unlocked it stays, even if the condition no longer holds.
+model Achievement {
+  characterId Int       @map("character_id")
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  key         String
+  unlockedAt  DateTime  @default(now()) @map("unlocked_at")
+
+  @@id([characterId, key])
+  @@map("achievements")
 }

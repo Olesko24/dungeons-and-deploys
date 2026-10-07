@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { QUEST_SLOTS, type PlayerStats, achievementsFor, countSlots, item, levelFromXp } from "@tokenquest/shared";
+import { ACHIEVEMENTS, QUEST_SLOTS, type PlayerStats, countSlots, item, levelFromXp } from "@tokenquest/shared";
 import { requireCharacter } from "./characters.ts";
 import type { Character, PrismaClient } from "./generated/prisma/client.ts";
 
@@ -48,11 +48,26 @@ export async function playerStats(db: PrismaClient, c: Character): Promise<Playe
   };
 }
 
+/** Stores achievements whose condition holds now. Stored ones stay unlocked even if the condition is lost later. */
+export async function syncAchievements(db: PrismaClient, characterId: number) {
+  const character = await db.character.findUnique({ where: { id: characterId } });
+  if (!character) return null;
+  const stats = await playerStats(db, character);
+  const unlocked = ACHIEVEMENTS.filter((a) => a.done(stats)).map((a) => ({ characterId, key: a.key }));
+  if (unlocked.length) await db.achievement.createMany({ data: unlocked, skipDuplicates: true });
+  return stats;
+}
+
 export function statsRoutes(app: FastifyInstance, db: PrismaClient) {
   app.get("/stats", async (req, reply) => {
     const character = await requireCharacter(db, req, reply);
     if (!character) return;
-    const stats = await playerStats(db, character);
-    return { stats, achievements: achievementsFor(stats) };
+    const stats = await syncAchievements(db, character.id);
+    const stored = await db.achievement.findMany({ where: { characterId: character.id } });
+    const unlockedAt = new Map(stored.map((a) => [a.key, a.unlockedAt]));
+    return {
+      stats,
+      achievements: ACHIEVEMENTS.map(({ key, name, description }) => ({ key, name, description, unlockedAt: unlockedAt.get(key) ?? null })),
+    };
   });
 }
