@@ -1,4 +1,18 @@
 # Build context: repository root. docker build -f apps/api/Dockerfile .
+FROM node:24-slim AS web
+RUN npm install -g pnpm@12.9.1 && rm -rf /root/.npm
+WORKDIR /app
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/shared/package.json packages/shared/
+COPY apps/web/package.json apps/web/
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    --mount=type=cache,id=pnpm-meta,target=/root/.cache \
+    pnpm install --frozen-lockfile --filter @tokenquest/web...
+COPY tsconfig.base.json ./
+COPY packages/shared packages/shared
+COPY apps/web apps/web
+RUN pnpm --filter @tokenquest/web build
+
 FROM node:24-slim
 
 RUN npm install -g pnpm@12.9.1 && rm -rf /root/.npm
@@ -15,6 +29,7 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
 
 COPY packages/shared packages/shared
 COPY apps/api apps/api
+COPY --from=web /app/apps/web/dist apps/web/dist
 
 WORKDIR /app/apps/api
 ENV NODE_ENV=production PORT=3000

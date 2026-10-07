@@ -1,5 +1,5 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { itemName } from "@tokenquest/shared";
+import { item, itemName } from "@tokenquest/shared";
 import { requireUser } from "./auth.ts";
 import type { Item, PrismaClient } from "./generated/prisma/client.ts";
 
@@ -16,6 +16,7 @@ export const itemView = (i: Item) => ({
   id: i.id,
   key: i.key,
   name: itemName(i.key, i),
+  type: item(i.key).type,
   rarity: i.key.split(".")[1],
   stats: { attack: i.attack, defense: i.defense, luck: i.luck, fortune: i.fortune },
   equippedSlot: i.equippedSlot,

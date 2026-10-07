@@ -3,6 +3,7 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { Prisma, type PrismaClient } from "./generated/prisma/client.ts";
 
 const PAIR_TTL_MS = 10 * 60 * 1000;
+export const SESSION_COOKIE = "tq_session";
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 export const hash = (value: string) => createHash("sha256").update(value).digest("hex");
@@ -19,8 +20,19 @@ async function createSession(db: Prisma.TransactionClient, userId: number) {
   return token;
 }
 
+function redeemPairCode(db: PrismaClient, code: string) {
+  const codeHash = hash(normalizeCode(code));
+  return db.$transaction(async (tx) => {
+    const pair = await tx.pairCode.findUnique({ where: { codeHash } });
+    // Deleting inside the transaction makes the code single-use.
+    const deleted = await tx.pairCode.deleteMany({ where: { codeHash } });
+    if (!pair || deleted.count === 0 || pair.expiresAt < new Date()) return null;
+    return createSession(tx, pair.userId);
+  });
+}
+
 export async function requireUser(db: PrismaClient, req: FastifyRequest) {
-  const token = req.headers.authorization?.match(/^Bearer (.+)$/)?.[1];
+  const token = req.headers.authorization?.match(/^Bearer (.+)$/)?.[1] ?? req.cookies[SESSION_COOKIE];
   if (!token) return null;
   const session = await db.session.findUnique({ where: { tokenHash: hash(token) }, include: { user: true } });
   return session?.user ?? null;
@@ -79,16 +91,37 @@ export function authRoutes(app: FastifyInstance, db: PrismaClient) {
       schema: { body: { type: "object", required: ["code"], properties: { code: { type: "string" } } } },
     },
     async (req, reply) => {
-      const codeHash = hash(normalizeCode(req.body.code));
-      const token = await db.$transaction(async (tx) => {
-        const pair = await tx.pairCode.findUnique({ where: { codeHash } });
-        // Deleting inside the transaction makes the code single-use.
-        const deleted = await tx.pairCode.deleteMany({ where: { codeHash } });
-        if (!pair || deleted.count === 0 || pair.expiresAt < new Date()) return null;
-        return createSession(tx, pair.userId);
-      });
+      const token = await redeemPairCode(db, req.body.code);
       if (!token) return reply.code(400).send({ error: "invalid or expired pair code" });
       return { token };
     },
   );
+
+  // The website logs in with a pair code too, but keeps the token in an httpOnly cookie.
+  app.post<{ Body: { code: string } }>(
+    "/auth/web",
+    {
+      config: { rateLimit: { max: 5, timeWindow: "1 minute" } },
+      schema: { body: { type: "object", required: ["code"], properties: { code: { type: "string" } } } },
+    },
+    async (req, reply) => {
+      const token = await redeemPairCode(db, req.body.code);
+      if (!token) return reply.code(400).send({ error: "invalid or expired pair code" });
+      reply.setCookie(SESSION_COOKIE, token, {
+        path: "/",
+        httpOnly: true,
+        sameSite: "strict",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 60 * 60 * 24 * 365,
+      });
+      return reply.code(204).send();
+    },
+  );
+
+  app.post("/auth/logout", async (req, reply) => {
+    const token = req.cookies[SESSION_COOKIE];
+    if (token) await db.session.deleteMany({ where: { tokenHash: hash(token) } });
+    reply.clearCookie(SESSION_COOKIE, { path: "/" });
+    return reply.code(204).send();
+  });
 }

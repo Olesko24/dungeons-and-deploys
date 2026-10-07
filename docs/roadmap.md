@@ -93,10 +93,11 @@ Fair by chance, not by bidding. More gold must not mean better equipment.
 
 ## Phase 6 – Website
 
-- [ ] Vite + React SPA in `apps/web`, styled per [style.md](style.md)
-- [ ] Served as static files by the API (same origin, no extra container)
-- [ ] Login with a code from `quest pair`, session cookie
-- [ ] Character sheet, inventory, quest history
+- [x] Vite + React SPA in `apps/web`, styled per [style.md](style.md)
+- [x] Served as static files by the API (same origin, no extra container)
+- [x] Login with a code from `quest pair`, session cookie
+- [x] Character sheet, status with running quest and monster, equipment slots, bag with equip, quest history
+- [x] Built in the API Docker image, so it deploys with the API
 
 **Done when:** A player sees their character in the browser after logging in.
 

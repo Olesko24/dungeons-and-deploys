@@ -87,6 +87,18 @@ export function questRoutes(app: FastifyInstance, { db, scheduleResolve, now, ra
     },
   );
 
+  app.get("/quests/history", async (req, reply) => {
+    const character = await requireCharacter(db, req, reply);
+    if (!character) return;
+    const quests = await db.quest.findMany({
+      where: { characterId: character.id, resolvedAt: { not: null } },
+      orderBy: { startedAt: "desc" },
+      take: 20,
+      include: { lootItem: true },
+    });
+    return quests.map(questView);
+  });
+
   app.get("/character", async (req, reply) => {
     const character = await requireCharacter(db, req, reply);
     if (!character) return;

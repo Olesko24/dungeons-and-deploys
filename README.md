@@ -181,6 +181,7 @@ pnpm --filter @tokenquest/api access-code --uses 5 --days 30
 pnpm quest login --code <CODE>          # `pnpm quest` talks to localhost, the installed CLI to production
 pnpm quest                              # start a quest, then: pnpm quest status, pnpm quest char
 pnpm test                               # needs Postgres running, uses the `test` schema
+pnpm --filter @tokenquest/web dev       # website on :5173, log in with a code from `pnpm quest pair`
 pnpm typecheck
 pnpm lint
 pnpm --filter @tokenquest/api migrate   # create/apply migrations

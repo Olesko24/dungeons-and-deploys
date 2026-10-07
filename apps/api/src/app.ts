@@ -1,4 +1,7 @@
+import { existsSync } from "node:fs";
+import cookie from "@fastify/cookie";
 import rateLimit from "@fastify/rate-limit";
+import fastifyStatic from "@fastify/static";
 import Fastify, { type FastifyServerOptions } from "fastify";
 import { authRoutes } from "./auth.ts";
 import type { PrismaClient } from "./generated/prisma/client.ts";
@@ -20,6 +23,18 @@ export async function buildApp(deps: Deps, opts: FastifyServerOptions = {}) {
 
   // ponytail: in-memory rate limit store, switch to a shared store when running multiple API instances
   await app.register(rateLimit, { global: false });
+  await app.register(cookie);
+
+  // The website is a static SPA built into apps/web/dist. Unknown GET routes fall back to its index.html.
+  const web = new URL("../../web/dist/", import.meta.url);
+  if (existsSync(web)) {
+    await app.register(fastifyStatic, { root: web.pathname, wildcard: false });
+    app.setNotFoundHandler((req, reply) =>
+      req.method === "GET" && req.headers.accept?.includes("text/html")
+        ? reply.sendFile("index.html")
+        : reply.code(404).send({ error: "not found" }),
+    );
+  }
 
   app.get("/health", async (_req, reply) => {
     try {

@@ -51,7 +51,7 @@ The CLI uses this URL by default, `TOKENQUEST_URL` overrides it on login.
 | Port | 3000 |
 | Health check | `GET /health` (also defined in the Dockerfile) |
 
-Migrations run on container start (`prisma migrate deploy`).
+Migrations run on container start (`prisma migrate deploy`). The image also contains the website, built in its own stage and served by the API.
 
 Environment variables:
 

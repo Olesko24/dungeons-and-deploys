@@ -60,3 +60,21 @@ test("register is rate limited", async () => {
   }
   assert.equal(codes.at(-1), 429);
 });
+
+test("website logs in with a pair code and a cookie", async () => {
+  await db.accessCode.create({ data: { code: "TEST-0004", maxUses: 1, expiresAt: new Date(Date.now() + 60_000) } });
+  const { token } = (await post("/auth/register", { code: "TEST-0004", name: "druid" })).json();
+  const { code } = (await post("/auth/pair", undefined, token)).json();
+
+  const login = await post("/auth/web", { code });
+  assert.equal(login.statusCode, 204);
+  const cookie = login.cookies.find((c) => c.name === "tq_session")!;
+  assert.equal(cookie.httpOnly, true);
+  assert.equal(cookie.sameSite, "Strict");
+
+  const sheet = await (await app()).inject({ url: "/character", cookies: { tq_session: cookie.value } });
+  assert.equal(sheet.json().name, "druid");
+
+  await (await app()).inject({ method: "POST", url: "/auth/logout", cookies: { tq_session: cookie.value } });
+  assert.equal((await (await app()).inject({ url: "/character", cookies: { tq_session: cookie.value } })).statusCode, 401, "logout ends the session");
+});
