@@ -326,13 +326,15 @@ A win gives every raider who dealt damage XP, gold and an item with three rarity
 
 ## Achievements, statistics and leaderboards
 
-`quest stats` shows what you have done so far and your achievements. There are 18 achievements, from finishing your first quest to defeating a Dependency Dragon or winning a raid. They give no rewards. Once unlocked, an achievement stays, with its date.
+`quest stats` shows what you have done so far and your achievements. There are 19 achievements, from finishing your first quest to defeating a Dependency Dragon or winning a raid. They give no rewards. Once unlocked, an achievement stays, with its date.
 
 `quest top` shows leaderboards: by level, by achievements and by guild level. You see the top 20 and your own rank. There is no gold leaderboard.
 
 ## Website
 
 The website shows your character, equipment, bag, quest history, guild, talents, shop, statistics and leaderboards. To log in, run `quest pair` and enter the code it shows.
+
+On your first visit a short tour walks you through the page. It highlights the real buttons and moves on when you click them. You can skip it and restart it any time with **Tour** at the top. Finishing it unlocks the achievement Hello, World.
 
 ## Account and devices
 

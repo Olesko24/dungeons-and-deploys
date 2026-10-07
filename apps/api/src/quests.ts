@@ -107,7 +107,14 @@ export function questRoutes(app: FastifyInstance, { db, now, random }: Required<
     const character = await requireCharacter(db, req, reply);
     if (!character) return;
     const equipped = await equippedItems(db, character.id);
-    return { name: character.name, xp: character.xp, gold: character.gold, ...levelFromXp(character.xp), ...equipmentBonus(equipped) };
+    return {
+      name: character.name,
+      xp: character.xp,
+      gold: character.gold,
+      tour: character.tour,
+      ...levelFromXp(character.xp),
+      ...equipmentBonus(equipped),
+    };
   });
 }
 

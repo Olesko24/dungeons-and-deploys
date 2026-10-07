@@ -11,7 +11,7 @@ export type Quest = {
   gold: number;
   loot: Item | null;
 };
-export type Character = Stats & { name: string; xp: number; gold: number; level: number; xpIntoLevel: number; xpForNext: number };
+export type Character = Stats & { name: string; xp: number; gold: number; tour: "new" | "skipped" | "done"; level: number; xpIntoLevel: number; xpForNext: number };
 export type Status = {
   quest: Quest | null;
   readyAt: string;

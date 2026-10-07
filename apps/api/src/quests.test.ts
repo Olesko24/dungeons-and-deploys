@@ -43,7 +43,7 @@ test("a quest resolves at once and reports its rewards", async () => {
   });
   assert.equal((await p.call("GET", "/quests/current")).json().quest.name, name);
   assert.deepEqual((await p.call("GET", "/character")).json(), {
-    name: "hero", xp: 70, gold: 14, level: 1, xpIntoLevel: 70, xpForNext: 100, attack: 0, defense: 0, luck: 0, fortune: 0,
+    name: "hero", xp: 70, gold: 14, tour: "new", level: 1, xpIntoLevel: 70, xpForNext: 100, attack: 0, defense: 0, luck: 0, fortune: 0,
   });
   assert.equal(await resolveQuest(db, await lastQuestId(), () => 0), null, "second run changes nothing");
 });

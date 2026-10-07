@@ -13,6 +13,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   open with points spent and prerequisites. `quest talents` or the talent trees with icons on the website.
   A reset costs 10 gold per spent point.
 - Level cap 100.
+- Interactive website tour on the first visit, restartable with the Tour button. Finishing it unlocks the
+  achievement Hello, World.
 - Short stories for every quest, monster fight, dungeon stage and raid tick: what happened, in the CLI and on the
   website.
 

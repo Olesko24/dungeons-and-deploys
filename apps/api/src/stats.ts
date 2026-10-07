@@ -57,6 +57,7 @@ export async function playerStats(db: PrismaClient, c: Character): Promise<Playe
     marketBought,
     shopBought,
     guildFounder: guild?.role === "leader",
+    tourDone: c.tour === "done",
   };
 }
 
@@ -91,4 +92,19 @@ export function statsRoutes(app: FastifyInstance, db: PrismaClient) {
       achievements: ACHIEVEMENTS.map(({ key, name, description }) => ({ key, name, description, unlockedAt: unlockedAt.get(key) ?? null })),
     };
   });
+
+  /** Ends the website tour. Skipping never undoes a finished tour, so its achievement condition stays true. */
+  app.post<{ Body: { done: boolean } }>(
+    "/tour",
+    { schema: { body: { type: "object", required: ["done"], properties: { done: { type: "boolean" } } } } },
+    async (req, reply) => {
+      const character = await requireCharacter(db, req, reply);
+      if (!character) return;
+      await db.character.updateMany({
+        where: { id: character.id, ...(req.body.done ? {} : { tour: { not: "done" } }) },
+        data: { tour: req.body.done ? "done" : "skipped" },
+      });
+      return { tour: (await db.character.findUniqueOrThrow({ where: { id: character.id } })).tour };
+    },
+  );
 }

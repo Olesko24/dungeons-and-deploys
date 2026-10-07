@@ -16,6 +16,7 @@ import {
   api,
 } from "./api.ts";
 import { Doc, type DocName } from "./Doc.tsx";
+import { Tour } from "./Tour.tsx";
 
 const SLOTS = [
   ["head", "Head"], ["chest", "Chest"], ["legs", "Legs"], ["hands", "Hands"], ["feet", "Feet"], ["mainHand", "Main hand"],
@@ -112,7 +113,7 @@ function QuestStatus({ status, onChange }: { status: Status; onChange: () => voi
     `${f.won ? `Victory · +${f.xp} XP · +${f.gold} gold${f.loot ? ` · found ${f.loot.name}` : ""}` : "Defeated. It got away, nothing lost."} ${f.story}`;
 
   return (
-    <section className="panel">
+    <section className="panel" data-tour="status">
       <h2><UiIcon name="hourglass" />Status</h2>
       {e && (
         <div className="row">
@@ -144,7 +145,7 @@ function QuestStatus({ status, onChange }: { status: Status; onChange: () => voi
       {ready && (
         <div className="row">
           <p>{q ? "Ready for a new quest." : "No quest yet."} The result comes at once, then 45 minutes rest.</p>
-          <button type="button" onClick={() => act("/quests", questResult)}>Start quest</button>
+          <button type="button" data-tour="quest" onClick={() => act("/quests", questResult)}>Start quest</button>
         </div>
       )}
       {message && <p role="status" className="dim">{message}</p>}
@@ -167,7 +168,7 @@ function Inventory({ items, onChange }: { items: Item[]; onChange: () => void })
   const bag = items.filter((i) => !i.equippedSlot);
   return (
     <>
-      <section className="panel">
+      <section className="panel" data-tour="equipment">
         <h2><UiIcon name="equipment" />Equipment</h2>
         {error && <p className="error" role="alert">{error}</p>}
         <div className="slots">
@@ -375,6 +376,7 @@ function TalentsView({ onChange }: { onChange: () => void }) {
                   <div
                     key={t.key}
                     className={`talent ${state} col-${t.col} ${t.requires ? "arrow" : ""} ${maxed(t.requires) ? "lit" : ""}`}
+                    data-tour={`talent-${t.key}`}
                     style={{ gridRow: t.row + 1, gridColumn: t.col + 1 }}
                   >
                     <button
@@ -388,7 +390,7 @@ function TalentsView({ onChange }: { onChange: () => void }) {
                       <span className="rank">{t.rank}/{t.max}</span>
                     </button>
                     {open === t.key && (
-                      <div className="popover" role="dialog" aria-label={t.name}>
+                      <div className="popover" role="dialog" aria-label={t.name} data-tour="talent-details">
                         <strong>{t.name}</strong>
                         <span className="dim">Rank {t.rank}/{t.max}</span>
                         {t.current && <span>Now: {t.current}</span>}
@@ -396,7 +398,7 @@ function TalentsView({ onChange }: { onChange: () => void }) {
                         {locked && <span className="bad">{t.error}</span>}
                         <em className="dim">{t.flavor}</em>
                         {t.rank < t.max && (
-                          <button type="button" className="small" disabled={!!t.error} onClick={() => act("/talents/learn", { key: t.key })}>Learn</button>
+                          <button type="button" className="small" data-tour="learn" disabled={!!t.error} onClick={() => act("/talents/learn", { key: t.key })}>Learn</button>
                         )}
                       </div>
                     )}
@@ -498,6 +500,7 @@ export function App() {
   const [data, setData] = useState<Data | null>(null);
   const [loggedOut, setLoggedOut] = useState(false);
   const [view, setView] = useState<View>("character");
+  const [touring, setTouring] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -525,6 +528,17 @@ export function App() {
     return () => clearInterval(timer);
   }, [loggedOut]);
 
+  // New players get the tour once. Skipping or finishing it is stored, so it does not come back on reload.
+  const tour = data?.character.tour;
+  useEffect(() => {
+    if (tour === "new") setTouring(true);
+  }, [tour]);
+  const endTour = (done: boolean) => {
+    setTouring(false);
+    setView("character");
+    void api("/tour", { done }).then(() => load(), () => {});
+  };
+
   // A running raid refreshes every 5 seconds, everything else every 30.
   const live = data?.raid?.state === "running";
   useEffect(() => {
@@ -548,7 +562,7 @@ export function App() {
   const c = data.character;
   return (
     <main>
-      <header className="panel hero">
+      <header className="panel hero" data-tour="hero">
         <img src="/icon.svg" alt="" width={64} height={64} className="icon" />
         <div className="hero-text">
           <h1>{c.name}</h1>
@@ -556,12 +570,15 @@ export function App() {
           <Bar filled={Math.floor((c.xpIntoLevel / c.xpForNext) * 10)} total={10} label={`${c.xpIntoLevel} of ${c.xpForNext} XP`} />
           <p className="dim">XP {c.xpIntoLevel}/{c.xpForNext}</p>
         </div>
-        <button type="button" className="small ghost" onClick={() => api("/auth/logout", {}).then(() => setLoggedOut(true))}>Log out</button>
+        <div className="hero-actions">
+          <button type="button" className="small ghost" onClick={() => setTouring(true)}>Tour</button>
+          <button type="button" className="small ghost" onClick={() => api("/auth/logout", {}).then(() => setLoggedOut(true))}>Log out</button>
+        </div>
       </header>
       <BetaNote onOpen={setView} />
       <nav className="tabs" aria-label="Sections">
         {(["character", "talents", "shop", "stats", "ranks", "manual", "changelog"] as const).map((v) => (
-          <button key={v} type="button" className={`small ${view === v ? "" : "ghost"}`} aria-current={view === v ? "page" : undefined} onClick={() => setView(v)}>
+          <button key={v} type="button" className={`small ${view === v ? "" : "ghost"}`} aria-current={view === v ? "page" : undefined} data-tour={`nav-${v}`} onClick={() => setView(v)}>
             {v}
           </button>
         ))}
@@ -580,6 +597,7 @@ export function App() {
       {view === "stats" && <StatsView />}
       {view === "ranks" && <RanksView />}
       {(view === "manual" || view === "changelog") && <Doc name={view} onOpen={setView} />}
+      {touring && <Tour name={c.name} onView={setView} onEnd={endTour} />}
     </main>
   );
 }

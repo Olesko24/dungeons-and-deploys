@@ -17,6 +17,7 @@ export type PlayerStats = {
   marketBought: number;
   shopBought: number;
   guildFounder: boolean;
+  tourDone: boolean;
 };
 
 /** Achievements are derived from stats on every read, they carry no reward. */
@@ -39,4 +40,5 @@ export const ACHIEVEMENTS: { key: string; name: string; description: string; don
   { key: "founder", name: "Founder", description: "Lead a guild", done: (s) => s.guildFounder },
   { key: "senior", name: "Senior", description: "Reach level 10", done: (s) => s.level >= 10 },
   { key: "principal", name: "Principal", description: "Reach level 25", done: (s) => s.level >= 25 },
+  { key: "tour", name: "Hello, World", description: "Finish the website tour", done: (s) => s.tourDone },
 ];

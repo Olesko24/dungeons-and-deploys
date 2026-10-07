@@ -86,6 +86,7 @@ input {
 
 .hero { grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 16px; }
 .hero-text { display: grid; gap: 8px; }
+.hero-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
 .slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 12px; }
 .slot { background: var(--panel-deep); padding: 8px; display: grid; justify-items: center; gap: 6px; border-bottom: var(--pixel) solid currentColor; }
@@ -167,6 +168,21 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .popover .next { color: var(--good); }
 .popover .bad { color: var(--bad); }
 .popover button { justify-self: start; margin-top: 4px; }
+
+/* Tour: the spotlight darkens everything around the target but lets clicks through to the page. */
+.tour-spotlight {
+  position: fixed; z-index: 20; pointer-events: none;
+  box-shadow: 0 0 0 var(--pixel) var(--gold), 0 0 0 9999px rgb(6 5 11 / .72);
+  transition: top .2s, left .2s, width .2s, height .2s;
+}
+.tour-backdrop { position: fixed; inset: 0; z-index: 20; background: rgb(6 5 11 / .72); }
+.tour-card {
+  position: fixed; z-index: 21; display: grid; gap: 8px; padding: 16px;
+  background: var(--panel); border: var(--pixel) solid var(--gold); box-shadow: 0 0 0 var(--pixel) var(--edge-dark);
+}
+.tour-card.center { top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(26rem, calc(100vw - 32px)); }
+.tour-card p { margin: 0; }
+.tour-card .hint { color: var(--good); font-size: 18px; }
 
 .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr)); gap: 8px; margin: 0; }
 .stats div { background: var(--panel-deep); padding: 8px 12px; display: grid; gap: 2px; }

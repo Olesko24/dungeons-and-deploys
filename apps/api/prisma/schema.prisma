@@ -61,6 +61,8 @@ model Character {
   gold         Int             @default(0)
   /// Learned talent ranks by talent key, see packages/shared/src/talents.ts.
   talents      Json            @default("{}")
+  /// Website tour: new, skipped or done. Done unlocks an achievement.
+  tour         String          @default("new")
   quests       Quest[]
   items        Item[]
   encounters   Encounter[]

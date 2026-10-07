@@ -57,3 +57,19 @@ test("unlocked achievements stay unlocked", async () => {
   await call("POST", "/guild/leave");
   assert.equal(await founder(), unlockedAt, "leaving the guild keeps it, with its original date");
 });
+
+test("finishing the tour unlocks Hello, World, skipping never undoes it", async () => {
+  await db.user.create({ data: { character: { create: { name: "tourist" } }, sessions: { create: { tokenHash: hash("tq_tourist") } } } });
+  const call = async (method: "GET" | "POST", url: string, payload?: object) =>
+    (await buildApp({ db })).inject({ method, url, payload, headers: { authorization: "Bearer tq_tourist" } });
+  const tour = async () => (await call("GET", "/character")).json().tour;
+  const unlocked = async () =>
+    !!(await call("GET", "/stats")).json().achievements.find((a: { key: string }) => a.key === "tour").unlockedAt;
+
+  assert.equal(await tour(), "new");
+  assert.equal((await call("POST", "/tour", { done: false })).json().tour, "skipped");
+  assert.equal(await unlocked(), false);
+  assert.equal((await call("POST", "/tour", { done: true })).json().tour, "done", "a skipped tour can be finished later");
+  assert.equal(await unlocked(), true);
+  assert.equal((await call("POST", "/tour", { done: false })).json().tour, "done");
+});
