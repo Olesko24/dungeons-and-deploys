@@ -18,11 +18,12 @@ Every phase ends in a playable or deployable state.
 
 - [ ] Tables: `users`, `access_codes`, `sessions`
 - [ ] Access codes with max uses and expiry, created via admin script
-- [ ] `POST /auth/register` – access code + email → magic link
-- [ ] `GET /auth/verify` – magic link → API token
+- [ ] `POST /auth/register` – access code + email → magic link, returns a login id and a short confirm code
+- [ ] `GET /auth/verify` – magic link opens a confirm page showing the confirm code, confirming approves the login
+- [ ] `GET /auth/poll/:loginId` – CLI polls until approved, then receives the API token (like device login in GitHub CLI)
 - [ ] Email sending via SMTP (nodemailer)
 - [ ] Rate limit on auth routes
-- [ ] CLI: `quest login --code <CODE>`, token stored in `~/.tokenquest/config.json`
+- [ ] CLI: `quest login --code <CODE>`, shows the confirm code, waits, stores the token in `~/.tokenquest/config.json`
 
 **Done when:** A new player registers with a valid code, an invalid or used-up code is rejected, the CLI holds a working token.
 
@@ -39,15 +40,18 @@ Every phase ends in a playable or deployable state.
 
 **Done when:** Tests with a fake clock cover quest success, quest failure and cooldown. A quest started locally resolves after restarting the API.
 
-## Phase 3 – Plugin and first deploy
+## Phase 3 – Integrations and first deploy
 
+- [ ] CLI: `quest heartbeat` (sends at most 1/min, fire and forget), `quest status --short` for status lines
 - [ ] Claude Code plugin: `UserPromptSubmit` heartbeat hook, statusline, CLI bundled
+- [ ] Shell integration: `quest init zsh|bash` prints a `precmd` hook and a prompt segment
 - [ ] Statusline reads local cache, CLI refreshes it
+- [ ] CLI published to npm
 - [ ] Dockerfiles for API and web
 - [ ] Deploy to Coolify, Postgres backups to S3 enabled
 - [ ] Install guide in README
 
-**Done when:** A second person installs the plugin, logs in with a code and finishes a quest against the deployed server.
+**Done when:** One person plays via the Claude Code plugin, another via the shell integration. Both log in with a code and finish a quest against the deployed server.
 
 ## Phase 4 – Items and loot
 

@@ -2,7 +2,7 @@
 
 # Tokenquest
 
-An idle RPG that runs alongside Claude Code. Start a quest, keep working, collect loot.
+An idle RPG for the terminal. Runs alongside Claude Code or any shell. Start a quest, keep working, collect loot.
 Inspired by Twitch idle RPGs: presence and luck, not performance.
 
 > Works with Claude Code. Not affiliated with Anthropic.
@@ -12,15 +12,15 @@ Inspired by Twitch idle RPGs: presence and luck, not performance.
 - **Fun on the side.** No performance tracking. Rewards depend on presence and dice, never on tokens, tickets or commits.
 - **Solo-friendly.** Quests and dungeons are playable alone. Groups give bonuses, never requirements.
 - **Raids need a guild.** The only content that is group-only.
-- **Zero token cost.** Game logic never runs through the model. Commands use the `!` shell prefix, hooks only send timestamps.
+- **Zero token cost.** In Claude Code, game logic never runs through the model. Commands use the `!` shell prefix, hooks only send timestamps.
 - **Server is authoritative.** Clients report presence. Dice, loot and outcomes are decided on the server.
 
 ## Gameplay
 
 | Content | Players | Notes |
 |---|---|---|
-| Quest | 1 | `! quest`, 45 min, then cooldown. Success depends on presence during the quest |
-| Random encounter | 1 | Small chance per heartbeat. `! fight` within 5 min |
+| Quest | 1 | `quest`, 45 min, then cooldown. Success depends on presence during the quest |
+| Random encounter | 1 | Small chance per heartbeat. `fight` within 5 min |
 | Dungeon | 1–5 | Chain of quests with a boss. Difficulty and loot scale with party size |
 | Raid | ~5+ | Guild only, scheduled. Shared boss HP, damage from presence in the raid window |
 
@@ -29,28 +29,41 @@ Inspired by Twitch idle RPGs: presence and luck, not performance.
 A quest is split into 5-minute slots. Each slot with at least one heartbeat counts as present.
 Enough present slots → quest succeeds. More slots → better loot rolls.
 
+### Integrations
+
+A heartbeat is a plain CLI call (`quest heartbeat`). Any integration that calls it counts as presence.
+
+| Integration | Heartbeat | Status display |
+|---|---|---|
+| Claude Code plugin | `UserPromptSubmit` hook | Claude Code statusline |
+| Shell (zsh, bash) | `precmd` hook, every command | Prompt segment or tmux status |
+
+Both can run at the same time. The server limits heartbeats to one per minute per player.
+
 ### Access
 
-Public, invite-only. Players need the server URL (shipped with the plugin) and an access code.
+Public, invite-only. Players need the server URL (shipped with the CLI) and an access code.
+In Claude Code, prefix commands with `!`.
 
 ```
-! quest login --code <ACCESS_CODE>   # register, magic link sent to email
-! quest                              # start quest
-! quest status
-! char                               # character sheet
-! inv / ! equip <item>
-! fight                              # random encounter
-! dungeon start|join <id>
-! guild create|join|leave
-! raid join
+quest login --code <ACCESS_CODE>   # register, magic link sent to email
+quest                              # start quest
+quest status
+char                               # character sheet
+inv / equip <item>
+fight                              # random encounter
+dungeon start|join <id>
+guild create|join|leave
+raid join
 ```
 
 ## Architecture
 
 ```
-Plugin (per player)                       Server
+Client (per player)                       Server
 ├─ CLI `quest`  ──── HTTPS + token ───►  API (Fastify)
 ├─ Heartbeat hook ── max 1/min ──────►    ├─ dice, loot, outcomes
+│  (Claude Code or shell)                 │
 └─ Statusline ◄── cached state ────────   ├─ queue workers (pg-boss)
                                           └─ Postgres
                                          Web (Next.js)
@@ -64,7 +77,7 @@ tokenquest/
 ├─ apps/
 │  ├─ api/        Fastify API + queue workers
 │  ├─ web/        Next.js website
-│  └─ cli/        `quest` CLI, hooks, statusline (shipped as Claude Code plugin)
+│  └─ cli/        `quest` CLI, hooks, statusline, shell integration
 ├─ packages/
 │  └─ shared/     Types, game rules, loot tables
 └─ plugin/        Claude Code plugin manifest (commands, hooks, statusline)
