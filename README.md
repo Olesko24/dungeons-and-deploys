@@ -19,10 +19,14 @@ Inspired by Twitch idle RPGs: presence and luck, not performance.
 
 | Content | Players | Notes |
 |---|---|---|
-| Quest | 1 | `quest`, 45 min, then cooldown. Success depends on presence during the quest |
-| Random encounter | 1 | Small chance per heartbeat. `quest fight` within 5 min |
-| Dungeon | 1–5 | Chain of quests with a boss. Difficulty and loot scale with party size |
-| Raid | ~5+ | Guild only, scheduled. Shared boss HP, damage from presence in the raid window |
+| Quest | 1 | `quest`, 45 min, then 15 min cooldown. Success depends on presence during the quest |
+| Random encounter | 1 | 2% chance per heartbeat. `quest fight` within 5 min |
+| Dungeon | 1–5 | Three stages and a boss, 15 min each. Difficulty and loot scale with party size |
+| Raid | 5+ | Guild only, scheduled by the leader. Shared boss HP, damage from presence in the raid window |
+| Market | – | Fixed prices by rarity, buyers draw a random listing, one draw per day |
+
+Items drop in four rarities and eleven equipment slots, with rolled stats and twelve weapon kinds.
+Higher levels raise the chance for better loot. All items: see `apps/web/public/items/`.
 
 ### Presence
 
@@ -160,13 +164,11 @@ See [docs/hosting.md](docs/hosting.md) for sizing, presence storage and operatio
 
 ## Roadmap
 
-1. Login with access code, character, quest resolved on the server, CLI, heartbeat hook, statusline
-2. Random encounters, loot tables
-3. Dungeons (1–5 players)
-4. Guilds
-5. Raids
+Phases 0–10 are built: accounts, quests, Claude Code and shell integrations, items and loot,
+encounters, market, website, dungeons, guilds, raids and hardening.
+Open: first deploy to Coolify, publishing the CLI to npm, monitoring alerts.
 
-Detailed phases with steps: [docs/roadmap.md](docs/roadmap.md)
+Details per phase: [docs/roadmap.md](docs/roadmap.md)
 
 ## Development
 

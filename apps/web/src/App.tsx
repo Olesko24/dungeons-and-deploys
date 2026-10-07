@@ -67,6 +67,12 @@ function QuestStatus({ status }: { status: Status }) {
           ⚠ {e.name} (Lv {e.level}) appeared · {Math.round(e.winChance * 100)}% odds · <code>quest fight</code> within {minutesUntil(e.expiresAt)}m
         </p>
       )}
+      {status.dungeon?.state === "lobby" && (
+        <p>Dungeon <code>{status.dungeon.code}</code> starts in {minutesUntil(status.dungeon.startsAt)}m · party: {status.dungeon.members.join(", ")}</p>
+      )}
+      {status.dungeon?.state === "running" && (
+        <p>Dungeon stage {status.dungeon.cleared + 1}/4 · {status.dungeon.current} · {minutesUntil(status.dungeon.stageEndsAt ?? "")}m left</p>
+      )}
       {!q && <p>No quest yet. Start one with <code>quest</code>.</p>}
       {q && !q.resolved && (
         <>
