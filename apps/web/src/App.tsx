@@ -8,6 +8,7 @@ import {
   type PlayerStats,
   type Quest,
   type Raid,
+  type Raids,
   type Shop,
   type Stats,
   type Status,
@@ -44,9 +45,12 @@ function statParts(s: Stats) {
   ].filter(Boolean) as string[];
 }
 
-/** Your shown power against a recommendation, colored green at 100%, yellow from 75%, red below. */
-function Power({ yours, recommended }: { yours: number; recommended: number }) {
-  const tone = yours >= recommended ? "good" : yours >= recommended * 0.75 ? "warn" : "bad";
+/**
+ * Your shown power against a recommendation: green at 100%, yellow from `warn`, red below.
+ * Raids pass a higher `warn`, because their odds fall much faster below the recommendation.
+ */
+function Power({ yours, recommended, warn = 0.75 }: { yours: number; recommended: number; warn?: number }) {
+  const tone = yours >= recommended ? "good" : yours >= recommended * warn ? "warn" : "bad";
   return <span className={`power ${tone}`} title="Your combat power / recommended for about 60% odds">⚔ {yours} / {recommended}</span>;
 }
 
@@ -314,7 +318,7 @@ function History({ quests }: { quests: Quest[] }) {
   );
 }
 
-function GuildHall({ guild, me, onChange }: { guild: Guild | null; me: string; onChange: () => void }) {
+function GuildHall({ guild, raids, me, onChange }: { guild: Guild | null; raids: Raids; me: string; onChange: () => void }) {
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState("");
   async function act(path: string, body: object) {
@@ -371,13 +375,22 @@ function GuildHall({ guild, me, onChange }: { guild: Guild | null; me: string; o
               </li>
             ))}
           </ul>
+          <h3 className="sub">Raid bosses · {leader ? "schedule with quest raid schedule <minutes> <boss>" : "the leader schedules raids"}</h3>
+          <ul className="buffs">
+            {raids.bosses.map((b) => (
+              <li key={b.tier} className={b.unlocked ? "" : "locked"}>
+                <span><strong>{b.tier + 1}. {b.name}</strong><br /><em className="dim">{b.flavor}</em></span>
+                {b.unlocked ? <Power yours={raids.power} recommended={b.recommended} warn={0.9} /> : <span className="dim">beat the boss before · ⚔ {b.recommended}</span>}
+              </li>
+            ))}
+          </ul>
         </>
       )}
     </section>
   );
 }
 
-function RaidView({ raid }: { raid: Raid }) {
+function RaidView({ raid, power }: { raid: Raid; power: number }) {
   const label = {
     scheduled: `starts in ${minutesUntil(raid.startsAt)}m · needs ${raid.minPlayers} raiders · join with quest raid join`,
     running: `tick ${raid.tick}/${raid.ticks} · ends in ${minutesUntil(raid.endsAt)}m · stay present to deal damage`,
@@ -389,7 +402,7 @@ function RaidView({ raid }: { raid: Raid }) {
   return (
     <section className={`panel raid ${raid.state}`}>
       <h2><UiIcon name="raid" />Raid · {raid.boss}</h2>
-      <p>{label}</p>
+      <p>{label} · <Power yours={power} recommended={raid.recommended} warn={0.9} /></p>
       <p className="dim">{raid.story}</p>
       {raid.bossMaxHp > 0 && (
         <>
@@ -608,7 +621,7 @@ function RanksView() {
 
 type View = "character" | "talents" | "shop" | "stats" | "ranks" | DocName;
 
-type Data = { character: Character; status: Status; items: Item[]; history: Quest[]; guild: Guild | null; raid: Raid | null };
+type Data = { character: Character; status: Status; items: Item[]; history: Quest[]; guild: Guild | null; raids: Raids };
 
 export function App() {
   const [data, setData] = useState<Data | null>(null);
@@ -625,9 +638,9 @@ export function App() {
         api<{ items: Item[] }>("/inventory"),
         api<Quest[]>("/quests/history"),
         api<{ guild: Guild | null }>("/guild"),
-        api<{ raid: Raid | null }>("/raids/current"),
+        api<Raids>("/raids/current"),
       ]);
-      setData({ character, status, items: inventory.items, history, guild: guild.guild, raid: raid.raid });
+      setData({ character, status, items: inventory.items, history, guild: guild.guild, raids: raid });
       setLoggedOut(false);
     } catch (err) {
       if (err instanceof Unauthorized) setLoggedOut(true);
@@ -655,7 +668,7 @@ export function App() {
   };
 
   // A running raid refreshes every 5 seconds, everything else every 30.
-  const live = data?.raid?.state === "running";
+  const live = data?.raids.raid?.state === "running";
   useEffect(() => {
     void load();
     const timer = setInterval(() => void load(), live ? 5_000 : 30_000);
@@ -704,8 +717,8 @@ export function App() {
         <>
           <QuestStatus status={data.status} onChange={() => void load()} />
           <Inventory items={data.items} onChange={() => void load()} />
-          {data.raid && <RaidView raid={data.raid} />}
-          <GuildHall guild={data.guild} me={c.name} onChange={() => void load()} />
+          {data.raids.raid && <RaidView raid={data.raids.raid} power={data.raids.power} />}
+          <GuildHall guild={data.guild} raids={data.raids} me={c.name} onChange={() => void load()} />
           <History quests={data.history} />
         </>
       )}

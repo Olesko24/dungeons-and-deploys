@@ -27,7 +27,7 @@ New here? Read the [player manual](docs/manual.md).
 | Quest | 1 | `quest` or a button on the website, result at once, then 45 min cooldown. 75% success plus luck |
 | Random encounter | 1 | 2% chance per heartbeat (terminal, Claude Code or open website). Fight within 5 min |
 | Dungeon | 1–5 | Three stages and a boss, 15 min each. Difficulty and loot scale with party size |
-| Raid | 5+ | Guild only, scheduled by the leader. Shared boss HP, every raider deals damage each tick |
+| Raid | 5+ | Guild only, scheduled by the leader. Six bosses unlocked one by one, each needs more combat power and drops better loot |
 | Market | – | Fixed prices by rarity, buyers draw a random listing, one draw per day |
 | Shop | – | Three new offers every day, each once per player |
 | Talents | – | One point per level up to 100, four trees of 8 talents with 36 ranks each, reset for 10 gold per point |
@@ -69,7 +69,7 @@ quest stats                        # statistics and achievements
 quest top [xp|achievements|guilds] # leaderboards
 quest dungeon start|join <code>
 quest guild create <name>|join <code>|leave
-quest raid schedule <minutes>|join
+quest raid schedule <minutes> [boss]|join
 ```
 
 ## Install

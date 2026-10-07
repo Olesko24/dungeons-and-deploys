@@ -243,21 +243,33 @@ async function guild(action: string | undefined, arg: string) {
   console.log("\nquest guild donate <gold> · leader: quest guild buff <key>");
 }
 
-async function raid(action: string | undefined, minutes: string | undefined) {
-  if (action === "schedule" && !/^\d+$/.test(minutes ?? "")) throw new Error("Usage: quest raid schedule <minutes from now, 5-1440>");
-  const res =
-    action === "schedule" ? await authed("/raids", "POST", { startsInMinutes: Number(minutes) })
-    : action === "join" ? await authed("/raids/join", "POST")
-    : await authed("/raids/current");
-  if (res.status >= 400) throw new Error(res.data.error ?? res.data.message ?? `Failed (${res.status})`);
-  const r = res.data.raid;
-  if (!r) return console.log("No raid yet. Guild leaders plan one: quest raid schedule <minutes>");
-  const when = r.state === "scheduled" ? `starts in ${minutesUntil(r.startsAt)}m, needs ${r.minPlayers}` : r.state;
-  console.log(`Raid on ${r.boss} · ${when} · ${r.members.length} raiders`);
-  console.log(`  ${r.story}`);
-  if (r.bossMaxHp) console.log(`HP ${bar(Math.ceil((r.bossHp / r.bossMaxHp) * 20), 20)} ${r.bossHp}/${r.bossMaxHp} · tick ${r.tick}/${r.ticks}`);
-  for (const m of r.members) console.log(`  ${m.name.padEnd(20)} ${m.damage} damage`);
-  if (r.state === "scheduled") console.log("Join with: quest raid join. Every raider deals damage each tick.");
+type Boss = { tier: number; name: string; recommended: number; unlocked: boolean };
+
+async function raid(action: string | undefined, minutes: string | undefined, boss: string | undefined) {
+  if (action === "schedule" && (!/^\d+$/.test(minutes ?? "") || (boss && !/^\d+$/.test(boss)))) {
+    throw new Error("Usage: quest raid schedule <minutes from now, 5-1440> [boss number]");
+  }
+  if (action === "schedule" || action === "join") {
+    const body = action === "schedule" ? { startsInMinutes: Number(minutes), tier: boss ? Number(boss) - 1 : undefined } : undefined;
+    const res = await authed(action === "schedule" ? "/raids" : "/raids/join", "POST", body);
+    if (res.status >= 400) throw new Error(res.data.error ?? res.data.message ?? `Failed (${res.status})`);
+  }
+  const { data } = await authed("/raids/current");
+  if (!data.bosses.length) return console.log("Raids need a guild. See: quest guild");
+  const r = data.raid;
+  if (!r) console.log("No raid yet. Guild leaders plan one: quest raid schedule <minutes> [boss number]");
+  else {
+    const when = r.state === "scheduled" ? `starts in ${minutesUntil(r.startsAt)}m, needs ${r.minPlayers}` : r.state;
+    console.log(`Raid on ${r.boss} · ${when} · ${r.members.length} raiders · power ${data.power} / ${r.recommended} recommended`);
+    console.log(`  ${r.story}`);
+    if (r.bossMaxHp) console.log(`HP ${bar(Math.ceil((r.bossHp / r.bossMaxHp) * 20), 20)} ${r.bossHp}/${r.bossMaxHp} · tick ${r.tick}/${r.ticks}`);
+    for (const m of r.members) console.log(`  ${m.name.padEnd(20)} ${m.damage} damage`);
+    if (r.state === "scheduled") console.log("Join with: quest raid join. Every raider deals damage each tick.");
+  }
+  console.log(`\nBosses · your raid power ${data.power}, the raid's average counts`);
+  for (const b of data.bosses as Boss[]) {
+    console.log(`  ${b.tier + 1} ${b.name.padEnd(24)} ${String(b.recommended).padStart(6)} recommended${b.unlocked ? "" : " · locked"}`);
+  }
 }
 
 async function shop(action: string | undefined, offer: string | undefined) {
@@ -394,7 +406,7 @@ const USAGE = `Usage: quest [command]
   quest dungeon [start|join <code>]              dungeon with up to 5 players
   quest guild [create <name>|join <code>|leave]  your guild
   quest guild donate <gold> | buff <key>         guild bank and buffs
-  quest raid [schedule <min>|join]               guild raid, at least 5 raiders
+  quest raid [schedule <min> [boss]|join]        guild raid, at least 5 raiders
   quest login --code <code>                      new player, needs an access code
   quest pair                                     log in another device or the website
   quest login --pair <code>                      log in with a code from quest pair
@@ -433,7 +445,7 @@ try {
       await fightMonster();
       break;
     case "raid":
-      await raid(positionals[1], positionals[2]);
+      await raid(positionals[1], positionals[2], positionals[3]);
       break;
     case "guild":
       await guild(positionals[1], positionals.slice(2).join(" "));

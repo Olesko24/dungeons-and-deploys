@@ -191,6 +191,8 @@ model Guild {
   xp        Int           @default(0)
   /// Guild bank, filled by donations and a share of quest gold. The leader spends it on buffs.
   gold      Int           @default(0)
+  /// Raid bosses beaten in order. The guild can raid every boss up to this index.
+  raidTier  Int           @default(0) @map("raid_tier")
   members   GuildMember[]
   raids     Raid[]
   buffs     GuildBuff[]
@@ -231,6 +233,8 @@ model Raid {
   guildId   Int          @map("guild_id")
   guild     Guild        @relation(fields: [guildId], references: [id], onDelete: Cascade)
   startsAt  DateTime     @map("starts_at")
+  /// Index into RAID_BOSSES in packages/shared.
+  tier      Int          @default(0)
   state     String       @default("scheduled")
   bossHp    Int          @default(0) @map("boss_hp")
   bossMaxHp Int          @default(0) @map("boss_max_hp")

@@ -32,6 +32,8 @@ export type Guild = {
 
 export type Raid = {
   boss: string;
+  tier: number;
+  recommended: number;
   state: "scheduled" | "running" | "won" | "failed" | "cancelled";
   story: string;
   startsAt: string;
@@ -43,6 +45,9 @@ export type Raid = {
   minPlayers: number;
   members: { name: string; damage: number }[];
 };
+
+export type RaidBoss = { tier: number; name: string; flavor: string; recommended: number; unlocked: boolean };
+export type Raids = { raid: Raid | null; bosses: RaidBoss[]; power: number };
 
 export type ShopOffer = { offer: number; key: string; name: string; rarity: string; price: number; unlockLevel: number; locked: boolean; bought: boolean };
 export type Shop = { gold: number; refreshesAt: string; offers: ShopOffer[] };

@@ -14,6 +14,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   A reset costs 10 gold per spent point.
 - Level cap 100.
 - Combat power, shown on the character and as a recommendation for every monster and dungeon stage.
+- Six raid bosses from The Monolith to The Big Rewrite, each needing more combat power and paying more XP, gold
+  and better loot. Guilds unlock them one by one.
 - Guild bank and guild buffs: members donate gold and every quest adds 10% of its gold on top. The leader buys
   buffs for every member, such as +10% XP or +5% combat power, for 24 hours.
 - Start on the website: create a character with an access code, no terminal needed. **Terminal** on the website

@@ -12,6 +12,6 @@ test("every quest, dungeon state and raid tick has a story", () => {
     assert.ok(dungeonStory(1, "running", stage));
     assert.ok(dungeonStory(1, "failed", stage));
   });
-  for (const state of ["scheduled", "won", "failed", "cancelled"]) assert.ok(raidStory(1, state, 0));
-  for (let tick = 0; tick <= RAID_TICKS; tick++) assert.ok(raidStory(1, "running", tick));
+  for (const state of ["scheduled", "won", "failed", "cancelled"]) assert.ok(raidStory(1, state, 0, "The Monolith"));
+  for (let tick = 0; tick <= RAID_TICKS; tick++) assert.ok(!raidStory(1, "running", tick, "The Monolith").includes("{boss}"));
 });

@@ -154,27 +154,30 @@ export function dungeonStory(id: number, state: string, stage: number) {
 }
 
 const RAID_TICK_STORIES = [
-  "The Monolith deploys a hotfix to itself. The raid hits it anyway.",
-  "The Monolith spawns a 40-minute build. The raiders attack while it compiles.",
+  "{boss} deploys a hotfix to itself. The raid hits it anyway.",
+  "{boss} spawns a 40-minute build. The raiders attack while it compiles.",
   "Someone found an endpoint without auth. Critical hit!",
-  "The Monolith pages the whole guild at once. The raiders ignore it and keep hitting.",
-  "A raider deleted a dead module. The Monolith shudders, lighter by 3,000 lines.",
-  "The Monolith rolls back to yesterday. Half the damage is undone, the other half is in the logs.",
-  "The Monolith summons a meeting that could have been an email. The raid loses momentum.",
-  "Someone added a cache in front of it. The Monolith slows down, confused.",
-  "The Monolith throws a 500 with no message. The raiders throw it right back.",
+  "{boss} pages the whole guild at once. The raiders ignore it and keep hitting.",
+  "A raider deleted a dead module. {boss} shudders, lighter by 3,000 lines.",
+  "{boss} rolls back to yesterday. Half the damage is undone, the other half is in the logs.",
+  "{boss} summons a meeting that could have been an email. The raid loses momentum.",
+  "Someone added a cache in front of it. {boss} slows down, confused.",
+  "{boss} throws a 500 with no message. The raiders throw it right back.",
   "The healer restarts the pods. Everyone feels better, nobody knows why.",
 ];
 
 const RAID_STATES: Record<string, string> = {
   scheduled: "The guild gathers in the war room. Someone shares a screen with 47 open tabs.",
-  won: "The Monolith splits into microservices and falls. Loot for everyone, and a postmortem nobody will read.",
-  failed: "The Monolith survived. It will be rewritten next quarter. It is always next quarter.",
-  cancelled: "Not enough raiders showed up. The Monolith stays. The meeting is moved to next week.",
+  won: "{boss} goes down. Loot for everyone, and a postmortem nobody will read.",
+  failed: "{boss} survived. It will be rewritten next quarter. It is always next quarter.",
+  cancelled: "Not enough raiders showed up. {boss} stays. The meeting is moved to next week.",
 };
 
-/** What happens in a raid at its current tick, or how it ended. */
-export function raidStory(id: number, state: string, tick: number) {
-  if (state !== "running") return RAID_STATES[state];
-  return tick === 0 ? "The raid begins. The Monolith boots, slowly, like it always does." : pick(RAID_TICK_STORIES, id + tick);
+/** What happens in a raid against `boss` at its current tick, or how it ended. */
+export function raidStory(id: number, state: string, tick: number, boss: string) {
+  const story =
+    state !== "running" ? RAID_STATES[state]
+    : tick === 0 ? "The raid begins. {boss} boots, slowly, like it always does."
+    : pick(RAID_TICK_STORIES, id + tick);
+  return story.replaceAll("{boss}", boss);
 }

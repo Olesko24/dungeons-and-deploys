@@ -350,14 +350,33 @@ different buffs can run at once, the same buff once at a time.
 Raids are the only content that needs a guild.
 
 ```sh
-quest raid schedule <minutes>   # leader only, 5 to 1440 minutes ahead
-quest raid join                 # members join until it starts
-quest raid                      # boss HP and damage per raider
+quest raid schedule <minutes> [boss]   # leader only, 5 to 1440 minutes ahead, boss 1-6
+quest raid join                        # members join until it starts
+quest raid                             # the raid, your raid power and the bosses
 ```
 
-A raid needs at least 5 raiders, otherwise it is cancelled at the start. It lasts 30 minutes in six 5-minute ticks. In every tick, every raider deals damage based on attack and defense, and the boss rolls a phase that makes it harder or easier to hit. Unequipped raids win about half the time, well-equipped ones up to about 85%. Nobody needs to be online during the raid.
+A raid needs at least 5 raiders, otherwise it is cancelled at the start. It lasts 30 minutes in six 5-minute ticks. In every tick, every raider deals damage based on their combat power, and the boss rolls a phase that makes it harder or easier to hit. Nobody needs to be online during the raid.
 
-A win gives every raider who dealt damage XP, gold and an item with three rarity rolls.
+### Raid bosses
+
+There are six bosses, each harder than the last. A guild starts with the first and unlocks the next one by
+beating the strongest it has unlocked. Without a boss number, the leader schedules the strongest unlocked one.
+
+| Boss | Name | Recommended power | Loot | XP and gold |
+|---|---|---|---|---|
+| 1 | The Monolith | 250 | 3 rolls, loot level 5+ | ×1 |
+| 2 | The Legacy Mainframe | 600 | 4 rolls, loot level 10+ | ×1.5 |
+| 3 | The Kubernetes Kraken | 1400 | 5 rolls, loot level 15+ | ×2 |
+| 4 | The Infinite Loop | 3000 | 6 rolls, loot level 25+ | ×3 |
+| 5 | The Production Outage | 6000 | 7 rolls, loot level 25+ | ×4 |
+| 6 | The Big Rewrite | 12000 | 8 rolls, loot level 25+ | ×6 |
+
+Boss HP depends only on the boss and the number of raiders, so it does not grow with your gear. If the raiders'
+average power matches the recommendation, the raid wins about 60% of the time. The odds drop fast below it:
+at 90% of the recommendation only about one raid in five wins, so stronger raiders carry weaker ones.
+
+A win gives every raider who dealt damage XP, gold and an item. Harder bosses roll the rarity more often and use at
+least their loot level, so their average loot is better.
 
 ## Achievements, statistics and leaderboards
 
@@ -401,7 +420,7 @@ Dungeons & Deploys has no email and no password. Your login token on your device
 | `quest dungeon [start\|join <code>]` | Dungeons |
 | `quest guild [create <name>\|join <code>\|leave]` | Guilds |
 | `quest guild donate <gold>` / `quest guild buff <key>` | Guild bank and buffs |
-| `quest raid [schedule <minutes>\|join]` | Raids |
+| `quest raid [schedule <minutes> [boss]\|join]` | Raids |
 | `quest talents [learn <key>\|reset]` | Talents |
 | `quest stats` | Statistics and achievements |
 | `quest top [xp\|achievements\|guilds]` | Leaderboards |
