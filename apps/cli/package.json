@@ -20,8 +20,13 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "prepublishOnly": "pnpm build",
+    "release": "npm publish --userconfig ~/.npmrc-dnd",
     "test": "node --test",
     "typecheck": "tsc"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
   },
   "license": "MIT"
 }
