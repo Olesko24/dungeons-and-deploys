@@ -18,6 +18,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - Every rarity has its own symbol on the website, and the shop shows a rarity legend.
+- Ideas: suggest features for the game and upvote the ones you want, linked at the bottom of the website.
 - Found, join and leave a guild from the guild hall on the website.
 - Talents: one point per level in four trees (offense, defense, luck, general) of 8 talents each, with rows that
   open with points spent and prerequisites. `quest talents` or the talent trees with icons on the website.

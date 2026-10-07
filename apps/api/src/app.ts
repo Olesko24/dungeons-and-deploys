@@ -8,6 +8,7 @@ import type { PrismaClient } from "./generated/prisma/client.ts";
 import { dungeonRoutes } from "./dungeons.ts";
 import { encounterRoutes } from "./encounters.ts";
 import { guildRoutes } from "./guilds.ts";
+import { ideaRoutes } from "./ideas.ts";
 import { inventoryRoutes } from "./inventory.ts";
 import { leaderboardRoutes } from "./leaderboard.ts";
 import { marketRoutes } from "./market.ts";
@@ -66,6 +67,7 @@ export async function buildApp(deps: Deps, opts: FastifyServerOptions = {}) {
   statsRoutes(app, db);
   leaderboardRoutes(app, db);
   talentRoutes(app, db);
+  ideaRoutes(app, full);
 
   // Every successful player action may unlock achievements. Heartbeats are skipped: they are frequent and change little.
   app.addHook("onResponse", async (req, reply) => {

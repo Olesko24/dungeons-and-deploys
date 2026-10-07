@@ -74,6 +74,8 @@ model Character {
   raids        RaidMember[]
   purchases    ShopPurchase[]
   achievements Achievement[]
+  ideas        Idea[]
+  ideaVotes    IdeaVote[]
   createdAt    DateTime        @default(now()) @map("created_at")
 
   @@index([power])
@@ -285,4 +287,30 @@ model Achievement {
 
   @@id([characterId, key])
   @@map("achievements")
+}
+
+/// A player's suggestion for the game. `status` is open, planned, done or rejected, set with the idea admin script.
+model Idea {
+  id        Int        @id @default(autoincrement())
+  authorId  Int        @map("author_id")
+  author    Character  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  title     String
+  text      String
+  status    String     @default("open")
+  votes     IdeaVote[]
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  @@index([authorId, createdAt])
+  @@map("ideas")
+}
+
+/// One upvote per player and idea.
+model IdeaVote {
+  ideaId      Int       @map("idea_id")
+  idea        Idea      @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  characterId Int       @map("character_id")
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@id([ideaId, characterId])
+  @@map("idea_votes")
 }

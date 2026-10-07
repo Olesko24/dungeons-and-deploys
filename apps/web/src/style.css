@@ -223,6 +223,19 @@ h3.sub { margin: 4px 0 0; font: 10px/1.6 var(--display); color: var(--gold); tex
 .achievements strong { display: block; font-weight: normal; }
 .achievements .dim { font-size: 18px; }
 
+.idea-form { display: grid; gap: 12px; justify-items: start; }
+.idea-form input, .idea-form textarea { width: 100%; text-transform: none; }
+.idea-form textarea { font: 22px/1.3 var(--body); background: var(--panel-deep); color: var(--ink); border: var(--pixel) solid var(--edge-dark); padding: 8px 12px; resize: vertical; }
+.idea-form textarea:focus-visible { outline: var(--pixel) solid var(--gold); outline-offset: var(--pixel); }
+.ideas { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ideas li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start; background: var(--panel-deep); padding: 8px 12px; }
+.ideas li.done, .ideas li.rejected { opacity: .55; }
+.ideas strong { font-weight: normal; }
+.ideas .vote { min-width: 4rem; }
+.idea-status { font: 8px var(--display); text-transform: uppercase; color: var(--gold); }
+.small-text { font-size: 18px; }
+.footer { text-align: center; font-size: 18px; color: var(--ink-dim); }
+
 .scroll { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
 th, td { padding: 4px 8px; text-align: left; white-space: nowrap; }

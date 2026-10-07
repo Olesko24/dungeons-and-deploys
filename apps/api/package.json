@@ -11,6 +11,7 @@
     "migrate": "prisma migrate dev && prisma generate",
     "access-code": "node --env-file-if-exists=.env src/admin/access-code.ts",
     "ban": "node --env-file-if-exists=.env src/admin/ban.ts",
+    "idea": "node --env-file-if-exists=.env src/admin/idea.ts",
     "loadtest": "node --env-file-if-exists=.env scripts/loadtest.ts"
   },
   "dependencies": {

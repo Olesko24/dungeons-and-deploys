@@ -17,6 +17,7 @@ import {
   api,
 } from "./api.ts";
 import { Doc, type DocName } from "./Doc.tsx";
+import { Ideas } from "./Ideas.tsx";
 import { Tour } from "./Tour.tsx";
 
 const SLOTS = [
@@ -674,7 +675,7 @@ function RanksView() {
   );
 }
 
-type View = "character" | "talents" | "shop" | "stats" | "ranks" | DocName;
+type View = "character" | "talents" | "shop" | "stats" | "ranks" | "ideas" | DocName;
 
 type Data = { character: Character; status: Status; items: Item[]; history: Quest[]; guild: Guild | null; raids: Raids };
 
@@ -782,6 +783,10 @@ export function App() {
       {view === "stats" && <StatsView />}
       {view === "ranks" && <RanksView />}
       {(view === "manual" || view === "changelog") && <Doc name={view} onOpen={setView} />}
+      {view === "ideas" && <Ideas />}
+      <footer className="footer">
+        <button type="button" className="link" onClick={() => { setView("ideas"); window.scrollTo(0, 0); }}>Ideas &amp; voting</button>
+      </footer>
       {touring && <Tour name={c.name} onView={setView} onEnd={endTour} />}
     </main>
   );
