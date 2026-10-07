@@ -134,9 +134,11 @@ Requires Node.js 24+, pnpm and Docker. TypeScript runs directly in Node (type st
 ```sh
 pnpm install
 cp apps/api/.env.example apps/api/.env
-pnpm dev                                # Postgres on :5433, API on :3000
+pnpm dev                                # Postgres on :5433, Mailpit on :8025, API on :3000
 curl localhost:3000/health              # ok
-pnpm test
+pnpm --filter @tokenquest/api access-code --uses 5 --days 30
+pnpm quest login --code <CODE>          # magic link arrives in Mailpit: http://localhost:8025
+pnpm test                               # needs Postgres running, uses the `test` schema
 pnpm typecheck
 pnpm lint
 pnpm --filter @tokenquest/api migrate   # create/apply migrations

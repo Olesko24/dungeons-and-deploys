@@ -10,7 +10,8 @@
     "dev": "docker compose up -d --wait && pnpm --filter @tokenquest/api dev",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
-    "lint": "oxlint --type-aware --deny-warnings"
+    "lint": "oxlint --type-aware --deny-warnings",
+    "quest": "node apps/cli/src/quest.ts"
   },
   "devDependencies": {
     "@types/node": "^24.19.1",

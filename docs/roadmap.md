@@ -16,14 +16,15 @@ Every phase ends in a playable or deployable state.
 
 ## Phase 1 – Accounts
 
-- [ ] Tables: `users`, `access_codes`, `sessions`
-- [ ] Access codes with max uses and expiry, created via admin script
-- [ ] `POST /auth/register` – access code + email → magic link, returns a login id and a short confirm code
-- [ ] `GET /auth/verify` – magic link opens a confirm page showing the confirm code, confirming approves the login
-- [ ] `GET /auth/poll/:loginId` – CLI polls until approved, then receives the API token (like device login in GitHub CLI)
-- [ ] Email sending via SMTP (nodemailer)
-- [ ] Rate limit on auth routes
-- [ ] CLI: `quest login --code <CODE>`, shows the confirm code, waits, stores the token in `~/.tokenquest/config.json`
+- [x] Tables: `users`, `access_codes`, `sessions`, `logins` (pending logins)
+- [x] Access codes with max uses and expiry, created via admin script
+- [x] `POST /auth/register` – access code + email → magic link, returns a login id and a short confirm code. Existing players need no code
+- [x] `GET /auth/verify` – magic link opens a confirm page showing the confirm code, `POST /auth/verify` approves the login (mail scanners only send GET)
+- [x] `POST /auth/poll` – CLI polls until approved, then receives the API token once (like device login in GitHub CLI). POST keeps the login id out of URLs and logs
+- [x] `GET /me` – checks the API token
+- [x] Email sending via SMTP (nodemailer), Mailpit for local development
+- [x] Rate limit on auth routes
+- [x] CLI: `quest login --code <CODE>`, shows the confirm code, waits, stores the token in `~/.tokenquest/config.json`
 
 **Done when:** A new player registers with a valid code, an invalid or used-up code is rejected, the CLI holds a working token.
 
