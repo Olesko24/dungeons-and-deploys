@@ -329,6 +329,8 @@ quest guild donate <gold>    # gold into the guild bank
 quest guild buff <key>       # leader only: activate a buff
 ```
 
+The guild hall on the website can found, join and leave guilds too. Joining is limited to 5 tries a minute, so join codes cannot be guessed.
+
 A guild has up to 50 members. Its level grows with a tenth of the members' quest XP and with raid wins. If the leader leaves, the longest-standing member takes over. The last member to leave dissolves the guild.
 
 ### Guild bank and buffs

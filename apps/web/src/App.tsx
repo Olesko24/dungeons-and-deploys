@@ -320,12 +320,16 @@ function History({ quests }: { quests: Quest[] }) {
 
 function GuildHall({ guild, raids, me, onChange }: { guild: Guild | null; raids: Raids; me: string; onChange: () => void }) {
   const [amount, setAmount] = useState("");
+  const [name, setName] = useState("");
+  const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
   async function act(path: string, body: object) {
     try {
       await api(path, body);
       setMessage("");
       setAmount("");
+      setName("");
+      setCode("");
       onChange();
     } catch (err) {
       setMessage((err as Error).message);
@@ -336,7 +340,18 @@ function GuildHall({ guild, raids, me, onChange }: { guild: Guild | null; raids:
     <section className="panel">
       <h2><UiIcon name="guild" />Guild hall</h2>
       {!guild ? (
-        <p className="dim">No guild yet. Found one with <code>quest guild create &lt;name&gt;</code> or join with <code>quest guild join &lt;code&gt;</code>.</p>
+        <>
+          <p className="dim">No guild yet. Found one and become its leader, or join with a code from a guild member.</p>
+          <form className="donate" onSubmit={(e) => { e.preventDefault(); void act("/guild", { name }); }}>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Guild name" aria-label="Guild name" pattern="[a-zA-Z0-9 _\-]{3,24}" title="3 to 24 letters, digits, spaces, _ or -" required />
+            <button type="submit" className="small">Found</button>
+          </form>
+          <form className="donate" onSubmit={(e) => { e.preventDefault(); void act("/guild/join", { code }); }}>
+            <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Join code" aria-label="Join code" required />
+            <button type="submit" className="small">Join</button>
+          </form>
+          {message && <p className="error" role="alert">{message}</p>}
+        </>
       ) : (
         <>
           <p>{guild.name} · Lv {guild.level} · {guild.members.length} members · join code <code>{guild.code}</code></p>
@@ -349,6 +364,16 @@ function GuildHall({ guild, raids, me, onChange }: { guild: Guild | null; raids:
               </li>
             ))}
           </ul>
+          <button
+            type="button"
+            className="small"
+            onClick={() => {
+              const warning = guild.members.length === 1 ? "You are the last member, the guild will be dissolved." : leader ? "The longest-standing member becomes leader." : "";
+              if (confirm(`Leave ${guild.name}? ${warning}`)) void act("/guild/leave", {});
+            }}
+          >
+            Leave guild
+          </button>
           <h3 className="sub">Guild bank · <Gold amount={guild.gold} /></h3>
           <p className="dim">Every quest adds 10% of its gold to the bank, on top of your own reward. Donations help too.</p>
           <form className="donate" onSubmit={(e) => { e.preventDefault(); void act("/guild/donate", { amount: Number(amount) }); }}>
