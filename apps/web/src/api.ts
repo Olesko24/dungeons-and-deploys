@@ -2,6 +2,7 @@ export type Stats = { attack: number; defense: number; luck: number; fortune: nu
 export type Item = { id: number; key: string; name: string; type: string; rarity: string; stats: Stats; equippedSlot: string | null; listed: boolean };
 export type Quest = {
   name: string;
+  story: string | null;
   startedAt: string;
   endsAt: string;
   resolved: boolean;
@@ -15,7 +16,7 @@ export type Status = {
   quest: Quest | null;
   readyAt: string;
   encounter: { name: string; level: number; expiresAt: string; winChance: number } | null;
-  dungeon: { code: string; state: string; startsAt: string; cleared: number; current: string | null; stageEndsAt: string | null; members: string[] } | null;
+  dungeon: { code: string; state: string; story: string; startsAt: string; cleared: number; current: string | null; stageEndsAt: string | null; members: string[] } | null;
 };
 
 export type Guild = {
@@ -30,6 +31,7 @@ export type Guild = {
 export type Raid = {
   boss: string;
   state: "scheduled" | "running" | "won" | "failed" | "cancelled";
+  story: string;
   startsAt: string;
   endsAt: string;
   tick: number;

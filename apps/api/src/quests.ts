@@ -6,6 +6,7 @@ import {
   levelFromXp,
   questName,
   questOutcome,
+  questStory,
   rollLoot,
   rollStats,
 } from "@tokenquest/shared";
@@ -18,6 +19,7 @@ import { type Character, type Item, Prisma, type PrismaClient, type Quest } from
 
 const questView = (q: Quest & { lootItem?: Item | null }) => ({
   name: questName(q.id),
+  story: q.resolvedAt ? questStory(q.id, q.success) : null,
   startedAt: q.startedAt,
   endsAt: q.endsAt,
   resolved: !!q.resolvedAt,
@@ -42,7 +44,7 @@ export function questRoutes(app: FastifyInstance, { db, now, random }: Required<
       }
       const quest = await tx.quest.create({ data: { characterId: character.id, startedAt: t, endsAt: t } });
       const outcome = await grantQuest(tx, quest.id, random, t);
-      return { name: questName(quest.id), ...outcome, readyAt: new Date(t.getTime() + COOLDOWN_MS) };
+      return { name: questName(quest.id), story: questStory(quest.id, outcome?.success ?? null), ...outcome, readyAt: new Date(t.getTime() + COOLDOWN_MS) };
     });
     return reply.code("error" in result ? 409 : 201).send(result);
   });

@@ -110,7 +110,7 @@ async function heartbeat(send: boolean) {
   spawn(process.execPath, [process.argv[1], "heartbeat", "--send"], { detached: true, stdio: "ignore" }).unref();
 }
 
-type QuestResult = { name: string; success: boolean | null; xp: number; gold: number; loot: { name: string; rarity: string } | null };
+type QuestResult = { name: string; story: string | null; success: boolean | null; xp: number; gold: number; loot: { name: string; rarity: string } | null };
 
 function questResult(q: QuestResult) {
   const loot = q.loot ? ` · Found: ${rarityColor(q.loot.name, q.loot.rarity)} (${q.loot.rarity})` : "";
@@ -121,6 +121,7 @@ async function startQuest() {
   const res = await authed("/quests", "POST");
   if (res.status === 201) {
     console.log(`⚔ ${questResult(res.data)}`);
+    console.log(`  ${res.data.story}`);
     console.log(`Next quest in ${minutesUntil(res.data.readyAt)}m.`);
     await refresh();
   } else if (res.data.error === "cooldown") {
@@ -144,6 +145,7 @@ async function status() {
   }
   const ready = minutesUntil(data.readyAt);
   console.log(`Last quest: ${questResult(q)}`);
+  if (q.story) console.log(`  ${q.story}`);
   console.log(ready > 0 ? `Next quest in ${ready}m.` : "Ready for a new quest: quest");
 }
 
@@ -158,6 +160,7 @@ async function fightMonster() {
     const loot = f.loot ? ` · Found: ${rarityColor(f.loot.name, f.loot.rarity)} (${f.loot.rarity})` : "";
     console.log(`✓ Victory · +${f.xp} XP · +${f.gold} gold${loot}`);
   }
+  console.log(`  ${f.story}`);
   await refresh();
 }
 
@@ -200,6 +203,7 @@ async function dungeon(action: string | undefined, code: string | undefined) {
   const d = data.dungeon;
   if (!d) return console.log("No dungeon yet. Start one: quest dungeon start");
   console.log(`Dungeon ${d.code} · ${d.state} · party: ${d.members.join(", ")}`);
+  console.log(`  ${d.story}`);
   d.stages.forEach((name: string, i: number) => {
     const mark = i < d.cleared ? "✓" : d.state === "failed" && i === d.cleared ? "✗" : i === d.cleared && d.current ? "⚔" : "·";
     console.log(`  ${mark} ${name}`);
@@ -235,6 +239,7 @@ async function raid(action: string | undefined, minutes: string | undefined) {
   if (!r) return console.log("No raid yet. Guild leaders plan one: quest raid schedule <minutes>");
   const when = r.state === "scheduled" ? `starts in ${minutesUntil(r.startsAt)}m, needs ${r.minPlayers}` : r.state;
   console.log(`Raid on ${r.boss} · ${when} · ${r.members.length} raiders`);
+  console.log(`  ${r.story}`);
   if (r.bossMaxHp) console.log(`HP ${bar(Math.ceil((r.bossHp / r.bossMaxHp) * 20), 20)} ${r.bossHp}/${r.bossMaxHp} · tick ${r.tick}/${r.ticks}`);
   for (const m of r.members) console.log(`  ${m.name.padEnd(20)} ${m.damage} damage`);
   if (r.state === "scheduled") console.log("Join with: quest raid join. Every raider deals damage each tick.");

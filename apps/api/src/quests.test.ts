@@ -36,8 +36,8 @@ test("a quest resolves at once and reports its rewards", async () => {
   const p = await player("hero");
   const start = await p.call("POST", "/quests");
   assert.equal(start.statusCode, 201);
-  const { name, ...result } = start.json();
-  assert.ok(name);
+  const { name, story, ...result } = start.json();
+  assert.ok(name && story);
   assert.deepEqual({ ...result, loot: result.loot.name }, {
     success: true, xp: 70, gold: 14, loot: "Leather Cap", readyAt: new Date(T0 + COOLDOWN_MS).toISOString(),
   });

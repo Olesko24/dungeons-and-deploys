@@ -21,6 +21,7 @@ export * from "./items.ts";
 export * from "./market.ts";
 export * from "./raids.ts";
 export * from "./shop.ts";
+export * from "./stories.ts";
 
 /**
  * A quest resolves the moment it starts, the dice decide.
@@ -32,23 +33,6 @@ export function questOutcome(random: () => number, luck = 0, fortune = 0) {
   const gold = 14 + Math.floor(random() * 6);
   return { success: true, xp: 70, gold: Math.floor(gold * (1 + fortune / 100)) };
 }
-
-const QUEST_NAMES = [
-  "Hunt the Off-by-One Goblin",
-  "Clear the Merge Conflict Swamp",
-  "Escort the Legacy Monolith",
-  "Banish the Flaky Test Wraith",
-  "Recover the Lost Semicolon",
-  "Slay the Memory Leak Hydra",
-  "Map the Undocumented Catacombs",
-  "Tame the Race Condition Twins",
-  "Storm the Dependency Hell Keep",
-  "Silence the Pager at 3 AM",
-  "Untangle the Regex Labyrinth",
-  "Defend the Production Gate",
-];
-
-export const questName = (id: number) => QUEST_NAMES[id % QUEST_NAMES.length];
 
 export const GUILD_MAX_MEMBERS = 50;
 

@@ -12,6 +12,7 @@ import {
   raidLoot,
   raidPhase,
   raidRewards,
+  raidStory,
   rollStats,
 } from "@tokenquest/shared";
 import type { Deps } from "./app.ts";
@@ -35,6 +36,7 @@ async function raidView(db: PrismaClient, guildId: number) {
   return {
     boss: RAID_BOSS,
     state: raid.state,
+    story: raidStory(raid.id, raid.state, raid.tick),
     startsAt: raid.startsAt,
     endsAt: raidTickAt(raid.startsAt, RAID_TICKS),
     tick: raid.tick,

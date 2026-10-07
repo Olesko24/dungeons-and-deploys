@@ -6,6 +6,7 @@ import {
   type MonsterKey,
   equipmentBonus,
   fightRewards,
+  fightStory,
   levelFromXp,
   rollLoot,
   rollMonster,
@@ -79,7 +80,7 @@ export function encounterRoutes(app: FastifyInstance, { db, now, random }: Requi
         ? await tx.item.create({ data: { characterId: character.id, key: lootKey, ...rollStats(lootKey, random) } })
         : null;
       if (loot) await tx.encounter.update({ where: { id: encounter.id }, data: { lootItemId: loot.id } });
-      return { monster: MONSTERS[monster].name, level: encounter.level, winChance: chance, won, ...rewards, loot: loot && itemView(loot) };
+      return { monster: MONSTERS[monster].name, level: encounter.level, winChance: chance, won, story: fightStory(monster, won), ...rewards, loot: loot && itemView(loot) };
     });
 
     if (!result) return reply.code(404).send({ error: "no monster around" });

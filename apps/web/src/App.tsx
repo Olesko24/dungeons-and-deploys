@@ -107,8 +107,8 @@ function QuestStatus({ status, onChange }: { status: Status; onChange: () => voi
   }
   const questResult = (r: Quest & { readyAt: string }) =>
     `${r.name}: ${r.success ? `✓ success · +${r.xp} XP · +${r.gold} gold${r.loot ? ` · found ${r.loot.name}` : ""}` : `✗ failed · +${r.xp} XP`}`;
-  const fightResult = (f: { won: boolean; xp: number; gold: number; loot: Item | null }) =>
-    f.won ? `Victory · +${f.xp} XP · +${f.gold} gold${f.loot ? ` · found ${f.loot.name}` : ""}` : "Defeated. It got away, nothing lost.";
+  const fightResult = (f: { won: boolean; story: string; xp: number; gold: number; loot: Item | null }) =>
+    `${f.won ? `Victory · +${f.xp} XP · +${f.gold} gold${f.loot ? ` · found ${f.loot.name}` : ""}` : "Defeated. It got away, nothing lost."} ${f.story}`;
 
   return (
     <section className="panel">
@@ -125,6 +125,7 @@ function QuestStatus({ status, onChange }: { status: Status; onChange: () => voi
       {status.dungeon?.state === "running" && (
         <p>Dungeon stage {status.dungeon.cleared + 1}/4 · {status.dungeon.current} · {minutesUntil(status.dungeon.stageEndsAt ?? "")}m left</p>
       )}
+      {status.dungeon && <p className="dim">{status.dungeon.story}</p>}
       {q && !q.resolved && (
         <>
           <p>⚔ Quest running · {minutesUntil(q.endsAt) ? `${minutesUntil(q.endsAt)}m left` : "rolling the dice"}</p>
@@ -138,6 +139,7 @@ function QuestStatus({ status, onChange }: { status: Status; onChange: () => voi
           {minutesUntil(status.readyAt) ? ` · next quest in ${minutesUntil(status.readyAt)}m` : ""}
         </p>
       )}
+      {q?.story && <p className="dim">{q.story}</p>}
       {ready && (
         <div className="row">
           <p>{q ? "Ready for a new quest." : "No quest yet."} The result comes at once, then 45 minutes rest.</p>
@@ -272,6 +274,7 @@ function RaidView({ raid }: { raid: Raid }) {
     <section className={`panel raid ${raid.state}`}>
       <h2><UiIcon name="raid" />Raid · {raid.boss}</h2>
       <p>{label}</p>
+      <p className="dim">{raid.story}</p>
       {raid.bossMaxHp > 0 && (
         <>
           <Bar filled={Math.ceil((raid.bossHp / raid.bossMaxHp) * 20)} total={20} label={`Boss HP ${raid.bossHp} of ${raid.bossMaxHp}`} />

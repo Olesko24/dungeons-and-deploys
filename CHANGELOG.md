@@ -7,6 +7,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Short stories for every quest, monster fight, dungeon stage and raid tick: what happened, in the CLI and on the
+  website.
+
 ### Changed
 
 - **Breaking:** Quests resolve at once. `quest` and the website show the quest name, XP, gold and any loot right away,
