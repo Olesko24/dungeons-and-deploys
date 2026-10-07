@@ -47,10 +47,10 @@ test("guild level grows from members' quests", async () => {
   const p = await player("delta");
   await p.call("POST", "/guild", { name: "Day Shift" });
   const quest = await db.quest.create({
-    data: { characterId: p.characterId, startedAt: new Date(), endsAt: new Date(), slots: 0b111111111 },
+    data: { characterId: p.characterId, startedAt: new Date(), endsAt: new Date() },
   });
   await resolveQuest(db, quest.id, () => 0);
   const guild = (await p.call("GET", "/guild")).json().guild;
-  assert.equal(guild.xp, 90);
+  assert.equal(guild.xp, 70);
   assert.equal(guild.level, 1);
 });

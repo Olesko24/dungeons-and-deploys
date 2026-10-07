@@ -10,12 +10,15 @@ import {
   raidBossHp,
   raidDamage,
   raidLoot,
+  raidPhase,
   raidRewards,
   rollStats,
 } from "@tokenquest/shared";
 import type { Deps } from "./app.ts";
 import { requireCharacter } from "./characters.ts";
-import type { Character, PrismaClient } from "./generated/prisma/client.ts";
+import type { PrismaClient } from "./generated/prisma/client.ts";
+
+const NO_GEAR = { attack: 0, defense: 0, luck: 0, fortune: 0 };
 
 export const raidTickAt = (startsAt: Date, tick: number) => new Date(startsAt.getTime() + tick * RAID_TICK_MS);
 
@@ -43,18 +46,9 @@ async function raidView(db: PrismaClient, guildId: number) {
   };
 }
 
-/** Called on every accepted heartbeat: marks presence in the current tick of a running raid. */
-export async function raidHeartbeat(db: PrismaClient, character: Character, t: Date) {
-  const member = await db.raidMember.findFirst({ where: { characterId: character.id, raid: { state: "running" } }, include: { raid: true } });
-  if (!member) return;
-  const tick = Math.floor((t.getTime() - member.raid.startsAt.getTime()) / RAID_TICK_MS);
-  if (tick < 0 || tick >= RAID_TICKS) return;
-  await db.$executeRaw`UPDATE raid_members SET slots = slots | ${1 << tick} WHERE raid_id = ${member.raidId} AND character_id = ${character.id}`;
-}
-
 /**
- * Tick 0 starts the raid or cancels it below the minimum. Ticks 1-6 apply the damage of members present
- * in the tick before. Returns whether another tick follows. Safe to run twice.
+ * Tick 0 starts the raid or cancels it below the minimum. Ticks 1-6 roll a boss phase and apply every raider's
+ * damage. Returns whether another tick follows. Safe to run twice.
  */
 export function advanceRaid(db: PrismaClient, raidId: number, tick: number, random = Math.random) {
   return db.$transaction(async (tx) => {
@@ -67,7 +61,7 @@ export function advanceRaid(db: PrismaClient, raidId: number, tick: number, rand
 
     const fighters = raid.members.map((m) => {
       const level = levelFromXp(m.character.xp).level;
-      return { m, level, power: combatPower(level, equipmentBonus(m.character.items)) };
+      return { m, level, power: combatPower(level, equipmentBonus(m.character.items)), base: combatPower(level, NO_GEAR) };
     });
 
     if (tick === 0) {
@@ -75,15 +69,15 @@ export function advanceRaid(db: PrismaClient, raidId: number, tick: number, rand
         await tx.raid.update({ where: { id: raidId }, data: { state: "cancelled" } });
         return { state: "cancelled", next: false };
       }
-      const hp = raidBossHp(fighters.map((f) => f.power));
+      const hp = raidBossHp(fighters);
       await tx.raid.update({ where: { id: raidId }, data: { state: "running", bossHp: hp, bossMaxHp: hp } });
       return { state: "running", next: true };
     }
 
     let total = 0;
+    const phase = raidPhase(random);
     for (const f of fighters) {
-      if (!(f.m.slots & (1 << (tick - 1)))) continue;
-      const hit = raidDamage(f.power, random);
+      const hit = raidDamage(f.power, phase, random);
       total += hit;
       await tx.raidMember.update({
         where: { raidId_characterId: { raidId, characterId: f.m.characterId } },

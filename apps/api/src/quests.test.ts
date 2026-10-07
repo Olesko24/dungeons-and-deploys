@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
-import { COOLDOWN_MS, QUEST_MS, SLOT_MS } from "@tokenquest/shared";
+import { COOLDOWN_MS, QUEST_MS } from "@tokenquest/shared";
 import { buildApp } from "./app.ts";
 import { hash } from "./auth.ts";
 import type { PrismaClient } from "./generated/prisma/client.ts";
@@ -35,7 +35,7 @@ async function player(name: string) {
 const at = (ms: number) => { clock = T0 + ms; };
 const lastQuestId = async () => (await db.quest.findFirstOrThrow({ orderBy: { id: "desc" } })).id;
 
-test("quest succeeds with enough presence and grants rewards once", async () => {
+test("a quest only needs time and grants rewards once", async () => {
   at(0);
   const p = await player("hero");
   const start = await p.call("POST", "/quests");
@@ -43,30 +43,24 @@ test("quest succeeds with enough presence and grants rewards once", async () => 
   assert.equal(scheduled.at(-1)!.at.getTime(), T0 + QUEST_MS);
   assert.equal((await p.call("POST", "/quests")).statusCode, 409, "only one quest at a time");
 
-  for (const slot of [2, 4, 6, 8]) {
-    at(slot * SLOT_MS + 1000);
-    assert.equal((await p.call("POST", "/heartbeat")).statusCode, 200);
-  }
   at(QUEST_MS + 1000);
-  const late = (await p.call("POST", "/heartbeat")).json();
-  assert.equal(late.quest.presentSlots, 5, "heartbeat after the end is ignored");
-  assert.deepEqual(late.character, { name: "hero", gold: 0, level: 1 });
+  assert.deepEqual((await p.call("POST", "/heartbeat")).json().character, { name: "hero", gold: 0, level: 1 });
 
   const id = await lastQuestId();
   const result = await resolveQuest(db, id, () => 0);
-  assert.deepEqual({ ...result, loot: result?.loot?.name }, { success: true, xp: 50, gold: 10, loot: "Leather Cap" });
+  assert.deepEqual({ ...result, loot: result?.loot?.name }, { success: true, xp: 70, gold: 14, loot: "Leather Cap" });
   assert.equal(await resolveQuest(db, id, () => 0), null, "second run changes nothing");
   assert.deepEqual((await p.call("GET", "/character")).json(), {
-    name: "hero", xp: 50, gold: 10, level: 1, xpIntoLevel: 50, xpForNext: 100, attack: 0, defense: 0, luck: 0, fortune: 0,
+    name: "hero", xp: 70, gold: 14, level: 1, xpIntoLevel: 70, xpForNext: 100, attack: 0, defense: 0, luck: 0, fortune: 0,
   });
 });
 
-test("quest fails without enough presence", async () => {
+test("a quest can fail on the dice", async () => {
   at(0);
-  const p = await player("idle");
+  const p = await player("unlucky");
   await p.call("POST", "/quests");
-  assert.deepEqual(await resolveQuest(db, await lastQuestId(), () => 0), { success: false, xp: 2, gold: 0, loot: null });
-  assert.equal((await p.character()).xp, 2);
+  assert.deepEqual(await resolveQuest(db, await lastQuestId(), () => 0.99), { success: false, xp: 10, gold: 0, loot: null });
+  assert.equal((await p.character()).xp, 10);
 });
 
 test("cooldown after a quest", async () => {
@@ -99,9 +93,7 @@ test("loot lands in the inventory and equipment raises the odds", async () => {
   at(0);
   const p = await player("looter");
   await p.call("POST", "/quests");
-  const first = await lastQuestId();
-  await db.quest.update({ where: { id: first }, data: { slots: 0b11111 } });
-  await resolveQuest(db, first, () => 0);
+  await resolveQuest(db, await lastQuestId(), () => 0);
   const inv = (await p.call("GET", "/inventory")).json();
   assert.equal(inv.items.length, 1);
   assert.deepEqual(inv.items[0].stats, { attack: 0, defense: 1, luck: 0, fortune: 0 }, "stats are rolled on drop");
@@ -119,12 +111,10 @@ test("loot lands in the inventory and equipment raises the odds", async () => {
   const names = (await p.call("GET", "/inventory")).json().items.map((i: { name: string }) => i.name);
   assert.deepEqual(names, ["Leather Cap", "Merchant's Signet of Root", "Merchant's Ring of Caching", "Gambler's Chainmail"]);
 
-  // A quest with 5 present slots: 60% base + 15 luck = 75%.
+  // 75% base + 15 luck = 90%: a roll of 0.85 fails without the gear and succeeds with it.
   at(QUEST_MS + COOLDOWN_MS);
   await p.call("POST", "/quests");
-  const id = await lastQuestId();
-  await db.quest.update({ where: { id }, data: { slots: 0b11111 } });
-  assert.equal((await resolveQuest(db, id, () => 0.7))!.success, true);
+  assert.equal((await resolveQuest(db, await lastQuestId(), () => 0.85))!.success, true);
 });
 
 test("equip and unequip", async () => {

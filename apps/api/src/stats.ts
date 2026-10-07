@@ -1,15 +1,28 @@
 import type { FastifyInstance } from "fastify";
-import { ACHIEVEMENTS, QUEST_SLOTS, type PlayerStats, countSlots, item, levelFromXp } from "@tokenquest/shared";
+import { ACHIEVEMENTS, type PlayerStats, item, levelFromXp } from "@tokenquest/shared";
 import { requireCharacter } from "./characters.ts";
 import type { Character, PrismaClient } from "./generated/prisma/client.ts";
 
-const PERFECT = (1 << QUEST_SLOTS) - 1;
+/** Most successful quests in a row. */
+function longestStreak(quests: { success: boolean | null }[]) {
+  let best = 0;
+  let run = 0;
+  for (const q of quests) {
+    run = q.success ? run + 1 : 0;
+    best = Math.max(best, run);
+  }
+  return best;
+}
 
 /** Everything is counted from existing tables, nothing is tracked twice. */
 export async function playerStats(db: PrismaClient, c: Character): Promise<PlayerStats> {
   const id = c.id;
   const [quests, encounters, dungeons, raids, equipped, marketSold, marketBought, shopBought, guild] = await Promise.all([
-    db.quest.findMany({ where: { characterId: id, resolvedAt: { not: null } }, select: { slots: true, success: true, gold: true, lootItem: true } }),
+    db.quest.findMany({
+      where: { characterId: id, resolvedAt: { not: null } },
+      orderBy: { startedAt: "asc" },
+      select: { success: true, gold: true, lootItem: true },
+    }),
     db.encounter.findMany({ where: { characterId: id, foughtAt: { not: null } }, select: { won: true, monster: true, gold: true, lootItem: true } }),
     db.dungeonMember.findMany({
       where: { characterId: id },
@@ -28,8 +41,7 @@ export async function playerStats(db: PrismaClient, c: Character): Promise<Playe
     level: levelFromXp(c.xp).level,
     questsWon: quests.filter((q) => q.success).length,
     questsFailed: quests.filter((q) => !q.success).length,
-    perfectQuests: quests.filter((q) => q.success && q.slots === PERFECT).length,
-    presentSlots: quests.reduce((s, q) => s + countSlots(q.slots), 0),
+    longestStreak: longestStreak(quests),
     goldEarned: sum(quests) + sum(encounters) + sum(dungeons),
     monstersSlain: encounters.filter((e) => e.won).length,
     fightsLost: encounters.filter((e) => !e.won).length,

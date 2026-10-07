@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { countSlots, levelFromXp, questOutcome, xpToNext } from "./index.ts";
+import { levelFromXp, questOutcome, xpToNext } from "./index.ts";
 
 test("level curve", () => {
   assert.equal(xpToNext(1), 100);
@@ -10,15 +10,9 @@ test("level curve", () => {
   assert.deepEqual(levelFromXp(400), { level: 3, xpIntoLevel: 17, xpForNext: 520 });
 });
 
-test("slot bitmask", () => {
-  assert.equal(countSlots(0b110111011), 7);
-  assert.equal(countSlots(0), 0);
-});
-
 test("quest outcome", () => {
-  assert.deepEqual(questOutcome(4, () => 0), { success: false, xp: 8, gold: 0 });
-  assert.deepEqual(questOutcome(5, () => 0.59), { success: true, xp: 50, gold: 13 });
-  assert.equal(questOutcome(5, () => 0.6).success, false);
-  assert.equal(questOutcome(9, () => 0.94).success, true);
-  assert.equal(questOutcome(9, () => 0.95).success, false);
+  assert.deepEqual(questOutcome(() => 0), { success: true, xp: 70, gold: 14 });
+  assert.deepEqual(questOutcome(() => 0.75), { success: false, xp: 10, gold: 0 }, "75% base chance");
+  assert.equal(questOutcome(() => 0.8, 10).success, true, "luck adds percentage points");
+  assert.equal(questOutcome(() => 0.95, 50).success, false, "capped at 95%");
 });

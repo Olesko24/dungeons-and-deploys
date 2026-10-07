@@ -110,6 +110,7 @@ input {
 .raid .bar { flex-wrap: wrap; }
 
 .tabs { display: flex; gap: 12px; flex-wrap: wrap; }
+.row { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 .beta { font-size: 18px; color: var(--ink-dim); border-left: var(--pixel) solid var(--warn); padding-left: 12px; }
 .beta strong { font: 8px var(--display); color: var(--warn); text-transform: uppercase; }
 a { color: var(--gold); }

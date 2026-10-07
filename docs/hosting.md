@@ -20,24 +20,6 @@ Target: 10,000 concurrent players.
 
 Start small. Scale the VPS vertically when needed.
 
-## Presence storage
-
-Never store heartbeats as rows. 10,000 players × 1/min would add ~14M rows per day.
-
-Each active quest stores one bitmask, one bit per 5-minute slot:
-
-```
-quest 42: slots = 0b110111011   → 7 of 9 slots present
-```
-
-A heartbeat sets the bit of the current slot:
-
-```sql
-UPDATE quests SET slots = slots | $bit WHERE id = $id
-```
-
-With this model the database stays small (~10k characters, ~1M items, a few thousand guilds).
-
 ## Deploy
 
 The API runs as a Coolify application built from this repository, at `https://tokenquest.meiners-dev.de`.

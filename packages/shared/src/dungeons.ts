@@ -3,7 +3,6 @@ import { type Stats, randomItemKey } from "./items.ts";
 
 export const DUNGEON_LOBBY_MS = 5 * 60 * 1000;
 export const DUNGEON_STAGE_MS = 15 * 60 * 1000;
-export const DUNGEON_SLOTS_PER_STAGE = 3;
 export const DUNGEON_MAX_PARTY = 5;
 
 /** Three stages and a boss. Each stage fights like its monster with the monster's power scaled by `power`. */
@@ -14,19 +13,18 @@ export const DUNGEON_STAGES: { name: string; monster: MonsterKey; power: number 
   { name: "Lair of the Dependency Dragon", monster: "dependencyDragon", power: 0.4 },
 ];
 
-export type DungeonMember = { level: number; gear: Stats; presentSlots: number };
+export type DungeonMember = { level: number; gear: Stats };
 
 /**
- * Average member odds against the stage, times the share of present slots, plus 5 points of teamwork per
- * extra member. Every member makes the stage 10% tougher. Kept within 5-95%.
+ * Average member odds against the stage plus 5 points of teamwork per extra member.
+ * Every member makes the stage 10% tougher. Kept within 5-95%.
  */
 export function stageChance(stage: number, members: DungeonMember[]) {
   const { monster, power } = DUNGEON_STAGES[stage];
   const size = members.length;
   const toughness = power * (1 + 0.1 * (size - 1));
   const odds = members.reduce((sum, m) => sum + scaledChance(m, monster, toughness), 0) / size;
-  const presence = members.reduce((sum, m) => sum + m.presentSlots, 0) / (DUNGEON_SLOTS_PER_STAGE * size);
-  return Math.min(0.95, Math.max(0.05, odds * presence + 0.05 * (size - 1)));
+  return Math.min(0.95, Math.max(0.05, odds + 0.05 * (size - 1)));
 }
 
 /** winChance against the stage monster, with the monster's power multiplied by the stage toughness. */

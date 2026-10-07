@@ -3,7 +3,7 @@
 # Tokenquest
 
 An idle RPG for the terminal. Runs alongside Claude Code or any shell. Start a quest, keep working, collect loot.
-Inspired by Twitch idle RPGs: presence and luck, not performance.
+Inspired by Twitch idle RPGs: luck and patience, not performance.
 
 > **Beta.** Rules, numbers and basic mechanics can still change, and progress may be reset. See the [changelog](CHANGELOG.md).
 >
@@ -13,20 +13,21 @@ New here? Read the [player manual](docs/manual.md).
 
 ## Principles
 
-- **Fun on the side.** No performance tracking. Rewards depend on presence and dice, never on tokens, tickets or commits.
+- **Fun on the side.** No performance tracking. Rewards depend on time, gear and dice, never on tokens, tickets or commits.
+- **No presence required.** Start a quest and come back later. You never have to keep a terminal open.
 - **Solo-friendly.** Quests and dungeons are playable alone. Groups give bonuses, never requirements.
 - **Raids need a guild.** The only content that is group-only.
 - **Zero token cost.** In Claude Code, game logic never runs through the model. Commands use the `!` shell prefix, hooks only send timestamps.
-- **Server is authoritative.** Clients report presence. Dice, loot and outcomes are decided on the server.
+- **Server is authoritative.** Dice, loot and outcomes are decided on the server.
 
 ## Gameplay
 
 | Content | Players | Notes |
 |---|---|---|
-| Quest | 1 | `quest`, 45 min, then 15 min cooldown. Success depends on presence during the quest |
-| Random encounter | 1 | 2% chance per heartbeat. `quest fight` within 5 min |
+| Quest | 1 | `quest` or a button on the website, 45 min, then 15 min cooldown. 75% success plus luck |
+| Random encounter | 1 | 2% chance per heartbeat (terminal, Claude Code or open website). Fight within 5 min |
 | Dungeon | 1–5 | Three stages and a boss, 15 min each. Difficulty and loot scale with party size |
-| Raid | 5+ | Guild only, scheduled by the leader. Shared boss HP, damage from presence in the raid window |
+| Raid | 5+ | Guild only, scheduled by the leader. Shared boss HP, every raider deals damage each tick |
 | Market | – | Fixed prices by rarity, buyers draw a random listing, one draw per day |
 | Shop | – | Three new offers every day, each once per player |
 | Achievements | – | 18 achievements and a statistics page, just for fun |
@@ -35,21 +36,18 @@ New here? Read the [player manual](docs/manual.md).
 Items drop in four rarities and eleven equipment slots, with rolled stats and twelve weapon kinds.
 Higher levels raise the chance for better loot. All items: see `apps/web/public/items/`.
 
-### Presence
+### Heartbeats
 
-A quest is split into 5-minute slots. Each slot with at least one heartbeat counts as present.
-Enough present slots → quest succeeds. More slots → better loot rolls.
+A heartbeat is a plain CLI call (`quest heartbeat`). It is optional: quests, dungeons and raids do not need it.
+Heartbeats refresh the status line and can spawn random monsters.
 
-### Integrations
-
-A heartbeat is a plain CLI call (`quest heartbeat`). Any integration that calls it counts as presence.
-
-| Integration | Heartbeat | Status display |
+| Source | Heartbeat | Status display |
 |---|---|---|
 | Claude Code plugin | `UserPromptSubmit` hook | Claude Code statusline |
 | Shell (zsh, bash) | `precmd` hook, every command | Prompt segment or tmux status |
+| Website | Every minute while a tab is open | The website itself |
 
-Both can run at the same time. The server limits heartbeats to one per minute per player.
+The server limits heartbeats to one per minute per player and source.
 
 ### Access
 
@@ -89,7 +87,7 @@ quest login --code <ACCESS_CODE>
 /plugin install tokenquest@tokenquest
 ```
 
-The plugin sends a heartbeat on every prompt. Plugins cannot set the statusline, so add it to `~/.claude/settings.json`:
+The plugin sends a heartbeat on prompts, so monsters can show up while you work. Plugins cannot set the statusline, so add it to `~/.claude/settings.json`:
 
 ```json
 {
@@ -105,7 +103,7 @@ Add to `~/.zshrc` (or `~/.bashrc` with `bash`):
 eval "$(quest init zsh)"
 ```
 
-Every command counts as presence. For the status in your prompt, use `tokenquest_prompt`:
+Commands send heartbeats, so monsters can show up. For the status in your prompt, use `tokenquest_prompt`:
 
 ```sh
 setopt prompt_subst
@@ -117,7 +115,7 @@ RPROMPT='$(tokenquest_prompt)'
 ```
 Client (per player)                       Server
 ├─ CLI `quest`  ──── HTTPS + token ───►  API (Fastify)
-├─ Heartbeat hook ── max 1/min ──────►    ├─ dice, loot, outcomes
+├─ Heartbeat hook ── max 1/min, opt. ►    ├─ dice, loot, outcomes
 │  (Claude Code or shell)                 │
 └─ Statusline ◄── cached state ────────   ├─ queue workers (pg-boss)
                                           └─ Postgres
@@ -154,7 +152,7 @@ tokenquest/
 
 A queue holds jobs that should run later or outside the request. Workers pick jobs up and execute them.
 
-- `quest.resolve` – scheduled when a quest starts, runs 45 min later: check presence, roll loot.
+- `quest.resolve` – scheduled when a quest starts, runs 45 min later: roll success and loot.
 - `raid.start` / `raid.tick` – scheduled by guild leaders, processes the shared boss fight.
 - `dungeon.stage` – advances a dungeon to the next stage.
 
@@ -164,13 +162,13 @@ Why a queue instead of a timer in memory: jobs survive restarts, run exactly onc
 
 | Source | Load |
 |---|---|
-| Heartbeats | ~170 req/s, batched before writing to the database |
+| Heartbeats | up to ~170 req/s, read-only except for rare monster spawns |
 | Quest resolutions | ~4 jobs/s |
 | Statusline | 0, reads local cache |
 | Raid start | short burst, absorbed by the queue |
 
 A single Node process handles this. The database is the bottleneck to watch, not the runtime.
-See [docs/hosting.md](docs/hosting.md) for sizing, presence storage and operations.
+See [docs/hosting.md](docs/hosting.md) for sizing and operations.
 
 ## Roadmap
 

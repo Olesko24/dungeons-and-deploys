@@ -1,7 +1,7 @@
 {
   "name": "tokenquest",
   "version": "0.1.0",
-  "description": "Idle RPG alongside Claude Code. Your prompts count as presence on your quest.",
+  "description": "Idle RPG alongside Claude Code. Your prompts can spawn monsters, the statusline shows your quest.",
   "author": {
     "name": "Olesko24"
   },

@@ -156,6 +156,16 @@ Measured locally (single Node process, Postgres in Docker, Apple Silicon): 165 h
 
 **Done when:** A player sees stats and unlocked achievements, buys a shop offer once per day.
 
+## Phase 12 – No presence required
+
+Quests, dungeons and raids should not depend on keeping a terminal open.
+
+- [x] Quests resolve after 45 minutes on the dice alone: 75% plus luck, two rarity rolls for loot
+- [x] Dungeon stages use the members' level and gear, raids apply every raider's damage each tick with a random boss phase
+- [x] Heartbeats stay optional: monsters and statusline, also from an open website tab
+- [x] Website buttons to start a quest and fight a monster
+- [x] Achievement "Full Presence" replaced by "On a Roll" (5 quest wins in a row)
+
 ## Open decisions
 
 - Game content: quest texts, item names, monsters

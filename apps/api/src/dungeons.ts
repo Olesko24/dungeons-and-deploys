@@ -2,12 +2,9 @@ import type { FastifyInstance } from "fastify";
 import {
   DUNGEON_LOBBY_MS,
   DUNGEON_MAX_PARTY,
-  DUNGEON_SLOTS_PER_STAGE,
   DUNGEON_STAGES,
   DUNGEON_STAGE_MS,
-  SLOT_MS,
   bossLoot,
-  countSlots,
   equipmentBonus,
   levelFromXp,
   rollStats,
@@ -17,10 +14,9 @@ import {
 import type { Deps } from "./app.ts";
 import { randomCode } from "./auth.ts";
 import { requireCharacter } from "./characters.ts";
-import type { Character, PrismaClient } from "./generated/prisma/client.ts";
+import type { PrismaClient } from "./generated/prisma/client.ts";
 
 const STAGES = DUNGEON_STAGES.length;
-const RUN_MS = STAGES * DUNGEON_STAGE_MS;
 
 export const stageEndsAt = (startsAt: Date, stage: number) => new Date(startsAt.getTime() + (stage + 1) * DUNGEON_STAGE_MS);
 
@@ -49,16 +45,6 @@ export async function dungeonView(db: PrismaClient, characterId: number, t: Date
   };
 }
 
-/** Called on every accepted heartbeat: marks presence in the current 5-minute slot of a running dungeon. */
-export async function dungeonHeartbeat(db: PrismaClient, character: Character, t: Date) {
-  const membership = await activeMembership(db, character.id);
-  if (!membership) return;
-  const elapsed = t.getTime() - membership.dungeon.startsAt.getTime();
-  if (elapsed < 0 || elapsed >= RUN_MS) return;
-  const bit = 1 << Math.floor(elapsed / SLOT_MS);
-  await db.$executeRaw`UPDATE dungeon_members SET slots = slots | ${bit} WHERE dungeon_id = ${membership.dungeonId} AND character_id = ${character.id}`;
-}
-
 /** Resolves one stage. Returns whether the run goes on. Safe to run twice: a resolved stage changes nothing. */
 export function resolveStage(db: PrismaClient, dungeonId: number, stage: number, random = Math.random, t = new Date()) {
   return db.$transaction(async (tx) => {
@@ -68,10 +54,7 @@ export function resolveStage(db: PrismaClient, dungeonId: number, stage: number,
     });
     if (!dungeon || dungeon.endedAt || dungeon.stage !== stage) return null;
 
-    const members = dungeon.members.map((m) => {
-      const stageBits = (m.slots >> (stage * DUNGEON_SLOTS_PER_STAGE)) & ((1 << DUNGEON_SLOTS_PER_STAGE) - 1);
-      return { m, level: levelFromXp(m.character.xp).level, gear: equipmentBonus(m.character.items), presentSlots: countSlots(stageBits) };
-    });
+    const members = dungeon.members.map((m) => ({ m, level: levelFromXp(m.character.xp).level, gear: equipmentBonus(m.character.items) }));
     const chance = stageChance(stage, members);
     const cleared = random() < chance;
     const last = stage === STAGES - 1;

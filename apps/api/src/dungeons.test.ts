@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
-import { DUNGEON_LOBBY_MS, DUNGEON_STAGE_MS, SLOT_MS } from "@tokenquest/shared";
+import { DUNGEON_LOBBY_MS, DUNGEON_STAGE_MS } from "@tokenquest/shared";
 import { buildApp } from "./app.ts";
 import { hash } from "./auth.ts";
 import { resolveStage } from "./dungeons.ts";
@@ -52,17 +52,11 @@ test("start, join and lobby rules", async () => {
   assert.equal((await leader.call("GET", "/dungeons/current")).json().dungeon.members.length, 5);
 });
 
-test("a solo run: presence, stages, boss loot", async () => {
+test("a solo run: stages and boss loot", async () => {
   clock = T0;
   const p = await player("solo");
   const { code } = (await p.call("POST", "/dungeons")).json();
   const dungeon = await db.dungeon.findUniqueOrThrow({ where: { code } });
-
-  clock = T0 + DUNGEON_LOBBY_MS + SLOT_MS + 1000;
-  await p.call("POST", "/heartbeat");
-  const member = await db.dungeonMember.findFirstOrThrow({ where: { characterId: p.characterId } });
-  assert.equal(member.slots, 0b10, "heartbeat marks the second slot of stage 1");
-  await db.dungeonMember.updateMany({ where: { characterId: p.characterId }, data: { slots: 0xfff } });
 
   for (let stage = 0; stage < 4; stage++) {
     const result = await resolveStage(db, dungeon.id, stage, () => 0);
@@ -81,7 +75,7 @@ test("a failed stage ends the run", async () => {
   const p = await player("unlucky");
   const { code } = (await p.call("POST", "/dungeons")).json();
   const dungeon = await db.dungeon.findUniqueOrThrow({ where: { code } });
-  assert.deepEqual(await resolveStage(db, dungeon.id, 0, () => 0.99), { cleared: false, chance: 0.05, next: false });
+  assert.equal((await resolveStage(db, dungeon.id, 0, () => 0.99))?.cleared, false);
   const view = (await p.call("GET", "/dungeons/current")).json().dungeon;
   assert.deepEqual([view.state, view.cleared, view.you.xp], ["failed", 0, 0]);
 });
@@ -94,7 +88,6 @@ test("a 3-player run completes with scaled rewards", async () => {
   const { code } = (await leader.call("POST", "/dungeons")).json();
   for (const name of ["trio2", "trio3"]) await (await player(name)).call("POST", "/dungeons/join", { code });
   const trioRun = await db.dungeon.findUniqueOrThrow({ where: { code } });
-  await db.dungeonMember.updateMany({ data: { slots: 0xfff } });
 
   for (let stage = 0; stage < 4; stage++) {
     assert.equal((await resolveStage(db, soloRun.id, stage, () => 0))?.cleared, true);

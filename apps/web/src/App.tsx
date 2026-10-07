@@ -91,16 +91,31 @@ function Login({ onDone, onOpen }: { onDone: () => void; onOpen: (doc: DocName) 
   );
 }
 
-function QuestStatus({ status }: { status: Status }) {
+function QuestStatus({ status, onChange }: { status: Status; onChange: () => void }) {
   const q = status.quest;
   const e = status.encounter;
+  const [message, setMessage] = useState("");
+  const ready = !q || (q.resolved && !minutesUntil(status.readyAt));
+
+  async function act(path: string, describe: (data: never) => string) {
+    try {
+      setMessage(describe(await api<never>(path, {})));
+    } catch (err) {
+      setMessage((err as Error).message);
+    }
+    onChange();
+  }
+  const fightResult = (f: { won: boolean; xp: number; gold: number; loot: Item | null }) =>
+    f.won ? `Victory · +${f.xp} XP · +${f.gold} gold${f.loot ? ` · found ${f.loot.name}` : ""}` : "Defeated. It got away, nothing lost.";
+
   return (
     <section className="panel">
       <h2><UiIcon name="hourglass" />Status</h2>
       {e && (
-        <p className="alert">
-          ⚠ {e.name} (Lv {e.level}) appeared · {Math.round(e.winChance * 100)}% odds · <code>quest fight</code> within {minutesUntil(e.expiresAt)}m
-        </p>
+        <div className="row">
+          <p className="alert">⚠ {e.name} (Lv {e.level}) appeared · {Math.round(e.winChance * 100)}% odds · leaves in {minutesUntil(e.expiresAt)}m</p>
+          <button type="button" className="small" onClick={() => act("/fight", fightResult)}>Fight</button>
+        </div>
       )}
       {status.dungeon?.state === "lobby" && (
         <p>Dungeon <code>{status.dungeon.code}</code> starts in {minutesUntil(status.dungeon.startsAt)}m · party: {status.dungeon.members.join(", ")}</p>
@@ -108,23 +123,35 @@ function QuestStatus({ status }: { status: Status }) {
       {status.dungeon?.state === "running" && (
         <p>Dungeon stage {status.dungeon.cleared + 1}/4 · {status.dungeon.current} · {minutesUntil(status.dungeon.stageEndsAt ?? "")}m left</p>
       )}
-      {!q && <p>No quest yet. Start one with <code>quest</code>.</p>}
       {q && !q.resolved && (
         <>
-          <p>⚔ Quest running · {minutesUntil(q.endsAt) || "rolling the dice"}{minutesUntil(q.endsAt) ? "m left" : ""}</p>
-          <Bar filled={q.presentSlots} total={q.totalSlots} label={`${q.presentSlots} of ${q.totalSlots} slots present`} />
+          <p>⚔ Quest running · {minutesUntil(q.endsAt) ? `${minutesUntil(q.endsAt)}m left` : "rolling the dice"}</p>
+          <Bar filled={questProgress(q)} total={9} label="Quest progress" />
         </>
       )}
       {q?.resolved && (
         <p>
           Last quest: {q.success ? `✓ success · +${q.xp} XP · +${q.gold} gold` : `✗ failed · +${q.xp} XP`}
           {q.loot && <> · found <span className={q.loot.rarity}>{q.loot.name}</span></>}
-          {" · "}
-          {minutesUntil(status.readyAt) ? `next quest in ${minutesUntil(status.readyAt)}m` : "ready for a new quest"}
+          {minutesUntil(status.readyAt) ? ` · next quest in ${minutesUntil(status.readyAt)}m` : ""}
         </p>
       )}
+      {ready && (
+        <div className="row">
+          <p>{q ? "Ready for a new quest." : "No quest yet."} It takes 45 minutes, nothing else to do.</p>
+          <button type="button" onClick={() => act("/quests", () => "Quest started. Back in 45 minutes.")}>Start quest</button>
+        </div>
+      )}
+      {message && <p role="status" className="dim">{message}</p>}
     </section>
   );
+}
+
+/** Elapsed share of a running quest as 0-9 blocks. */
+function questProgress(q: Quest) {
+  const start = new Date(q.startedAt).getTime();
+  const share = (Date.now() - start) / (new Date(q.endsAt).getTime() - start);
+  return Math.floor(Math.min(1, Math.max(0, share)) * 9);
 }
 
 function Inventory({ items, onChange }: { items: Item[]; onChange: () => void }) {
@@ -190,13 +217,12 @@ function History({ quests }: { quests: Quest[] }) {
       {quests.length === 0 ? <p className="dim">No finished quests yet.</p> : (
         <div className="scroll">
           <table>
-            <thead><tr><th>Started</th><th>Result</th><th>Presence</th><th>XP</th><th>Gold</th><th>Loot</th></tr></thead>
+            <thead><tr><th>Started</th><th>Result</th><th>XP</th><th>Gold</th><th>Loot</th></tr></thead>
             <tbody>
               {quests.map((q) => (
                 <tr key={q.startedAt}>
                   <td>{new Date(q.startedAt).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}</td>
                   <td>{q.success ? "✓" : "✗"}</td>
-                  <td>{q.presentSlots}/{q.totalSlots}</td>
                   <td>{q.xp}</td>
                   <td>{q.gold}</td>
                   <td>{q.loot ? <span className={q.loot.rarity}>{q.loot.name}</span> : "–"}</td>
@@ -301,7 +327,7 @@ function ShopView({ onChange }: { onChange: () => void }) {
 }
 
 const STAT_LABELS: [string, string][] = [
-  ["questsWon", "Quests won"], ["questsFailed", "Quests failed"], ["perfectQuests", "Perfect quests"], ["presentSlots", "Present slots"],
+  ["questsWon", "Quests won"], ["questsFailed", "Quests failed"], ["longestStreak", "Longest win streak"],
   ["goldEarned", "Gold earned"], ["monstersSlain", "Monsters slain"], ["fightsLost", "Fights lost"], ["itemsFound", "Items found"],
   ["legendariesFound", "Legendaries found"], ["dungeonsCleared", "Dungeons cleared"], ["raidsWon", "Raids won"], ["marketSold", "Items sold"],
   ["marketBought", "Market draws"], ["shopBought", "Shop purchases"],
@@ -405,6 +431,15 @@ export function App() {
     }
   }, []);
 
+  // An open tab counts as a heartbeat once a minute, so monsters can show up here too.
+  useEffect(() => {
+    if (loggedOut) return;
+    const beat = () => void api("/heartbeat", {}).catch(() => {});
+    beat();
+    const timer = setInterval(beat, 60_000);
+    return () => clearInterval(timer);
+  }, [loggedOut]);
+
   // A running raid refreshes every 5 seconds, everything else every 30.
   const live = data?.raid?.state === "running";
   useEffect(() => {
@@ -448,7 +483,7 @@ export function App() {
       </nav>
       {view === "character" && (
         <>
-          <QuestStatus status={data.status} />
+          <QuestStatus status={data.status} onChange={() => void load()} />
           <Inventory items={data.items} onChange={() => void load()} />
           {data.raid && <RaidView raid={data.raid} />}
           <GuildHall guild={data.guild} />

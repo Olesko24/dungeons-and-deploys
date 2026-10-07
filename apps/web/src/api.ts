@@ -3,8 +3,6 @@ export type Item = { id: number; key: string; name: string; type: string; rarity
 export type Quest = {
   startedAt: string;
   endsAt: string;
-  presentSlots: number;
-  totalSlots: number;
   resolved: boolean;
   success: boolean | null;
   xp: number;

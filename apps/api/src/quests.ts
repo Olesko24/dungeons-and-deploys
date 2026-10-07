@@ -1,11 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import {
   COOLDOWN_MS,
-  MIN_SLOTS_FOR_SUCCESS,
+  QUEST_LOOT_ROLLS,
   QUEST_MS,
-  QUEST_SLOTS,
-  SLOT_MS,
-  countSlots,
   equipmentBonus,
   levelFromXp,
   questOutcome,
@@ -14,16 +11,14 @@ import {
 } from "@tokenquest/shared";
 import type { Deps } from "./app.ts";
 import { equippedItems, itemView, requireCharacter } from "./characters.ts";
-import { dungeonHeartbeat, dungeonView } from "./dungeons.ts";
+import { SESSION_COOKIE } from "./auth.ts";
+import { dungeonView } from "./dungeons.ts";
 import { encounterView, maybeSpawnEncounter } from "./encounters.ts";
-import { raidHeartbeat } from "./raids.ts";
 import { type Character, type Item, Prisma, type PrismaClient, type Quest } from "./generated/prisma/client.ts";
 
 const questView = (q: Quest & { lootItem?: Item | null }) => ({
   startedAt: q.startedAt,
   endsAt: q.endsAt,
-  presentSlots: countSlots(q.slots),
-  totalSlots: QUEST_SLOTS,
   resolved: !!q.resolvedAt,
   success: q.success,
   xp: q.xp,
@@ -44,7 +39,7 @@ export function questRoutes(app: FastifyInstance, { db, scheduleResolve, now, ra
 
     // The partial unique index `quests_one_active_per_character` rejects a parallel second start.
     const quest = await db.quest
-      .create({ data: { characterId: character.id, startedAt: t, endsAt: new Date(t.getTime() + QUEST_MS), slots: 1 } })
+      .create({ data: { characterId: character.id, startedAt: t, endsAt: new Date(t.getTime() + QUEST_MS) } })
       .catch((err) => {
         if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") return null;
         throw err;
@@ -76,23 +71,20 @@ export function questRoutes(app: FastifyInstance, { db, scheduleResolve, now, ra
     return status(character, await latestQuest(character.id));
   });
 
+  // Heartbeats from the terminal, Claude Code or an open website tab can spawn monsters and refresh the status.
+  // Quests, dungeons and raids do not depend on them.
   app.post(
     "/heartbeat",
-    { config: { rateLimit: { max: 1, timeWindow: "1 minute", keyGenerator: (req) => req.headers.authorization ?? req.ip } } },
+    {
+      config: {
+        rateLimit: { max: 1, timeWindow: "1 minute", keyGenerator: (req) => req.headers.authorization ?? req.cookies[SESSION_COOKIE] ?? req.ip },
+      },
+    },
     async (req, reply) => {
       const character = await requireCharacter(db, req, reply);
       if (!character) return;
-      const t = now();
-      const last = await latestQuest(character.id);
-      if (last && !last.resolvedAt && last.endsAt > t) {
-        const bit = 1 << Math.floor((t.getTime() - last.startedAt.getTime()) / SLOT_MS);
-        await db.$executeRaw`UPDATE quests SET slots = slots | ${bit} WHERE id = ${last.id}`;
-        last.slots |= bit;
-      }
-      await maybeSpawnEncounter(db, character, t, random);
-      await dungeonHeartbeat(db, character, t);
-      await raidHeartbeat(db, character, t);
-      return status(character, last);
+      await maybeSpawnEncounter(db, character, now(), random);
+      return status(character, await latestQuest(character.id));
     },
   );
 
@@ -126,10 +118,9 @@ export function resolveQuest(db: PrismaClient, questId: number, random = Math.ra
     if (!quest || quest.resolvedAt) return null;
 
     const { character } = quest;
-    const present = countSlots(quest.slots);
     const { luck, fortune } = equipmentBonus(character.items);
-    const outcome = questOutcome(present, random, luck, fortune);
-    const loot = outcome.success ? rollLoot(levelFromXp(character.xp).level, present, MIN_SLOTS_FOR_SUCCESS, random) : null;
+    const outcome = questOutcome(random, luck, fortune);
+    const loot = outcome.success ? rollLoot(levelFromXp(character.xp).level, QUEST_LOOT_ROLLS, random) : null;
 
     const updated = await tx.quest.updateMany({ where: { id: questId, resolvedAt: null }, data: { ...outcome, resolvedAt: t } });
     if (updated.count === 0) return null;

@@ -2,8 +2,7 @@ export type PlayerStats = {
   level: number;
   questsWon: number;
   questsFailed: number;
-  perfectQuests: number;
-  presentSlots: number;
+  longestStreak: number;
   goldEarned: number;
   monstersSlain: number;
   fightsLost: number;
@@ -26,7 +25,7 @@ export const ACHIEVEMENTS: { key: string; name: string; description: string; don
   { key: "quests10", name: "Regular", description: "Finish 10 quests", done: (s) => s.questsWon >= 10 },
   { key: "quests100", name: "Veteran", description: "Finish 100 quests", done: (s) => s.questsWon >= 100 },
   { key: "quests500", name: "Legend of the Terminal", description: "Finish 500 quests", done: (s) => s.questsWon >= 500 },
-  { key: "perfect", name: "Full Presence", description: "Finish a quest with all 9 slots present", done: (s) => s.perfectQuests >= 1 },
+  { key: "streak", name: "On a Roll", description: "Win 5 quests in a row", done: (s) => s.longestStreak >= 5 },
   { key: "firstBlood", name: "First Blood", description: "Defeat a monster", done: (s) => s.monstersSlain >= 1 },
   { key: "bugHunter", name: "Bug Hunter", description: "Defeat 50 monsters", done: (s) => s.monstersSlain >= 50 },
   { key: "dragon", name: "Dependency Resolved", description: "Defeat a Dependency Dragon", done: (s) => s.dragonsSlain >= 1 },

@@ -6,7 +6,7 @@
     {
       "name": "tokenquest",
       "source": "./plugin",
-      "description": "Idle RPG alongside Claude Code. Your prompts count as presence on your quest."
+      "description": "Idle RPG alongside Claude Code. Your prompts can spawn monsters, the statusline shows your quest."
     }
   ]
 }

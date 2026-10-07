@@ -32,7 +32,7 @@ if (!(await db.character.findUnique({ where: { name: "load_1" } }))) {
         INSERT INTO characters (user_id, name) VALUES (uid, 'load_' || i) RETURNING id INTO cid;
         INSERT INTO sessions (token_hash, user_id) VALUES (encode(sha256(convert_to('tq_load_' || i, 'UTF8')), 'hex'), uid);
         IF i % 2 = 0 THEN
-          INSERT INTO quests (character_id, started_at, ends_at, slots) VALUES (cid, now(), now() + interval '45 minutes', 1);
+          INSERT INTO quests (character_id, started_at, ends_at) VALUES (cid, now(), now() + interval '45 minutes');
         END IF;
       END LOOP;
     END $$;`);

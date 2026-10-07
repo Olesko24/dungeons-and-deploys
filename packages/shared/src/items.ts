@@ -161,10 +161,10 @@ export function rollRarity(level: number, rolls: number, random: () => number): 
   return RARITIES[best];
 }
 
-/** Loot for a successful quest, or null. Every 2 present slots above the minimum add one rarity roll. */
-export function rollLoot(level: number, presentSlots: number, minSlots: number, random: () => number) {
+/** Loot after a win, or null. More rarity rolls mean better odds, the best roll counts. */
+export function rollLoot(level: number, rarityRolls: number, random: () => number) {
   if (random() >= DROP_CHANCE) return null;
-  return randomItemKey(level, 1 + Math.floor(Math.max(0, presentSlots - minSlots) / 2), random);
+  return randomItemKey(level, rarityRolls, random);
 }
 
 /** A random item: the slot type evenly, a weapon kind with the same number of hands, then the rarity. */

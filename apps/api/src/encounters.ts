@@ -2,7 +2,6 @@ import type { FastifyInstance } from "fastify";
 import {
   ENCOUNTER_CHANCE,
   ENCOUNTER_MS,
-  MIN_SLOTS_FOR_SUCCESS,
   MONSTERS,
   type MonsterKey,
   equipmentBonus,
@@ -64,7 +63,7 @@ export function encounterRoutes(app: FastifyInstance, { db, now, random }: Requi
       const chance = winChance(level, gear, monster);
       const won = random() < chance;
       const rewards = won ? fightRewards(monster, level, gear.fortune) : { xp: 0, gold: 0 };
-      const lootKey = won ? rollLoot(level, MIN_SLOTS_FOR_SUCCESS, MIN_SLOTS_FOR_SUCCESS, random) : null;
+      const lootKey = won ? rollLoot(level, 1, random) : null;
 
       // Marking the encounter fought first makes a second parallel fight a no-op.
       const marked = await tx.encounter.updateMany({

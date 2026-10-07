@@ -53,19 +53,17 @@ test("rarity depends on level", () => {
 });
 
 test("loot roll", () => {
-  assert.equal(rollLoot(5, 9, 5, dice(0.4)), null, "40% drop chance");
-  assert.equal(rollLoot(5, 9, 5, dice(0.39, 0, 0.1, 0.1, 0.1)), "helm.common");
-  assert.equal(rollLoot(5, 9, 5, dice(0, 0.999, 0.1, 0.1, 0.99)), "earrings.epic", "9 slots give 3 rarity rolls");
-  assert.equal(rollLoot(5, 5, 5, dice(0, 7 / 11, 0.99, 0.1)), "crossbow.common", "two-handed type picks a two-handed kind");
-  assert.equal(rollLoot(5, 5, 5, dice(0, 5 / 11, 0, 0.1)), "dagger.common", "weapon type picks a one-handed kind");
-  assert.equal(rollLoot(5, 6, 5, dice(0, 0, 0.1, 0.99)), "helm.common", "6 slots give only 1 rarity roll");
+  assert.equal(rollLoot(5, 1, dice(0.4)), null, "40% drop chance");
+  assert.equal(rollLoot(5, 1, dice(0.39, 0, 0.1)), "helm.common");
+  assert.equal(rollLoot(5, 3, dice(0, 0.999, 0.1, 0.1, 0.99)), "earrings.epic", "the best of several rarity rolls counts");
+  assert.equal(rollLoot(5, 1, dice(0, 7 / 11, 0.99, 0.1)), "crossbow.common", "two-handed type picks a two-handed kind");
+  assert.equal(rollLoot(5, 1, dice(0, 5 / 11, 0, 0.1)), "dagger.common", "weapon type picks a one-handed kind");
 });
 
 test("equipment changes quest odds and gold", () => {
-  assert.equal(questOutcome(5, () => 0.65).success, false);
-  assert.equal(questOutcome(5, () => 0.65, 10).success, true, "luck +10 lifts 60% to 70%");
-  assert.equal(questOutcome(9, () => 0.95, 50).success, false, "still capped at 95%");
-  assert.equal(questOutcome(5, () => 0, 0, 100).gold, 20, "fortune +100% doubles gold");
+  assert.equal(questOutcome(() => 0.8).success, false);
+  assert.equal(questOutcome(() => 0.8, 10).success, true, "luck +10 lifts 75% to 85%");
+  assert.equal(questOutcome(() => 0, 0, 100).gold, 28, "fortune +100% doubles gold");
 });
 
 test("equip plan", () => {

@@ -10,6 +10,7 @@ import {
   type InventoryItem,
   inventoryLines,
   minutesUntil,
+  progress,
   rarityColor,
   type Status,
   shortStatus,
@@ -112,7 +113,7 @@ async function heartbeat(send: boolean) {
 async function startQuest() {
   const res = await authed("/quests", "POST");
   if (res.status === 201) {
-    console.log(`⚔ Quest started. Back in ${minutesUntil(res.data.endsAt)}m. Keep working, presence counts.`);
+    console.log(`⚔ Quest started. Back in ${minutesUntil(res.data.endsAt)}m, nothing else to do.`);
     await refresh();
   } else if (res.data.error === "cooldown") {
     console.log(`Resting. Next quest in ${minutesUntil(res.data.readyAt)}m.`);
@@ -129,15 +130,14 @@ async function status() {
   const e = data.encounter;
   if (e) console.log(`⚠ ${e.name} appeared! quest fight within ${minutesUntil(e.expiresAt)}m · odds ${Math.round(e.winChance * 100)}%`);
   if (!q) return console.log("No quest yet. Start one: quest");
-  const slots = bar(q.presentSlots, q.totalSlots);
   if (!q.resolved) {
     const left = minutesUntil(q.endsAt);
-    return console.log(left > 0 ? `⚔ Quest ${left}m left · ${slots}` : `⚔ Quest finished, rolling the dice... · ${slots}`);
+    return console.log(left > 0 ? `⚔ Quest ${left}m left · ${progress(q)}` : "⚔ Quest finished, rolling the dice...");
   }
   const loot = q.loot ? ` · Found: ${rarityColor(q.loot.name, q.loot.rarity)} (${q.loot.rarity})` : "";
   const result = q.success ? `✓ Success · +${q.xp} XP · +${q.gold} gold${loot}` : `✗ Failed · +${q.xp} XP`;
   const ready = minutesUntil(data.readyAt);
-  console.log(`Last quest: ${result} · ${slots}`);
+  console.log(`Last quest: ${result}`);
   console.log(ready > 0 ? `Next quest in ${ready}m.` : "Ready for a new quest: quest");
 }
 
@@ -199,7 +199,7 @@ async function dungeon(action: string | undefined, code: string | undefined) {
     console.log(`  ${mark} ${name}`);
   });
   if (d.state === "lobby") console.log(`Starts in ${minutesUntil(d.startsAt)}m. Others join with: quest dungeon join ${d.code}`);
-  if (d.state === "running") console.log(`Stage ends in ${minutesUntil(d.stageEndsAt)}m. Presence counts for the whole party.`);
+  if (d.state === "running") console.log(`Stage ends in ${minutesUntil(d.stageEndsAt)}m.`);
   if (d.you.xp) console.log(`Your loot so far: +${d.you.xp} XP · +${d.you.gold} gold`);
 }
 
@@ -231,7 +231,7 @@ async function raid(action: string | undefined, minutes: string | undefined) {
   console.log(`Raid on ${r.boss} · ${when} · ${r.members.length} raiders`);
   if (r.bossMaxHp) console.log(`HP ${bar(Math.ceil((r.bossHp / r.bossMaxHp) * 20), 20)} ${r.bossHp}/${r.bossMaxHp} · tick ${r.tick}/${r.ticks}`);
   for (const m of r.members) console.log(`  ${m.name.padEnd(20)} ${m.damage} damage`);
-  if (r.state === "scheduled") console.log("Join with: quest raid join. Presence during the raid deals damage.");
+  if (r.state === "scheduled") console.log("Join with: quest raid join. Every raider deals damage each tick.");
 }
 
 async function shop(action: string | undefined, offer: string | undefined) {
@@ -257,8 +257,7 @@ async function stats() {
   const s = data.stats;
   const rows: [string, string | number][] = [
     ["Quests won / failed", `${s.questsWon} / ${s.questsFailed}`],
-    ["Perfect quests", s.perfectQuests],
-    ["Present slots", s.presentSlots],
+    ["Longest win streak", s.longestStreak],
     ["Gold earned", s.goldEarned],
     ["Monsters slain / fights lost", `${s.monstersSlain} / ${s.fightsLost}`],
     ["Items found / legendary", `${s.itemsFound} / ${s.legendariesFound}`],
@@ -350,7 +349,7 @@ const USAGE = `Usage: quest [command]
   quest pair                                     log in another device or the website
   quest login --pair <code>                      log in with a code from quest pair
   quest init zsh|bash                            shell integration: eval "$(quest init zsh)"
-  quest heartbeat                                report presence (called by hooks)
+  quest heartbeat                                send a heartbeat (called by hooks, spawns monsters)
 
 Manual: ${MANUAL}
 Beta: rules can change and progress may be reset.`;

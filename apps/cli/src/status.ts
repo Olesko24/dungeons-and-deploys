@@ -1,5 +1,5 @@
 export type Status = {
-  quest: { endsAt: string; presentSlots: number; totalSlots: number; resolved: boolean } | null;
+  quest: { startedAt: string; endsAt: string; resolved: boolean } | null;
   readyAt: string;
   character: { name: string; level: number; gold: number };
   encounter?: { name: string; expiresAt: string; winChance: number } | null;
@@ -8,6 +8,13 @@ export type Status = {
 
 export const minutesUntil = (iso: string, now = Date.now()) => Math.max(0, Math.ceil((new Date(iso).getTime() - now) / 60_000));
 export const bar = (filled: number, total: number) => "■".repeat(filled) + "□".repeat(Math.max(0, total - filled));
+
+/** Time progress of a quest as 9 blocks. */
+export function progress(quest: { startedAt: string; endsAt: string }, now = Date.now()) {
+  const start = new Date(quest.startedAt).getTime();
+  const share = Math.min(1, Math.max(0, (now - start) / (new Date(quest.endsAt).getTime() - start)));
+  return bar(Math.floor(share * 9), 9);
+}
 
 /** One line for status lines and prompts, e.g. `⚔ Quest 23m · ■■■■□□□□□ · Lv 7 · 312g`. */
 export function shortStatus({ quest, readyAt, character, encounter, dungeon }: Status, now = Date.now()) {
@@ -21,7 +28,7 @@ export function shortStatus({ quest, readyAt, character, encounter, dungeon }: S
   }
   if (quest && !quest.resolved) {
     const left = minutesUntil(quest.endsAt, now);
-    return `⚔ Quest ${left > 0 ? `${left}m` : "done"} · ${bar(quest.presentSlots, quest.totalSlots)} · ${tail}`;
+    return `⚔ Quest ${left > 0 ? `${left}m` : "done"} · ${progress(quest, now)} · ${tail}`;
   }
   const rest = minutesUntil(readyAt, now);
   return rest > 0 ? `Resting ${rest}m · ${tail}` : `Quest ready · ${tail}`;

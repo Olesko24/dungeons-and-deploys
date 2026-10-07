@@ -3,13 +3,13 @@
 > **Beta.** Tokenquest is in beta. Rules, numbers and even basic mechanics can still change, and progress may be reset.
 > Changes are listed in the [changelog](../CHANGELOG.md).
 
-Tokenquest is an idle RPG that runs next to your work. Start a quest, keep working, collect loot.
-Rewards depend on presence and dice, never on how much or how well you work.
+Tokenquest is an idle RPG that runs next to your work. Start a quest, come back later, collect loot.
+Rewards depend on time, gear and dice, never on how much or how well you work. You never have to keep a terminal open.
 
 ## Contents
 
 1. [Getting started](#getting-started)
-2. [Presence and heartbeats](#presence-and-heartbeats)
+2. [Heartbeats](#heartbeats)
 3. [Quests](#quests)
 4. [Character and levels](#character-and-levels)
 5. [Items](#items)
@@ -35,7 +35,7 @@ quest login --code <ACCESS_CODE>    # pick a character name, 2-20 letters, digit
 quest                               # start your first quest
 ```
 
-Then connect your presence, with Claude Code, your shell, or both.
+That is all you need. Optionally connect Claude Code or your shell: they show your status and let monsters appear while you work.
 
 **Claude Code:**
 
@@ -44,7 +44,7 @@ Then connect your presence, with Claude Code, your shell, or both.
 /plugin install tokenquest@tokenquest
 ```
 
-Every prompt you send counts as presence. To see your status in Claude Code, add this to `~/.claude/settings.json`:
+Your prompts send heartbeats. To see your status in Claude Code, add this to `~/.claude/settings.json`:
 
 ```json
 { "statusLine": { "type": "command", "command": "cat ~/.tokenquest/status.txt 2>/dev/null" } }
@@ -58,37 +58,32 @@ In Claude Code, run game commands with the `!` prefix, for example `! quest stat
 eval "$(quest init zsh)"     # or: quest init bash
 ```
 
-Every command you run counts as presence. For the status in your prompt, add `$(tokenquest_prompt)` to it, for example in zsh:
+Your commands send heartbeats. For the status in your prompt, add `$(tokenquest_prompt)` to it, for example in zsh:
 
 ```sh
 setopt prompt_subst
 RPROMPT='$(tokenquest_prompt)'
 ```
 
-## Presence and heartbeats
+## Heartbeats
 
-A heartbeat tells the server you are around. Claude Code and the shell integration send one at most once per minute, in the background, so they never slow you down.
+Heartbeats are optional. Quests, dungeons and raids work without them.
 
-Presence is counted in 5-minute slots. A slot counts as present if at least one heartbeat arrived in it. It does not matter how many heartbeats arrive in a slot.
+A heartbeat comes from Claude Code (your prompts), the shell integration (your commands) or an open website tab (once a minute). Each source sends at most one per minute, in the background. Heartbeats refresh your status line and can spawn [random monsters](#random-encounters).
 
 ## Quests
 
-`quest` starts a quest. It lasts 45 minutes, which is 9 slots. Starting counts as the first present slot.
+Start a quest with `quest` or the **Start quest** button on the website. After 45 minutes the dice decide, you do not need to be online:
 
-| Present slots | Result |
-|---|---|
-| 0–4 | Quest fails. You still get 2 XP per present slot |
-| 5 | 60% success chance |
-| each slot above 5 | +10%, at most 95% |
-
-Your **Luck** stat adds percentage points on top, still capped at 95%.
-
-On success you get 10 XP per present slot and 2 gold per present slot plus 0–5 gold. **Fortune** adds percent to that gold. A successful quest has a 40% chance to drop an item.
+- 75% success chance, plus your **Luck**, at most 95%
+- Success: 70 XP and 14–19 gold. **Fortune** adds percent to that gold
+- Failure: 10 XP
+- A successful quest has a 40% chance to drop an item, with two rarity rolls (the better one counts)
 
 After a quest ends there is a 15-minute rest before the next one. Only one quest runs at a time.
 
 ```sh
-quest status            # current quest, presence and the last result
+quest status            # current quest and the last result
 quest status --short    # the one-line status used by status lines, no network
 ```
 
@@ -98,9 +93,9 @@ quest status --short    # the one-line status used by status lines, no network
 
 | Level | Total XP | Roughly |
 |---|---|---|
-| 5 | ~1,700 | 25 quests |
-| 10 | ~11,000 | 160 quests |
-| 20 | ~67,000 | 950 quests |
+| 5 | ~1,700 | 30 quests |
+| 10 | ~11,000 | 200 quests |
+| 20 | ~67,000 | 1,200 quests |
 
 Higher levels mainly mean better loot (see below).
 
@@ -170,7 +165,7 @@ Drops roll the slot type evenly, then the rarity by your level:
 | 15–24 | 50% | 33% | 13% | 4% |
 | 25+ | 40% | 35% | 19% | 6% |
 
-On quests, every 2 present slots above 5 add another rarity roll and the best one counts. A full 9-slot quest rolls three times.
+Quest loot rolls the rarity twice and keeps the better result, raids three times.
 
 There is no minimum level to equip anything.
 
@@ -182,7 +177,7 @@ quest unequip <#id>
 
 ## Random encounters
 
-Every heartbeat has a 2% chance to spawn a monster, at most one at a time. Your status line shows it. You have 5 minutes:
+Every heartbeat has a 2% chance to spawn a monster, at most one at a time. Your status line and the website show it. You have 5 minutes to fight, in the terminal or with the **Fight** button:
 
 ```sh
 quest fight
@@ -250,7 +245,7 @@ quest dungeon join <code>    # others join during the lobby
 quest dungeon                # progress
 ```
 
-Each stage succeeds or fails for the whole party. The chance depends on everyone's gear, how present the party was during that stage, and a teamwork bonus per member. Stages get 10% tougher and pay 10% more per member, so groups are rewarded but solo works too.
+Each stage succeeds or fails for the whole party. The chance depends on everyone's level and gear and a teamwork bonus per member. Nobody needs to be online during the run. Stages get 10% tougher and pay 10% more per member, so groups are rewarded but solo works too.
 
 Every cleared stage pays XP and gold. A failed stage ends the run, you keep what you earned. Beating the boss gives every member a guaranteed item, with more rarity rolls in bigger parties.
 
@@ -275,7 +270,7 @@ quest raid join                 # members join until it starts
 quest raid                      # boss HP and damage per raider
 ```
 
-A raid needs at least 5 raiders, otherwise it is cancelled at the start. It lasts 30 minutes in six 5-minute ticks. In every tick, each raider who was present deals damage based on attack and defense. The boss has enough HP that the raid usually wins when most raiders stay present for most ticks.
+A raid needs at least 5 raiders, otherwise it is cancelled at the start. It lasts 30 minutes in six 5-minute ticks. In every tick, every raider deals damage based on attack and defense, and the boss rolls a phase that makes it harder or easier to hit. Unequipped raids win about half the time, well-equipped ones up to about 85%. Nobody needs to be online during the raid.
 
 A win gives every raider who dealt damage XP, gold and an item with three rarity rolls.
 
@@ -299,7 +294,7 @@ Tokenquest has no email and no password. Your login token on your devices is you
 
 ## What is sent to the server
 
-- Heartbeats: only the fact that you were present at that time. No prompt, command, file or code content is ever sent.
+- Heartbeats: only that one happened. No prompt, command, file or code content is ever sent.
 - Commands you run, like starting a quest or equipping an item.
 - Your character name. Nothing else about you.
 
@@ -324,4 +319,4 @@ Tokenquest has no email and no password. Your login token on your devices is you
 | `quest login --code <code>` | New player |
 | `quest pair` / `quest login --pair <code>` | Another device or the website |
 | `quest init zsh\|bash` | Shell integration |
-| `quest heartbeat` | Report presence, called by the integrations |
+| `quest heartbeat` | Send a heartbeat, called by the integrations |

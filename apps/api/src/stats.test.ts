@@ -23,18 +23,18 @@ test("stats and achievements come from what a player did", async () => {
   assert.ok(fresh.achievements.every((a: { unlockedAt: string | null }) => a.unlockedAt === null));
 
   const legendary = await db.item.create({ data: { characterId: id, key: "bow.legendary", attack: 20 } });
-  await db.quest.create({ data: { characterId: id, startedAt: new Date(), endsAt: new Date(), resolvedAt: new Date(), success: true, slots: 511, gold: 20, lootItemId: legendary.id } });
-  await db.quest.create({ data: { characterId: id, startedAt: new Date(), endsAt: new Date(), resolvedAt: new Date(), success: false, slots: 3 } });
+  await db.quest.create({ data: { characterId: id, startedAt: new Date(), endsAt: new Date(), resolvedAt: new Date(), success: true, gold: 20, lootItemId: legendary.id } });
+  await db.quest.create({ data: { characterId: id, startedAt: new Date(), endsAt: new Date(), resolvedAt: new Date(), success: false } });
   await db.encounter.create({ data: { characterId: id, monster: "dependencyDragon", level: 1, expiresAt: new Date(), foughtAt: new Date(), won: true, gold: 7 } });
   await db.item.update({ where: { id: legendary.id }, data: { equippedSlot: "mainHand" } });
 
   const { stats, achievements } = await get();
   assert.deepEqual(
-    [stats.questsWon, stats.questsFailed, stats.perfectQuests, stats.presentSlots, stats.goldEarned, stats.dragonsSlain, stats.legendariesFound, stats.equippedSlots],
-    [1, 1, 1, 11, 27, 1, 1, 2],
+    [stats.questsWon, stats.questsFailed, stats.longestStreak, stats.goldEarned, stats.dragonsSlain, stats.legendariesFound, stats.equippedSlots],
+    [1, 1, 1, 27, 1, 1, 2],
   );
   const unlocked = achievements.filter((a: { unlockedAt: string | null }) => a.unlockedAt).map((a: { key: string }) => a.key);
-  assert.deepEqual(unlocked, ["firstQuest", "perfect", "firstBlood", "dragon", "legendary"]);
+  assert.deepEqual(unlocked, ["firstQuest", "firstBlood", "dragon", "legendary"]);
 });
 
 test("unlocked achievements stay unlocked", async () => {

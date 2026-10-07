@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
-import { RAID_TICKS, RAID_TICK_MS } from "@tokenquest/shared";
+import { RAID_TICKS } from "@tokenquest/shared";
 import { buildApp } from "./app.ts";
 import { hash } from "./auth.ts";
 import type { PrismaClient } from "./generated/prisma/client.ts";
@@ -41,7 +41,7 @@ async function guildWith(prefix: string, size: number) {
   return players;
 }
 
-async function runRaid(players: Awaited<ReturnType<typeof player>>[], presence: number) {
+async function runRaid(players: Awaited<ReturnType<typeof player>>[], dice: number) {
   clock = T0;
   const created = await players[0].call("POST", "/raids", { startsInMinutes: 10 });
   assert.equal(created.statusCode, 201);
@@ -49,16 +49,15 @@ async function runRaid(players: Awaited<ReturnType<typeof player>>[], presence: 
   const raid = await db.raid.findFirstOrThrow({ where: { members: { some: { characterId: players[0].characterId } } } });
   assert.equal(ticks.at(-1)!.at.getTime(), T0 + 10 * 60_000);
 
-  await db.raidMember.updateMany({ where: { raidId: raid.id }, data: { slots: presence } });
-  let result = await advanceRaid(db, raid.id, 0, () => 0.5);
-  for (let tick = 1; result?.next && tick <= RAID_TICKS; tick++) result = await advanceRaid(db, raid.id, tick, () => 0.5);
+  let result = await advanceRaid(db, raid.id, 0, () => dice);
+  for (let tick = 1; result?.next && tick <= RAID_TICKS; tick++) result = await advanceRaid(db, raid.id, tick, () => dice);
   return { raid, view: (await players[0].call("GET", "/raids/current")).json().raid };
 }
 
-test("five present raiders beat the boss and all get loot", async () => {
+test("five raiders beat the boss in good phases and all get loot", async () => {
   const players = await guildWith("win", 5);
   assert.equal((await players[1].call("POST", "/raids", { startsInMinutes: 10 })).statusCode, 403, "only the leader schedules");
-  const { raid, view } = await runRaid(players, 0b111111);
+  const { raid, view } = await runRaid(players, 0.9);
   assert.equal(view.state, "won");
   assert.equal(view.bossHp, 0);
   const members = await db.raidMember.findMany({ where: { raidId: raid.id } });
@@ -66,26 +65,13 @@ test("five present raiders beat the boss and all get loot", async () => {
   assert.ok((await db.guild.findFirstOrThrow({ where: { name: "win guild" } })).xp > 0, "raid feeds guild XP");
 });
 
-test("a raid fails when members are away", async () => {
-  const { view } = await runRaid(await guildWith("away", 5), 0b000111);
+test("a raid fails when the boss rolls tough phases", async () => {
+  const { view } = await runRaid(await guildWith("tough", 5), 0);
   assert.equal(view.state, "failed");
   assert.ok(view.bossHp > 0);
 });
 
 test("a raid below the minimum is cancelled", async () => {
-  const { view } = await runRaid(await guildWith("few", 3), 0b111111);
+  const { view } = await runRaid(await guildWith("few", 3), 0.9);
   assert.equal(view.state, "cancelled");
-});
-
-test("heartbeats mark raid presence per tick", async () => {
-  const players = await guildWith("beat", 5);
-  clock = T0;
-  await players[0].call("POST", "/raids", { startsInMinutes: 5 });
-  const raid = await db.raid.findFirstOrThrow({ where: { members: { some: { characterId: players[0].characterId } } } });
-  for (const p of players.slice(1)) await p.call("POST", "/raids/join");
-  await advanceRaid(db, raid.id, 0);
-  clock = T0 + 5 * 60_000 + 2 * RAID_TICK_MS + 1000;
-  await players[0].call("POST", "/heartbeat");
-  const member = await db.raidMember.findFirstOrThrow({ where: { raidId: raid.id, characterId: players[0].characterId } });
-  assert.equal(member.slots, 0b100, "third tick");
 });

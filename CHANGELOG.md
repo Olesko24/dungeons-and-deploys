@@ -15,9 +15,9 @@ First public beta.
 
 - Registration with an access code and a character name, no email. Further devices and the website log in with a
   code from `quest pair`.
-- Quests of 45 minutes. Presence in 5-minute slots decides success, XP and gold.
-- Presence from Claude Code (plugin, every prompt) and from zsh or bash (every command), with a one-line status for
-  status lines and prompts.
+- Quests of 45 minutes: start one, come back later. 75% success chance plus luck, no presence needed.
+- Heartbeats from Claude Code (plugin, every prompt), zsh or bash (every command) or an open website tab spawn
+  random monsters and refresh a one-line status for status lines and prompts.
 - Items in 11 slots and 4 rarities with rolled stats (attack, defense, luck, fortune), name prefixes from the
   strongest bonus and 12 weapon kinds. Better loot at higher levels.
 - Random encounters with eight monsters, `quest fight`.
@@ -27,7 +27,7 @@ First public beta.
 - Guilds with join codes and guild levels.
 - Guild raids with at least 5 raiders and shared boss HP.
 - 18 achievements, statistics and leaderboards.
-- Website with character, equipment, quest history, guild, raid, shop, statistics and leaderboards, with pixel icons
+- Website with quest and fight buttons, character, equipment, quest history, guild, raid, shop, statistics and leaderboards, with pixel icons
   for gold and every section.
 - Player [manual](docs/manual.md) and this changelog, on the website and via `quest manual` and `quest changelog`.
 

@@ -73,14 +73,13 @@ model Character {
   @@map("characters")
 }
 
-/// `slots` is a bitmask, one bit per 5-minute slot with presence. `resolvedAt` is null while running.
+/// `resolvedAt` is null while running.
 model Quest {
   id          Int       @id @default(autoincrement())
   characterId Int       @map("character_id")
   character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
   startedAt   DateTime  @map("started_at")
   endsAt      DateTime  @map("ends_at")
-  slots       Int       @default(0)
   resolvedAt  DateTime? @map("resolved_at")
   success     Boolean?
   xp          Int       @default(0)
@@ -165,13 +164,11 @@ model Dungeon {
   @@map("dungeons")
 }
 
-/// `slots` is the member's presence bitmask over all 12 stage slots of the run.
 model DungeonMember {
   dungeonId   Int       @map("dungeon_id")
   dungeon     Dungeon   @relation(fields: [dungeonId], references: [id], onDelete: Cascade)
   characterId Int       @map("character_id")
   character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
-  slots       Int       @default(0)
   xp          Int       @default(0)
   gold        Int       @default(0)
   lootItemId  Int?      @unique @map("loot_item_id")
@@ -225,13 +222,11 @@ model Raid {
   @@map("raids")
 }
 
-/// `slots` marks presence per 5-minute tick of the raid.
 model RaidMember {
   raidId      Int       @map("raid_id")
   raid        Raid      @relation(fields: [raidId], references: [id], onDelete: Cascade)
   characterId Int       @map("character_id")
   character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
-  slots       Int       @default(0)
   damage      Int       @default(0)
   lootItemId  Int?      @unique @map("loot_item_id")
   lootItem    Item?     @relation(fields: [lootItemId], references: [id], onDelete: SetNull)
