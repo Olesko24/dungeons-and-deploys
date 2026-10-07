@@ -50,6 +50,15 @@ function Bar({ filled, total, label }: { filled: number; total: number; label: s
   );
 }
 
+/** 16x16 UI icon from public/ui, drawn at 24px. Decorative, the text next to it carries the meaning. */
+function UiIcon({ name }: { name: string }) {
+  return <img className="icon ui-icon" src={`/ui/${name}.svg`} alt="" width={24} height={24} />;
+}
+
+function Gold({ amount }: { amount: number }) {
+  return <span className="gold"><UiIcon name="gold" />{amount}</span>;
+}
+
 function ItemIcon({ item }: { item: Item }) {
   return <img className="icon" src={`/items/${item.key}.svg`} alt="" width={48} height={48} />;
 }
@@ -87,7 +96,7 @@ function QuestStatus({ status }: { status: Status }) {
   const e = status.encounter;
   return (
     <section className="panel">
-      <h2>Status</h2>
+      <h2><UiIcon name="hourglass" />Status</h2>
       {e && (
         <p className="alert">
           ⚠ {e.name} (Lv {e.level}) appeared · {Math.round(e.winChance * 100)}% odds · <code>quest fight</code> within {minutesUntil(e.expiresAt)}m
@@ -127,7 +136,7 @@ function Inventory({ items, onChange }: { items: Item[]; onChange: () => void })
   return (
     <>
       <section className="panel">
-        <h2>Equipment</h2>
+        <h2><UiIcon name="equipment" />Equipment</h2>
         {error && <p className="error" role="alert">{error}</p>}
         <div className="slots">
           {SLOTS.map(([slot, label]) => {
@@ -155,7 +164,7 @@ function Inventory({ items, onChange }: { items: Item[]; onChange: () => void })
         </div>
       </section>
       <section className="panel">
-        <h2>Bag · {bag.length}</h2>
+        <h2><UiIcon name="bag" />Bag · {bag.length}</h2>
         {bag.length === 0 && <p className="dim">Empty. Successful quests and won fights drop items.</p>}
         <ul className="items">
           {bag.map((item) => (
@@ -177,7 +186,7 @@ function Inventory({ items, onChange }: { items: Item[]; onChange: () => void })
 function History({ quests }: { quests: Quest[] }) {
   return (
     <section className="panel">
-      <h2>Quest history</h2>
+      <h2><UiIcon name="scroll" />Quest history</h2>
       {quests.length === 0 ? <p className="dim">No finished quests yet.</p> : (
         <div className="scroll">
           <table>
@@ -204,7 +213,7 @@ function History({ quests }: { quests: Quest[] }) {
 function GuildHall({ guild }: { guild: Guild | null }) {
   return (
     <section className="panel">
-      <h2>Guild hall</h2>
+      <h2><UiIcon name="guild" />Guild hall</h2>
       {!guild ? (
         <p className="dim">No guild yet. Found one with <code>quest guild create &lt;name&gt;</code> or join with <code>quest guild join &lt;code&gt;</code>.</p>
       ) : (
@@ -233,7 +242,7 @@ function RaidView({ raid }: { raid: Raid }) {
   const top = Math.max(1, ...raid.members.map((m) => m.damage));
   return (
     <section className={`panel raid ${raid.state}`}>
-      <h2>Raid · {raid.boss}</h2>
+      <h2><UiIcon name="raid" />Raid · {raid.boss}</h2>
       <p>{label}</p>
       {raid.bossMaxHp > 0 && (
         <>
@@ -272,7 +281,7 @@ function ShopView({ onChange }: { onChange: () => void }) {
   if (!shop) return <section className="panel"><p>Loading…</p></section>;
   return (
     <section className="panel">
-      <h2>Shop · {shop.gold} gold</h2>
+      <h2><UiIcon name="shop" />Shop · <Gold amount={shop.gold} /></h2>
       <p className="dim">Three new offers every day, new ones in {Math.ceil(minutesUntil(shop.refreshesAt) / 60)}h. Stats are rolled when you buy.</p>
       {message && <p role="status">{message}</p>}
       <div className="offers">
@@ -280,7 +289,7 @@ function ShopView({ onChange }: { onChange: () => void }) {
           <div key={o.offer} className={`offer ${o.rarity}`}>
             <img className="icon" src={`/items/${o.key}.svg`} alt="" width={64} height={64} />
             <span className="name">{o.name}</span>
-            <span className="dim">{o.rarity} · {o.price} gold</span>
+            <span className="dim">{o.rarity} · <Gold amount={o.price} /></span>
             <button type="button" className="small" disabled={o.bought || o.locked || shop.gold < o.price} onClick={() => buy(o.offer)}>
               {o.bought ? "Bought" : o.locked ? `Lv ${o.unlockLevel}` : "Buy"}
             </button>
@@ -306,7 +315,7 @@ function StatsView() {
   return (
     <>
       <section className="panel">
-        <h2>Statistics</h2>
+        <h2><UiIcon name="stats" />Statistics</h2>
         <dl className="stats">
           {STAT_LABELS.map(([key, label]) => (
             <div key={key}><dt>{label}</dt><dd>{String(data.stats[key])}</dd></div>
@@ -314,7 +323,7 @@ function StatsView() {
         </dl>
       </section>
       <section className="panel">
-        <h2>Achievements · {done}/{data.achievements.length}</h2>
+        <h2><UiIcon name="star" />Achievements · {done}/{data.achievements.length}</h2>
         <ul className="achievements">
           {data.achievements.map((a) => (
             <li key={a.key} className={a.unlockedAt ? "unlocked" : ""}>
@@ -343,7 +352,7 @@ function RanksView() {
   const showYou = data?.you && !data.top.some((r) => r.rank === data.you?.rank && r.name === data.you?.name);
   return (
     <section className="panel">
-      <h2>Leaderboard</h2>
+      <h2><UiIcon name="crown" />Leaderboard</h2>
       <div className="tabs">
         {BOARDS.map(([key, label]) => (
           <button key={key} type="button" className={`small ${board === key ? "" : "ghost"}`} aria-pressed={board === key} onClick={() => setBoard(key)}>
@@ -423,7 +432,7 @@ export function App() {
         <img src="/icon.svg" alt="" width={64} height={64} className="icon" />
         <div className="hero-text">
           <h1>{c.name}</h1>
-          <p>Lv {c.level} · {c.gold} gold · {statParts(c).join(" · ") || "no equipment yet"}</p>
+          <p>Lv {c.level} · <Gold amount={c.gold} /> · {statParts(c).join(" · ") || "no equipment yet"}</p>
           <Bar filled={Math.floor((c.xpIntoLevel / c.xpForNext) * 10)} total={10} label={`${c.xpIntoLevel} of ${c.xpForNext} XP`} />
           <p className="dim">XP {c.xpIntoLevel}/{c.xpForNext}</p>
         </div>

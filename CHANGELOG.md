@@ -27,7 +27,8 @@ First public beta.
 - Guilds with join codes and guild levels.
 - Guild raids with at least 5 raiders and shared boss HP.
 - 18 achievements, statistics and leaderboards.
-- Website with character, equipment, quest history, guild, raid, shop, statistics and leaderboards.
+- Website with character, equipment, quest history, guild, raid, shop, statistics and leaderboards, with pixel icons
+  for gold and every section.
 - Player [manual](docs/manual.md) and this changelog, on the website and via `quest manual` and `quest changelog`.
 
 [Unreleased]: https://github.com/Olesko24/tokenquest/compare/v0.1.0...HEAD

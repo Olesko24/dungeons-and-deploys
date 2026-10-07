@@ -1,4 +1,4 @@
-// Generates 16x16 pixel-art SVG icons for every item in the catalog: node scripts/item-icons.ts
+// Generates 16x16 pixel-art SVG icons for every item in the catalog and for the UI: node scripts/item-icons.ts
 import { mkdirSync, writeFileSync } from "node:fs";
 import { ITEM_BASES, RARITIES, type Rarity } from "@tokenquest/shared";
 
@@ -114,8 +114,10 @@ const SPRITES: Record<string, string[]> = {
   ]),
 };
 
-function svg(rows: string[], rarity: Rarity) {
-  const colors: Record<string, string> = { ...FIXED, ...MATERIAL[rarity] };
+type Material = { l: string; m: string; d: string };
+
+function svg(rows: string[], material: Material) {
+  const colors: Record<string, string> = { ...FIXED, ...material };
   const grid = rows.map((r) => r.split(""));
   const filled = (x: number, y: number) => grid[y]?.[x] !== undefined && grid[y][x] !== "." && grid[y][x] !== "o";
   for (let y = 0; y < 16; y++) {
@@ -142,6 +144,34 @@ mkdirSync(out, { recursive: true });
 for (const base of ITEM_BASES) {
   const rows = SPRITES[base];
   if (!rows || rows.length !== 16 || rows.some((r) => r.length !== 16)) throw new Error(`${base}: sprite must be 16x16`);
-  for (const rarity of RARITIES) writeFileSync(new URL(`${base}.${rarity}.svg`, out), svg(rows, rarity));
+  for (const rarity of RARITIES) writeFileSync(new URL(`${base}.${rarity}.svg`, out), svg(rows, MATERIAL[rarity]));
 }
 console.log(`Wrote ${ITEM_BASES.length * RARITIES.length} icons to ${out.pathname}`);
+
+const GOLD = { l: "#ffe0a8", m: "#f0c05a", d: "#a8843c" };
+const LEATHER = { l: "#c8955a", m: "#8a5a3a", d: "#5a3a24" };
+const BONE = { l: "#f8f2e2", m: "#e4d8bc", d: "#a89878" };
+const PARCHMENT = { l: "#f8f0dc", m: "#e4d2a6", d: "#a8843c" };
+
+const UI_SPRITES: Record<string, [string[], Material]> = {
+  gold: [sym(["........", "........", "........", "......ll", "....llmm", "...lmmdd", "..lmmdmm", "..lmdmmw", "..lmdmmm", "..lmmdmm", "...lmmdd", "....lmmm", "......mm"]), GOLD],
+  bag: [sym(["........", "........", "....m...", ".....m.m", "......dd", ".....lmm", "....lmmm", "...lmmmm", "..lmmmmm", "..lmmmmm", "..lmmmmm", "..lmmmmm", "...mmmmm", "....dddd"]), LEATHER],
+  hourglass: [sym(["........", "..HHHHHH", "...w....", "...wmmmm", "....wmmm", ".....wmm", "......wm", ".......w", ".......w", "......w.", ".....w..", "....w..m", "...w.mmm", "...wmmmm", "..HHHHHH"]), GOLD],
+  equipment: [SPRITES.chest, MATERIAL.common],
+  guild: [pad(["................", "..H.............", "..Hmmmmmmmm.....", "..Hmmmmmmmm.....", "..Hmmwwmmmm.....", "..Hmwwwwmmm.....", "..Hmmwwmmmm.....", "..Hmmmmmmmm.....", "..Hmmmm.mmm.....", "..Hmmm...mm.....", "..H.............", "..H.............", "..H.............", "..H.............", "..HH............"]), MATERIAL.rare],
+  raid: [sym(["........", "........", "....llll", "...lmmmm", "..lmmmmm", "..lmmmmm", "..lm..mm", "..lm..mm", "..lmmmmm", "...lmm.m", "....lmmm", "....m.m.", "....mmmm"]), BONE],
+  scroll: [pad(["................", "................", "..mmmmmmmmmmm...", ".dlllllllllllld.", "..mmmmmmmmmmm...", "...mmmmmmmmm....", "...mddddddmm....", "...mmmmmmmmm....", "...mddddmmmm....", "...mmmmmmmmm....", "...mdddddmmm....", "...mmmmmmmmm....", "..mmmmmmmmmmm...", ".dlllllllllllld.", "..mmmmmmmmmmm..."]), PARCHMENT],
+  shop: [pad(["................", "................", ".....lmmmmd.....", "....lmwmmmmd....", "....dddddddd....", "....lmmmmmmd....", "....dddddddd....", "....lmmmmmmd....", "....dddddddd....", "....lmmmmmmd....", "....dddddddd...."]), GOLD],
+  stats: [pad(["................", "................", "...........ll...", "...........mm...", "........ll.mm...", "........mm.mm...", ".....ll.mm.mm...", ".....mm.mm.mm...", "..ll.mm.mm.mm...", "..mm.mm.mm.mm...", "..mm.mm.mm.mm...", "..dd.dd.dd.dd..."]), GOLD],
+  star: [sym(["........", ".......l", "......lm", "......lm", ".....lmm", ".lllllmm", "..lmmmmm", "...lmmmm", "....lmmm", "....lmmm", "...lmm..", "..lm....", ".lm....."]), GOLD],
+  crown: [sym(["........", "........", "........", "........", "..m....m", "..mm..mm", "..mmmmmm", "..lmmmmm", "..lmemmm", "..lmmmmm", "..dddddd"]), GOLD],
+  book: [pad(["................", "................", "...mmmmmmmmmm...", "..lmmmmmmmmmmd..", "..lmmwwwwwwmmd..", "..lmmmmmmmmmmd..", "..lmmmmmmmmmmd..", "..lmmmmmmmmmmd..", "..lmmmmmmmmmmd..", "..lmmmmmmmmmmd..", "..lmmmmmmmmmmd..", "..lmmmmmmmmmmd..", "..wwwwwwwwwwww..", "..dddddddddddd.."]), MATERIAL.rare],
+};
+
+const ui = new URL("../public/ui/", import.meta.url);
+mkdirSync(ui, { recursive: true });
+for (const [name, [rows, material]] of Object.entries(UI_SPRITES)) {
+  if (rows.length !== 16 || rows.some((r) => r.length !== 16)) throw new Error(`${name}: sprite must be 16x16`);
+  writeFileSync(new URL(`${name}.svg`, ui), svg(rows, material));
+}
+console.log(`Wrote ${Object.keys(UI_SPRITES).length} UI icons to ${ui.pathname}`);
