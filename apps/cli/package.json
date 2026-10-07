@@ -20,7 +20,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "prepublishOnly": "pnpm build",
-    "release": "npm publish --userconfig ~/.npmrc-dnd",
+    "release": "node scripts/release.ts",
     "test": "node --test",
     "typecheck": "tsc"
   },

@@ -199,3 +199,4 @@ pnpm --filter @dnd/api migrate   # create/apply migrations
 ```
 
 Player-facing changes go into [CHANGELOG.md](CHANGELOG.md) under *Unreleased*, rules that players need to know into the [manual](docs/manual.md).
+The CLI is published to npm by hand, see [Releasing the CLI](docs/releasing-cli.md).
