@@ -175,6 +175,28 @@ async function market(action: string | undefined, arg: string | undefined) {
   console.log("\nquest market draw <rarity> · quest market list <#id> · quest market unlist <#id>");
 }
 
+async function dungeon(action: string | undefined, code: string | undefined) {
+  if (action === "start" || action === "join") {
+    const res = action === "start" ? await authed("/dungeons", "POST") : await authed("/dungeons/join", "POST", { code });
+    if (res.status >= 400) throw new Error(res.data.error ?? res.data.message ?? `Failed (${res.status})`);
+    const d = res.data;
+    console.log(`Dungeon ${d.code} · starts in ${minutesUntil(d.startsAt)}m · party: ${d.members.join(", ")}`);
+    if (action === "start") console.log(`Others join with: quest dungeon join ${d.code}`);
+    return refresh();
+  }
+  const { data } = await authed("/dungeons/current");
+  const d = data.dungeon;
+  if (!d) return console.log("No dungeon yet. Start one: quest dungeon start");
+  console.log(`Dungeon ${d.code} · ${d.state} · party: ${d.members.join(", ")}`);
+  d.stages.forEach((name: string, i: number) => {
+    const mark = i < d.cleared ? "✓" : d.state === "failed" && i === d.cleared ? "✗" : i === d.cleared && d.current ? "⚔" : "·";
+    console.log(`  ${mark} ${name}`);
+  });
+  if (d.state === "lobby") console.log(`Starts in ${minutesUntil(d.startsAt)}m. Others join with: quest dungeon join ${d.code}`);
+  if (d.state === "running") console.log(`Stage ends in ${minutesUntil(d.stageEndsAt)}m. Presence counts for the whole party.`);
+  if (d.you.xp) console.log(`Your loot so far: +${d.you.xp} XP · +${d.you.gold} gold`);
+}
+
 async function character() {
   const { data: c } = await authed("/character");
   console.log(`${c.name} · Lv ${c.level} · ${c.gold}g`);
@@ -215,6 +237,7 @@ const USAGE = `Usage: quest [command]
   quest char                character sheet
   quest fight               fight a monster that showed up
   quest market              market: draw a random item of a rarity, list your own
+  quest dungeon [start|join <code>]  dungeon with up to 5 players
   quest inv                 inventory
   quest equip <#id>         equip an item (--slot ring1|ring2 for rings)
   quest unequip <#id>       take an item off
@@ -243,6 +266,9 @@ try {
       break;
     case "fight":
       await fightMonster();
+      break;
+    case "dungeon":
+      await dungeon(positionals[1], positionals[2]);
       break;
     case "market":
       await market(positionals[1], positionals[2]);

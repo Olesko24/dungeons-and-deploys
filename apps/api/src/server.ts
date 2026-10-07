@@ -12,9 +12,9 @@ const env = (name: string) => {
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: env("DATABASE_URL") }) });
 const boss = new PgBoss(env("DATABASE_URL"));
-const scheduleResolve = await startJobs(boss, db);
+const jobs = await startJobs(boss, db);
 const app = await buildApp(
-  { db, scheduleResolve },
+  { db, ...jobs },
   {
     // Runs behind the Coolify proxy, client IPs for rate limiting come from X-Forwarded-For.
     trustProxy: true,

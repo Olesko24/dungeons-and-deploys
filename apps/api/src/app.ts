@@ -5,6 +5,7 @@ import fastifyStatic from "@fastify/static";
 import Fastify, { type FastifyServerOptions } from "fastify";
 import { authRoutes } from "./auth.ts";
 import type { PrismaClient } from "./generated/prisma/client.ts";
+import { dungeonRoutes } from "./dungeons.ts";
 import { encounterRoutes } from "./encounters.ts";
 import { inventoryRoutes } from "./inventory.ts";
 import { marketRoutes } from "./market.ts";
@@ -13,6 +14,7 @@ import { questRoutes } from "./quests.ts";
 export type Deps = {
   db: PrismaClient;
   scheduleResolve: (questId: number, at: Date) => Promise<unknown>;
+  scheduleStage?: (dungeonId: number, stage: number, at: Date) => Promise<unknown>;
   now?: () => Date;
   random?: () => number;
 };
@@ -46,11 +48,12 @@ export async function buildApp(deps: Deps, opts: FastifyServerOptions = {}) {
   });
 
   authRoutes(app, db);
-  const full = { now: () => new Date(), random: Math.random, ...deps };
+  const full = { now: () => new Date(), random: Math.random, scheduleStage: async () => {}, ...deps };
   questRoutes(app, full);
   inventoryRoutes(app, db);
   encounterRoutes(app, full);
   marketRoutes(app, full);
+  dungeonRoutes(app, full);
 
   return app;
 }

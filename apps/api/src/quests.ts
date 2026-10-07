@@ -14,6 +14,7 @@ import {
 } from "@tokenquest/shared";
 import type { Deps } from "./app.ts";
 import { equippedItems, itemView, requireCharacter } from "./characters.ts";
+import { dungeonHeartbeat, dungeonView } from "./dungeons.ts";
 import { encounterView, maybeSpawnEncounter } from "./encounters.ts";
 import { type Character, type Item, Prisma, type PrismaClient, type Quest } from "./generated/prisma/client.ts";
 
@@ -61,6 +62,7 @@ export function questRoutes(app: FastifyInstance, { db, scheduleResolve, now, ra
     readyAt: last ? new Date(last.endsAt.getTime() + COOLDOWN_MS) : now(),
     character: { name: character.name, gold: character.gold, level: levelFromXp(character.xp).level },
     encounter: await encounterView(db, character, now()),
+    dungeon: await dungeonView(db, character.id, now()),
   });
 
   app.get("/quests/current", async (req, reply) => {
@@ -83,6 +85,7 @@ export function questRoutes(app: FastifyInstance, { db, scheduleResolve, now, ra
         last.slots |= bit;
       }
       await maybeSpawnEncounter(db, character, t, random);
+      await dungeonHeartbeat(db, character, t);
       return status(character, last);
     },
   );

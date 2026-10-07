@@ -51,17 +51,18 @@ model PairCode {
 }
 
 model Character {
-  id         Int          @id @default(autoincrement())
-  userId     Int          @unique @map("user_id")
-  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name       String       @unique
-  xp         Int          @default(0)
-  gold       Int          @default(0)
+  id         Int             @id @default(autoincrement())
+  userId     Int             @unique @map("user_id")
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String          @unique
+  xp         Int             @default(0)
+  gold       Int             @default(0)
   quests     Quest[]
   items      Item[]
   encounters Encounter[]
   draws      MarketDraw[]
-  createdAt  DateTime     @default(now()) @map("created_at")
+  dungeons   DungeonMember[]
+  createdAt  DateTime        @default(now()) @map("created_at")
 
   @@map("characters")
 }
@@ -87,20 +88,21 @@ model Quest {
 
 /// An item owned by a character. `key` refers to the catalog in packages/shared, the stats are rolled on drop.
 model Item {
-  id           Int        @id @default(autoincrement())
-  characterId  Int        @map("character_id")
-  character    Character  @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  id           Int            @id @default(autoincrement())
+  characterId  Int            @map("character_id")
+  character    Character      @relation(fields: [characterId], references: [id], onDelete: Cascade)
   key          String
-  attack       Int        @default(0)
-  defense      Int        @default(0)
-  luck         Int        @default(0)
-  fortune      Int        @default(0)
-  equippedSlot String?    @map("equipped_slot")
+  attack       Int            @default(0)
+  defense      Int            @default(0)
+  luck         Int            @default(0)
+  fortune      Int            @default(0)
+  equippedSlot String?        @map("equipped_slot")
   /// Set while the item is offered on the market. Listed items cannot be equipped.
-  listedAt     DateTime?  @map("listed_at")
-  createdAt    DateTime   @default(now()) @map("created_at")
+  listedAt     DateTime?      @map("listed_at")
+  createdAt    DateTime       @default(now()) @map("created_at")
   foundIn      Quest?
   wonIn        Encounter?
+  dungeonLoot  DungeonMember?
 
   @@unique([characterId, equippedSlot])
   @@map("items")
@@ -139,4 +141,36 @@ model MarketDraw {
 
   @@index([buyerId, createdAt])
   @@map("market_draws")
+}
+
+/// A dungeon run: a 5-minute lobby, then three stages and a boss of 15 minutes each.
+/// `stage` counts cleared stages, `endedAt` is set when a stage fails or the boss falls.
+model Dungeon {
+  id        Int             @id @default(autoincrement())
+  code      String          @unique
+  startsAt  DateTime        @map("starts_at")
+  stage     Int             @default(0)
+  endedAt   DateTime?       @map("ended_at")
+  success   Boolean?
+  members   DungeonMember[]
+  createdAt DateTime        @default(now()) @map("created_at")
+
+  @@map("dungeons")
+}
+
+/// `slots` is the member's presence bitmask over all 12 stage slots of the run.
+model DungeonMember {
+  dungeonId   Int       @map("dungeon_id")
+  dungeon     Dungeon   @relation(fields: [dungeonId], references: [id], onDelete: Cascade)
+  characterId Int       @map("character_id")
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  slots       Int       @default(0)
+  xp          Int       @default(0)
+  gold        Int       @default(0)
+  lootItemId  Int?      @unique @map("loot_item_id")
+  lootItem    Item?     @relation(fields: [lootItemId], references: [id], onDelete: SetNull)
+  joinedAt    DateTime  @default(now()) @map("joined_at")
+
+  @@id([dungeonId, characterId])
+  @@map("dungeon_members")
 }

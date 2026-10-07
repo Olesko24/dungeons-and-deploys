@@ -103,10 +103,12 @@ Fair by chance, not by bidding. More gold must not mean better equipment.
 
 ## Phase 7 – Dungeons
 
-- [ ] Dungeon = chain of 3 stages + boss, `dungeon.stage` job
-- [ ] Party of 1–5, `quest dungeon start` / `quest dungeon join <id>`
-- [ ] Difficulty and loot scale with party size, solo is possible
-- [ ] Presence counts per member
+- [x] Dungeon = 5-minute lobby, then 3 stages + boss of 15 minutes each, `dungeon.stage` job per stage
+- [x] Party of 1–5, `quest dungeon start` / `quest dungeon join <code>`
+- [x] Stage chance from the members' gear against the stage, times the party's presence in that stage, plus teamwork per member
+- [x] Difficulty and rewards grow 10% per member, solo is possible, a failed stage ends the run and keeps earned rewards
+- [x] Boss kill gives every member guaranteed loot, bigger parties roll rarity more often
+- [x] Presence counts per member (own slot bitmask per run)
 
 **Done when:** A solo run and a 3-player run both complete with scaled rewards.
 
