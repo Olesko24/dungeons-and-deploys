@@ -24,6 +24,8 @@ Inspired by Twitch idle RPGs: presence and luck, not performance.
 | Dungeon | 1–5 | Three stages and a boss, 15 min each. Difficulty and loot scale with party size |
 | Raid | 5+ | Guild only, scheduled by the leader. Shared boss HP, damage from presence in the raid window |
 | Market | – | Fixed prices by rarity, buyers draw a random listing, one draw per day |
+| Shop | – | Three new offers every day, each once per player |
+| Achievements | – | 18 achievements and a statistics page, just for fun |
 
 Items drop in four rarities and eleven equipment slots, with rolled stats and twelve weapon kinds.
 Higher levels raise the chance for better loot. All items: see `apps/web/public/items/`.
@@ -58,6 +60,8 @@ quest char                         # character sheet
 quest inv / quest equip <item>
 quest fight                        # random encounter
 quest market                       # draw a random item of a rarity, list your own
+quest shop                         # three new offers every day
+quest stats                        # statistics and achievements
 quest dungeon start|join <code>
 quest guild create <name>|join <code>|leave
 quest raid schedule <minutes>|join
@@ -164,8 +168,8 @@ See [docs/hosting.md](docs/hosting.md) for sizing, presence storage and operatio
 
 ## Roadmap
 
-Phases 0–10 are built: accounts, quests, Claude Code and shell integrations, items and loot,
-encounters, market, website, dungeons, guilds, raids and hardening.
+Phases 0–11 are built: accounts, quests, Claude Code and shell integrations, items and loot,
+encounters, market, website, dungeons, guilds, raids, hardening, achievements and a daily shop.
 Open: first deploy to Coolify, publishing the CLI to npm, monitoring alerts.
 
 Details per phase: [docs/roadmap.md](docs/roadmap.md)

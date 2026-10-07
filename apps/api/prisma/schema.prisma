@@ -66,6 +66,7 @@ model Character {
   dungeons   DungeonMember[]
   guild      GuildMember?
   raids      RaidMember[]
+  purchases  ShopPurchase[]
   createdAt  DateTime        @default(now()) @map("created_at")
 
   @@map("characters")
@@ -236,4 +237,18 @@ model RaidMember {
 
   @@id([raidId, characterId])
   @@map("raid_members")
+}
+
+/// One shop purchase. Each offer can be bought once per character and day.
+model ShopPurchase {
+  characterId Int       @map("character_id")
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  day         String
+  offer       Int
+  itemKey     String    @map("item_key")
+  price       Int
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@id([characterId, day, offer])
+  @@map("shop_purchases")
 }

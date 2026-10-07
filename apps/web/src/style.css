@@ -105,6 +105,26 @@ input {
 .raid .bar span.on { background: var(--bad); }
 .raid .bar { flex-wrap: wrap; }
 
+.tabs { display: flex; gap: 12px; flex-wrap: wrap; }
+.tabs button { text-transform: uppercase; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+
+.offers { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: 12px; }
+.offer { background: var(--panel-deep); padding: 12px; display: grid; justify-items: center; gap: 8px; text-align: center; border-bottom: var(--pixel) solid currentColor; }
+.offer .dim { font-size: 18px; }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr)); gap: 8px; margin: 0; }
+.stats div { background: var(--panel-deep); padding: 8px 12px; display: grid; gap: 2px; }
+.stats dt { font: 8px/1.6 var(--display); color: var(--ink-dim); text-transform: uppercase; }
+.stats dd { margin: 0; font-size: 28px; color: var(--gold); font-variant-numeric: tabular-nums; }
+
+.achievements { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr)); gap: 8px; }
+.achievements li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; background: var(--panel-deep); padding: 8px 12px; opacity: .55; }
+.achievements li.unlocked { opacity: 1; box-shadow: inset var(--pixel) 0 0 var(--gold); }
+.achievements .star { font-size: 28px; color: var(--gold); }
+.achievements strong { display: block; font-weight: normal; }
+.achievements .dim { font-size: 18px; }
+
 .scroll { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
 th, td { padding: 4px 8px; text-align: left; white-space: nowrap; }

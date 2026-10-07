@@ -227,6 +227,43 @@ async function raid(action: string | undefined, minutes: string | undefined) {
   if (r.state === "scheduled") console.log("Join with: quest raid join. Presence during the raid deals damage.");
 }
 
+async function shop(action: string | undefined, offer: string | undefined) {
+  if (action === "buy") {
+    const res = await authed("/shop/buy", "POST", { offer: Number(offer) });
+    if (res.status >= 400) throw new Error(res.data.error ?? res.data.message ?? `Failed (${res.status})`);
+    const i = res.data.item;
+    return console.log(`Bought for ${res.data.price}g: ${rarityColor(i.name, i.rarity)} (${i.rarity}) · ${statsText(i.stats)}`);
+  }
+  const { data } = await authed("/shop");
+  const hours = Math.ceil(minutesUntil(data.refreshesAt) / 60);
+  console.log(`Shop · ${data.gold}g · new offers in ${hours}h`);
+  for (const o of data.offers) {
+    const note = o.bought ? " · bought" : o.locked ? ` · unlocks at Lv ${o.unlockLevel}` : "";
+    console.log(`  ${o.offer}  ${rarityColor(o.name.padEnd(32), o.rarity)}${o.rarity.padEnd(10)}${String(o.price).padStart(4)}g${note}`);
+  }
+  console.log("\nquest shop buy <1-3> · stats are rolled when you buy");
+}
+
+async function stats() {
+  const { data } = await authed("/stats");
+  const s = data.stats;
+  const rows: [string, string | number][] = [
+    ["Quests won / failed", `${s.questsWon} / ${s.questsFailed}`],
+    ["Perfect quests", s.perfectQuests],
+    ["Present slots", s.presentSlots],
+    ["Gold earned", s.goldEarned],
+    ["Monsters slain / fights lost", `${s.monstersSlain} / ${s.fightsLost}`],
+    ["Items found / legendary", `${s.itemsFound} / ${s.legendariesFound}`],
+    ["Dungeons cleared", s.dungeonsCleared],
+    ["Raids won", s.raidsWon],
+    ["Market sold / bought, shop", `${s.marketSold} / ${s.marketBought}, ${s.shopBought}`],
+  ];
+  for (const [label, value] of rows) console.log(`  ${label.padEnd(30)}${value}`);
+  const done = data.achievements.filter((a: { unlocked: boolean }) => a.unlocked).length;
+  console.log(`\nAchievements ${done}/${data.achievements.length}`);
+  for (const a of data.achievements) console.log(`  ${a.unlocked ? "★" : "·"} ${a.name.padEnd(24)}${a.description}`);
+}
+
 async function character() {
   const { data: c } = await authed("/character");
   console.log(`${c.name} · Lv ${c.level} · ${c.gold}g`);
@@ -270,6 +307,8 @@ const USAGE = `Usage: quest [command]
   quest unequip <#id>                            take an item off
   quest fight                                    fight a monster that showed up
   quest market                                   draw a random item of a rarity, list your own
+  quest shop [buy <1-3>]                         three new offers every day
+  quest stats                                    statistics and achievements
   quest dungeon [start|join <code>]              dungeon with up to 5 players
   quest guild [create <name>|join <code>|leave]  your guild
   quest raid [schedule <min>|join]               guild raid, at least 5 raiders
@@ -307,6 +346,12 @@ try {
       break;
     case "dungeon":
       await dungeon(positionals[1], positionals[2]);
+      break;
+    case "shop":
+      await shop(positionals[1], positionals[2]);
+      break;
+    case "stats":
+      await stats();
       break;
     case "market":
       await market(positionals[1], positionals[2]);

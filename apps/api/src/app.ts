@@ -12,6 +12,8 @@ import { inventoryRoutes } from "./inventory.ts";
 import { marketRoutes } from "./market.ts";
 import { questRoutes } from "./quests.ts";
 import { raidRoutes } from "./raids.ts";
+import { shopRoutes } from "./shop.ts";
+import { statsRoutes } from "./stats.ts";
 
 export type Deps = {
   db: PrismaClient;
@@ -59,6 +61,8 @@ export async function buildApp(deps: Deps, opts: FastifyServerOptions = {}) {
   dungeonRoutes(app, full);
   guildRoutes(app, db);
   raidRoutes(app, full);
+  shopRoutes(app, full);
+  statsRoutes(app, db);
 
   return app;
 }

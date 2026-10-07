@@ -169,13 +169,15 @@ export function rollLoot(level: number, presentSlots: number, minSlots: number, 
 
 /** A random item: the slot type evenly, a weapon kind with the same number of hands, then the rarity. */
 export function randomItemKey(level: number, rarityRolls: number, random: () => number) {
+  return `${randomItemBase(random)}.${rollRarity(level, rarityRolls, random)}`;
+}
+
+/** An armor type or weapon kind, with every slot type equally likely. */
+export function randomItemBase(random: () => number) {
   const type = ITEM_TYPES[Math.floor(random() * ITEM_TYPES.length)];
-  let base: string = type;
-  if (type === "weapon" || type === "twoHanded") {
-    const kinds = WEAPON_KINDS.filter((k) => WEAPONS[k].hands === (type === "weapon" ? 1 : 2));
-    base = kinds[Math.floor(random() * kinds.length)];
-  }
-  return `${base}.${rollRarity(level, rarityRolls, random)}`;
+  if (type !== "weapon" && type !== "twoHanded") return type;
+  const kinds = WEAPON_KINDS.filter((k) => WEAPONS[k].hands === (type === "weapon" ? 1 : 2));
+  return kinds[Math.floor(random() * kinds.length)];
 }
 
 /**

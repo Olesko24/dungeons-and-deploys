@@ -41,6 +41,11 @@ export type Raid = {
   members: { name: string; damage: number }[];
 };
 
+export type ShopOffer = { offer: number; key: string; name: string; rarity: string; price: number; unlockLevel: number; locked: boolean; bought: boolean };
+export type Shop = { gold: number; refreshesAt: string; offers: ShopOffer[] };
+export type Achievement = { key: string; name: string; description: string; unlocked: boolean };
+export type PlayerStats = Record<string, number | boolean>;
+
 export class Unauthorized extends Error {}
 
 /** Same-origin calls, the session lives in an httpOnly cookie. */

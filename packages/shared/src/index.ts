@@ -16,11 +16,13 @@ export function levelFromXp(totalXp: number) {
 
 export const countSlots = (slots: number) => slots.toString(2).replaceAll("0", "").length;
 
+export * from "./achievements.ts";
 export * from "./combat.ts";
 export * from "./dungeons.ts";
 export * from "./items.ts";
 export * from "./market.ts";
 export * from "./raids.ts";
+export * from "./shop.ts";
 
 /**
  * `random` returns values in [0, 1), like Math.random.

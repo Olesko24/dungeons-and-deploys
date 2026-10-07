@@ -143,6 +143,16 @@ Fair by chance, not by bidding. More gold must not mean better equipment.
 
 Measured locally (single Node process, Postgres in Docker, Apple Silicon): 165 heartbeats/s with 10,000 players, 0 errors, p50 24 ms, p99 88 ms, API at ~300 MB RSS. At 600/s still 0 errors with p99 60 ms. Still to repeat on the deployed server.
 
+## Phase 11 – Achievements, statistics and shop
+
+- [x] Statistics counted from existing tables (`GET /stats`, `quest stats`, Stats page on the website)
+- [x] 18 achievements derived from the statistics, no rewards, no unlock date
+- [x] Daily shop: three offers (common, rare, epic) the same for every player, new at midnight UTC
+- [x] Each offer once per player and day, prices 40 / 120 / 400 gold, epic from level 5, no legendaries
+- [x] CLI: `quest shop`, `quest shop buy <1-3>`, website Shop page
+
+**Done when:** A player sees stats and unlocked achievements, buys a shop offer once per day.
+
 ## Open decisions
 
 - Game content: quest texts, item names, monsters

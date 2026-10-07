@@ -1,5 +1,18 @@
 import { type FormEvent, useCallback, useEffect, useState } from "react";
-import { type Character, type Guild, type Item, type Quest, type Raid, type Stats, type Status, Unauthorized, api } from "./api.ts";
+import {
+  type Achievement,
+  type Character,
+  type Guild,
+  type Item,
+  type PlayerStats,
+  type Quest,
+  type Raid,
+  type Shop,
+  type Stats,
+  type Status,
+  Unauthorized,
+  api,
+} from "./api.ts";
 
 const SLOTS = [
   ["head", "Head"], ["chest", "Chest"], ["legs", "Legs"], ["hands", "Hands"], ["feet", "Feet"], ["mainHand", "Main hand"],
@@ -228,11 +241,88 @@ function RaidView({ raid }: { raid: Raid }) {
   );
 }
 
+function ShopView({ onChange }: { onChange: () => void }) {
+  const [shop, setShop] = useState<Shop | null>(null);
+  const [message, setMessage] = useState("");
+  const load = useCallback(() => api<Shop>("/shop").then(setShop), []);
+  useEffect(() => void load(), [load]);
+  async function buy(offer: number) {
+    try {
+      const { item } = await api<{ item: Item }>("/shop/buy", { offer });
+      setMessage(`Bought ${item.name} · ${statParts(item.stats).join(" · ")}`);
+      onChange();
+      await load();
+    } catch (err) {
+      setMessage((err as Error).message);
+    }
+  }
+  if (!shop) return <section className="panel"><p>Loading…</p></section>;
+  return (
+    <section className="panel">
+      <h2>Shop · {shop.gold} gold</h2>
+      <p className="dim">Three new offers every day, new ones in {Math.ceil(minutesUntil(shop.refreshesAt) / 60)}h. Stats are rolled when you buy.</p>
+      {message && <p role="status">{message}</p>}
+      <div className="offers">
+        {shop.offers.map((o) => (
+          <div key={o.offer} className={`offer ${o.rarity}`}>
+            <img className="icon" src={`/items/${o.key}.svg`} alt="" width={64} height={64} />
+            <span className="name">{o.name}</span>
+            <span className="dim">{o.rarity} · {o.price} gold</span>
+            <button type="button" className="small" disabled={o.bought || o.locked || shop.gold < o.price} onClick={() => buy(o.offer)}>
+              {o.bought ? "Bought" : o.locked ? `Lv ${o.unlockLevel}` : "Buy"}
+            </button>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+const STAT_LABELS: [string, string][] = [
+  ["questsWon", "Quests won"], ["questsFailed", "Quests failed"], ["perfectQuests", "Perfect quests"], ["presentSlots", "Present slots"],
+  ["goldEarned", "Gold earned"], ["monstersSlain", "Monsters slain"], ["fightsLost", "Fights lost"], ["itemsFound", "Items found"],
+  ["legendariesFound", "Legendaries found"], ["dungeonsCleared", "Dungeons cleared"], ["raidsWon", "Raids won"], ["marketSold", "Items sold"],
+  ["marketBought", "Market draws"], ["shopBought", "Shop purchases"],
+];
+
+function StatsView() {
+  const [data, setData] = useState<{ stats: PlayerStats; achievements: Achievement[] } | null>(null);
+  useEffect(() => void api<{ stats: PlayerStats; achievements: Achievement[] }>("/stats").then(setData), []);
+  if (!data) return <section className="panel"><p>Loading…</p></section>;
+  const done = data.achievements.filter((a) => a.unlocked).length;
+  return (
+    <>
+      <section className="panel">
+        <h2>Statistics</h2>
+        <dl className="stats">
+          {STAT_LABELS.map(([key, label]) => (
+            <div key={key}><dt>{label}</dt><dd>{String(data.stats[key])}</dd></div>
+          ))}
+        </dl>
+      </section>
+      <section className="panel">
+        <h2>Achievements · {done}/{data.achievements.length}</h2>
+        <ul className="achievements">
+          {data.achievements.map((a) => (
+            <li key={a.key} className={a.unlocked ? "unlocked" : ""}>
+              <span className="star" aria-hidden="true">{a.unlocked ? "★" : "☆"}</span>
+              <span><strong>{a.name}</strong><span className="dim">{a.description}{a.unlocked ? "" : " · locked"}</span></span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </>
+  );
+}
+
+type View = "character" | "shop" | "stats";
+
 type Data = { character: Character; status: Status; items: Item[]; history: Quest[]; guild: Guild | null; raid: Raid | null };
 
 export function App() {
   const [data, setData] = useState<Data | null>(null);
   const [loggedOut, setLoggedOut] = useState(false);
+  const [view, setView] = useState<View>("character");
 
   const load = useCallback(async () => {
     try {
@@ -275,11 +365,24 @@ export function App() {
         </div>
         <button type="button" className="small ghost" onClick={() => api("/auth/logout", {}).then(() => setLoggedOut(true))}>Log out</button>
       </header>
-      <QuestStatus status={data.status} />
-      <Inventory items={data.items} onChange={() => void load()} />
-      {data.raid && <RaidView raid={data.raid} />}
-      <GuildHall guild={data.guild} />
-      <History quests={data.history} />
+      <nav className="tabs" aria-label="Sections">
+        {(["character", "shop", "stats"] as const).map((v) => (
+          <button key={v} type="button" className={`small ${view === v ? "" : "ghost"}`} aria-current={view === v ? "page" : undefined} onClick={() => setView(v)}>
+            {v}
+          </button>
+        ))}
+      </nav>
+      {view === "character" && (
+        <>
+          <QuestStatus status={data.status} />
+          <Inventory items={data.items} onChange={() => void load()} />
+          {data.raid && <RaidView raid={data.raid} />}
+          <GuildHall guild={data.guild} />
+          <History quests={data.history} />
+        </>
+      )}
+      {view === "shop" && <ShopView onChange={() => void load()} />}
+      {view === "stats" && <StatsView />}
     </main>
   );
 }
