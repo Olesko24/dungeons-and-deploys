@@ -14,6 +14,7 @@ model User {
   email     String    @unique
   createdAt DateTime  @default(now()) @map("created_at")
   sessions  Session[]
+  character Character?
 
   @@map("users")
 }
@@ -50,4 +51,34 @@ model Login {
   createdAt   DateTime @default(now()) @map("created_at")
 
   @@map("logins")
+}
+
+model Character {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  xp        Int      @default(0)
+  gold      Int      @default(0)
+  quests    Quest[]
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("characters")
+}
+
+/// `slots` is a bitmask, one bit per 5-minute slot with presence. `resolvedAt` is null while running.
+model Quest {
+  id          Int       @id @default(autoincrement())
+  characterId Int       @map("character_id")
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  startedAt   DateTime  @map("started_at")
+  endsAt      DateTime  @map("ends_at")
+  slots       Int       @default(0)
+  resolvedAt  DateTime? @map("resolved_at")
+  success     Boolean?
+  xp          Int       @default(0)
+  gold        Int       @default(0)
+
+  @@index([characterId, startedAt])
+  @@map("quests")
 }

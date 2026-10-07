@@ -3,10 +3,18 @@ import Fastify, { type FastifyServerOptions } from "fastify";
 import { authRoutes } from "./auth.ts";
 import type { PrismaClient } from "./generated/prisma/client.ts";
 import type { SendMail } from "./mail.ts";
+import { questRoutes } from "./quests.ts";
 
-export type Deps = { db: PrismaClient; sendMail: SendMail; publicUrl: string };
+export type Deps = {
+  db: PrismaClient;
+  sendMail: SendMail;
+  publicUrl: string;
+  scheduleResolve: (questId: number, at: Date) => Promise<unknown>;
+  now?: () => Date;
+};
 
-export async function buildApp({ db, sendMail, publicUrl }: Deps, opts: FastifyServerOptions = {}) {
+export async function buildApp(deps: Deps, opts: FastifyServerOptions = {}) {
+  const { db, sendMail, publicUrl } = deps;
   const app = Fastify(opts);
 
   // ponytail: in-memory rate limit store, switch to a shared store when running multiple API instances
@@ -25,6 +33,7 @@ export async function buildApp({ db, sendMail, publicUrl }: Deps, opts: FastifyS
   });
 
   authRoutes(app, db, sendMail, publicUrl);
+  questRoutes(app, { now: () => new Date(), ...deps });
 
   return app;
 }

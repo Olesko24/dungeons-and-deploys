@@ -30,14 +30,15 @@ Every phase ends in a playable or deployable state.
 
 ## Phase 2 – Quest core
 
-- [ ] Tables: `characters`, `quests` (incl. `slots` bitmask, see [hosting.md](hosting.md))
-- [ ] Character created on first login (name, level, XP, gold)
-- [ ] pg-boss set up in the API process
-- [ ] `POST /quests` – start quest, enforce cooldown, schedule `quest.resolve` in 45 min
-- [ ] `POST /heartbeat` – set slot bit of the active quest, max 1/min per player
-- [ ] Worker `quest.resolve` – check presence, roll success, grant XP and gold
-- [ ] Level curve in `packages/shared`
-- [ ] CLI: `quest`, `quest status`, `char`
+- [x] Tables: `characters`, `quests` (incl. `slots` bitmask, see [hosting.md](hosting.md))
+- [x] Character created on first login (name, level, XP, gold), name from the email address
+- [x] pg-boss set up in the API process, hourly cleanup of expired logins
+- [x] `POST /quests` – start quest, enforce cooldown, schedule `quest.resolve` in 45 min
+- [x] `POST /heartbeat` – set slot bit of the active quest, max 1/min per player
+- [x] Worker `quest.resolve` – check presence, roll success, grant XP and gold
+- [x] `GET /quests/current`, `GET /character` for status and character sheet
+- [x] Level curve and quest rules in `packages/shared`
+- [x] CLI: `quest`, `quest status`, `quest char`
 
 **Done when:** Tests with a fake clock cover quest success, quest failure and cooldown. A quest started locally resolves after restarting the API.
 
@@ -60,7 +61,7 @@ Every phase ends in a playable or deployable state.
 - [ ] Rarities: common, rare, epic, legendary
 - [ ] Loot tables in `packages/shared`, extra present slots improve rolls
 - [ ] Equipment slots, item stats affect quest success chance
-- [ ] CLI: `inv`, `equip <item>`
+- [ ] CLI: `quest inv`, `quest equip <item>`
 
 **Done when:** Tests show loot distribution matches rarity weights. Equipped items change quest odds.
 
@@ -84,7 +85,7 @@ Every phase ends in a playable or deployable state.
 ## Phase 7 – Dungeons
 
 - [ ] Dungeon = chain of 3 stages + boss, `dungeon.stage` job
-- [ ] Party of 1–5, `dungeon start` / `dungeon join <id>`
+- [ ] Party of 1–5, `quest dungeon start` / `quest dungeon join <id>`
 - [ ] Difficulty and loot scale with party size, solo is possible
 - [ ] Presence counts per member
 
@@ -93,7 +94,7 @@ Every phase ends in a playable or deployable state.
 ## Phase 8 – Guilds
 
 - [ ] Tables: `guilds`, `guild_members` (roles: leader, member)
-- [ ] CLI: `guild create|join|leave|info`
+- [ ] CLI: `quest guild create|join|leave|info`
 - [ ] Guild level grows from members' quests
 - [ ] Guild hall page on the website
 

@@ -5,7 +5,7 @@ import { buildApp } from "./app.ts";
 import { PrismaClient } from "./generated/prisma/client.ts";
 import { testDb } from "./testing.ts";
 
-const deps = { sendMail: async () => {}, publicUrl: "http://test" };
+const deps = { sendMail: async () => {}, publicUrl: "http://test", scheduleResolve: async () => {} };
 let db: PrismaClient;
 before(async () => { db = await testDb(); });
 after(() => db.$disconnect());

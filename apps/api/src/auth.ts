@@ -18,6 +18,10 @@ async function isUsableCode(db: PrismaClient, code: string) {
   return !!row && row.uses < row.maxUses && row.expiresAt > new Date();
 }
 
+/** Same rule as the backfill in the `quests` migration. */
+const characterName = (email: string) =>
+  email.split("@")[0].replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 20) || "Adventurer";
+
 export async function requireUser(db: PrismaClient, req: FastifyRequest) {
   const token = req.headers.authorization?.match(/^Bearer (.+)$/)?.[1];
   if (!token) return null;
@@ -110,7 +114,9 @@ export function authRoutes(app: FastifyInstance, db: PrismaClient, sendMail: Sen
           data: { uses: { increment: 1 } },
         });
         if (consumed.count === 0) return null;
-        const user = await tx.user.create({ data: { email: login.email } });
+        const user = await tx.user.create({
+          data: { email: login.email, character: { create: { name: characterName(login.email) } } },
+        });
         return user.id;
       });
       if (!userId) return reply.code(400).send(page("Access code used up", "Ask for a new access code."));

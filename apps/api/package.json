@@ -15,8 +15,10 @@
     "@fastify/rate-limit": "^11.2.0",
     "@prisma/adapter-pg": "7.10.0",
     "@prisma/client": "7.10.0",
+    "@tokenquest/shared": "workspace:*",
     "fastify": "^5.12.5",
-    "nodemailer": "^10.0.15"
+    "nodemailer": "^10.0.15",
+    "pg-boss": "^12.37.0"
   },
   "devDependencies": {
     "prisma": "7.10.0"

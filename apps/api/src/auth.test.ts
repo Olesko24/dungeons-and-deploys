@@ -10,7 +10,7 @@ const mails: Mail[] = [];
 before(async () => { db = await testDb(); });
 after(() => db.$disconnect());
 
-const app = () => buildApp({ db, sendMail: async (m) => { mails.push(m); }, publicUrl: "http://test" });
+const app = () => buildApp({ db, sendMail: async (m) => { mails.push(m); }, publicUrl: "http://test", scheduleResolve: async () => {} });
 const register = async (email: string, code?: string) =>
   (await app()).inject({ method: "POST", url: "/auth/register", payload: { email, code } });
 const poll = async (loginId: string) => (await app()).inject({ method: "POST", url: "/auth/poll", payload: { loginId } });

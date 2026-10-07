@@ -20,7 +20,7 @@ Inspired by Twitch idle RPGs: presence and luck, not performance.
 | Content | Players | Notes |
 |---|---|---|
 | Quest | 1 | `quest`, 45 min, then cooldown. Success depends on presence during the quest |
-| Random encounter | 1 | Small chance per heartbeat. `fight` within 5 min |
+| Random encounter | 1 | Small chance per heartbeat. `quest fight` within 5 min |
 | Dungeon | 1–5 | Chain of quests with a boss. Difficulty and loot scale with party size |
 | Raid | ~5+ | Guild only, scheduled. Shared boss HP, damage from presence in the raid window |
 
@@ -49,12 +49,12 @@ In Claude Code, prefix commands with `!`.
 quest login --code <ACCESS_CODE>   # register, magic link sent to email
 quest                              # start quest
 quest status
-char                               # character sheet
-inv / equip <item>
-fight                              # random encounter
-dungeon start|join <id>
-guild create|join|leave
-raid join
+quest char                         # character sheet
+quest inv / quest equip <item>
+quest fight                        # random encounter
+quest dungeon start|join <id>
+quest guild create|join|leave
+quest raid join
 ```
 
 ## Architecture
@@ -138,6 +138,7 @@ pnpm dev                                # Postgres on :5433, Mailpit on :8025, A
 curl localhost:3000/health              # ok
 pnpm --filter @tokenquest/api access-code --uses 5 --days 30
 pnpm quest login --code <CODE>          # magic link arrives in Mailpit: http://localhost:8025
+pnpm quest                              # start a quest, then: pnpm quest status, pnpm quest char
 pnpm test                               # needs Postgres running, uses the `test` schema
 pnpm typecheck
 pnpm lint
