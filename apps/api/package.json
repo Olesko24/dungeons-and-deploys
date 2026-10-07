@@ -1,5 +1,5 @@
 {
-  "name": "@tokenquest/api",
+  "name": "@dnd/api",
   "private": true,
   "type": "module",
   "scripts": {
@@ -19,7 +19,7 @@
     "@fastify/static": "^10.1.5",
     "@prisma/adapter-pg": "7.10.0",
     "@prisma/client": "7.10.0",
-    "@tokenquest/shared": "workspace:*",
+    "@dnd/shared": "workspace:*",
     "fastify": "^5.12.5",
     "pg-boss": "^12.37.0",
     "prisma": "7.10.0"

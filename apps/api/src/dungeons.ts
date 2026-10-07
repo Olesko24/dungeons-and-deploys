@@ -13,7 +13,7 @@ import {
   stageChance,
   stageRewards,
   withBonus,
-} from "@tokenquest/shared";
+} from "@dnd/shared";
 import type { Deps } from "./app.ts";
 import { randomCode } from "./auth.ts";
 import { requireCharacter } from "./characters.ts";

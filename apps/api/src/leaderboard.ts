@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { guildLevel, levelFromXp } from "@tokenquest/shared";
+import { guildLevel, levelFromXp } from "@dnd/shared";
 import { requireCharacter } from "./characters.ts";
 import type { PrismaClient } from "./generated/prisma/client.ts";
 

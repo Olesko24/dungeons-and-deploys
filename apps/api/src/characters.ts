@@ -1,5 +1,5 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { item, itemName } from "@tokenquest/shared";
+import { item, itemName } from "@dnd/shared";
 import { requireUser } from "./auth.ts";
 import type { Item, PrismaClient } from "./generated/prisma/client.ts";
 

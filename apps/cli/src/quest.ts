@@ -17,11 +17,11 @@ import {
   statsText,
 } from "./status.ts";
 
-const DEFAULT_SERVER = "https://tokenquest.meiners-dev.de";
-const MANUAL = "https://github.com/Olesko24/tokenquest/blob/main/docs/manual.md";
+const DEFAULT_SERVER = "https://dnd.meiners-dev.de";
+const MANUAL = "https://github.com/Olesko24/dungeons-and-deploys/blob/main/docs/manual.md";
 const HEARTBEAT_INTERVAL_MS = 60_000;
 
-const dir = join(homedir(), ".tokenquest");
+const dir = join(homedir(), ".dungeons-and-deploys");
 const configFile = join(dir, "config.json");
 const statusFile = join(dir, "status.txt");
 const heartbeatFile = join(dir, "heartbeat");
@@ -67,7 +67,7 @@ async function refresh() {
 }
 
 async function login(code: string | undefined, pair: string | undefined) {
-  const server = process.env.TOKENQUEST_URL ?? DEFAULT_SERVER;
+  const server = process.env.DND_URL ?? DEFAULT_SERVER;
   let res: Awaited<ReturnType<typeof api>>;
   if (pair) {
     res = await api(server, "/auth/pair/redeem", { method: "POST", body: { code: pair } });
@@ -85,7 +85,7 @@ async function login(code: string | undefined, pair: string | undefined) {
   await writeFile(configFile, JSON.stringify({ server, token: res.data.token }, null, 2), { mode: 0o600 });
   const status = await refresh();
   console.log(`✓ Logged in as ${status.character.name}`);
-  console.log(`Tokenquest is in beta: rules can change and progress may be reset.\nManual: ${MANUAL}`);
+  console.log(`Dungeons & Deploys is in beta: rules can change and progress may be reset.\nManual: ${MANUAL}`);
 }
 
 async function pair() {
@@ -321,7 +321,7 @@ async function top(board = "xp") {
 
 /** Manual and changelog come from the server, so they match the version that is running there. */
 async function doc(name: "manual" | "changelog") {
-  const server = (await readConfig())?.server ?? process.env.TOKENQUEST_URL ?? DEFAULT_SERVER;
+  const server = (await readConfig())?.server ?? process.env.DND_URL ?? DEFAULT_SERVER;
   const res = await fetch(`${server}/${name}.md`, { signal: AbortSignal.timeout(10_000) });
   if (!res.ok) throw new Error(`Could not load the ${name} (${res.status}). Online: ${MANUAL}`);
   console.log(await res.text());
@@ -347,17 +347,17 @@ async function equip(id: string | undefined, slot: string | undefined, off = fal
   await inventory();
 }
 
-const SHELL_HOOK = `_tokenquest_last=-60
-_tokenquest_precmd() {
-  (( SECONDS - _tokenquest_last < 60 )) && return
-  _tokenquest_last=$SECONDS
+const SHELL_HOOK = `_dnd_last=-60
+_dnd_precmd() {
+  (( SECONDS - _dnd_last < 60 )) && return
+  _dnd_last=$SECONDS
   quest heartbeat
 }
-tokenquest_prompt() { [[ -r ~/.tokenquest/status.txt ]] && printf '%s' "$(<~/.tokenquest/status.txt)"; }`;
+dnd_prompt() { [[ -r ~/.dungeons-and-deploys/status.txt ]] && printf '%s' "$(<~/.dungeons-and-deploys/status.txt)"; }`;
 
 const INIT: Record<string, string> = {
-  zsh: `${SHELL_HOOK}\nautoload -Uz add-zsh-hook\nadd-zsh-hook precmd _tokenquest_precmd`,
-  bash: `${SHELL_HOOK}\nPROMPT_COMMAND="_tokenquest_precmd\${PROMPT_COMMAND:+;$PROMPT_COMMAND}"`,
+  zsh: `${SHELL_HOOK}\nautoload -Uz add-zsh-hook\nadd-zsh-hook precmd _dnd_precmd`,
+  bash: `${SHELL_HOOK}\nPROMPT_COMMAND="_dnd_precmd\${PROMPT_COMMAND:+;$PROMPT_COMMAND}"`,
 };
 
 const USAGE = `Usage: quest [command]

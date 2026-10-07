@@ -24,7 +24,7 @@ No email: the API token on the player's devices is the identity. Losing all devi
 - [x] `POST /auth/pair` – logged-in device gets a single-use code, valid 10 min
 - [x] `POST /auth/pair/redeem` – pair code → API token for another device
 - [x] Rate limit on auth routes
-- [x] CLI: `quest login --code <CODE>`, `quest pair`, `quest login --pair <CODE>`, token stored in `~/.tokenquest/config.json`
+- [x] CLI: `quest login --code <CODE>`, `quest pair`, `quest login --pair <CODE>`, token stored in `~/.dungeons-and-deploys/config.json`
 
 **Done when:** A new player registers with a valid code, an invalid or used-up code is rejected, the CLI holds a working token.
 
@@ -47,8 +47,8 @@ No email: the API token on the player's devices is the identity. Losing all devi
 - [x] CLI: `quest heartbeat` (sends at most 1/min, fire and forget), `quest status --short` for status lines
 - [x] Claude Code plugin: `UserPromptSubmit` heartbeat hook, repo is the marketplace. CLI comes from npm, statusline is a settings snippet (plugins cannot set it)
 - [x] Shell integration: `quest init zsh|bash` prints a `precmd` hook and a prompt segment
-- [x] Statusline reads local cache (`~/.tokenquest/status.txt`), heartbeat and CLI refresh it
-- [x] CLI build for npm (`tokenquest` package)
+- [x] Statusline reads local cache (`~/.dungeons-and-deploys/status.txt`), heartbeat and CLI refresh it
+- [x] CLI build for npm (`dungeons-and-deploys` package)
 - [ ] CLI published to npm
 - [x] Dockerfile for the API (web follows in Phase 6)
 - [ ] Deploy to Coolify, Postgres backups to S3 enabled
@@ -135,7 +135,7 @@ Fair by chance, not by bidding. More gold must not mean better equipment.
 
 ## Phase 10 – Hardening
 
-- [x] Load test with 10,000 simulated players (`pnpm --filter @tokenquest/api loadtest`, autocannon)
+- [x] Load test with 10,000 simulated players (`pnpm --filter @dnd/api loadtest`, autocannon)
 - [ ] Monitoring: health checks and error alerts in Coolify (health check is in the Dockerfile, alerts are Coolify settings)
 - [x] Admin scripts: `access-code`, `ban --name <character> [--unban]`
 

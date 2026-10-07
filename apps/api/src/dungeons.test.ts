@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
-import { DUNGEON_LOBBY_MS, DUNGEON_STAGE_MS } from "@tokenquest/shared";
+import { DUNGEON_LOBBY_MS, DUNGEON_STAGE_MS } from "@dnd/shared";
 import { buildApp } from "./app.ts";
 import { hash } from "./auth.ts";
 import { resolveStage } from "./dungeons.ts";

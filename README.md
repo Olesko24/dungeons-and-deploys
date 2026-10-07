@@ -1,6 +1,6 @@
-<p align="center"><img src="docs/icon.svg" alt="Tokenquest icon: gold coin with a sword" width="128"></p>
+<p align="center"><img src="docs/icon.svg" alt="Dungeons &amp; Deploys icon: gold coin with a sword" width="128"></p>
 
-# Tokenquest
+# Dungeons & Deploys
 
 An idle RPG for the terminal. Runs alongside Claude Code or any shell. Start a quest, keep working, collect loot.
 Inspired by Twitch idle RPGs: luck and patience, not performance.
@@ -77,22 +77,22 @@ quest raid schedule <minutes>|join
 Requires Node.js 24+.
 
 ```sh
-npm install -g tokenquest
+npm install -g dungeons-and-deploys
 quest login --code <ACCESS_CODE>
 ```
 
 ### Claude Code
 
 ```
-/plugin marketplace add Olesko24/tokenquest
-/plugin install tokenquest@tokenquest
+/plugin marketplace add Olesko24/dungeons-and-deploys
+/plugin install dungeons-and-deploys@dungeons-and-deploys
 ```
 
 The plugin sends a heartbeat on prompts, so monsters can show up while you work. Plugins cannot set the statusline, so add it to `~/.claude/settings.json`:
 
 ```json
 {
-  "statusLine": { "type": "command", "command": "cat ~/.tokenquest/status.txt 2>/dev/null" }
+  "statusLine": { "type": "command", "command": "cat ~/.dungeons-and-deploys/status.txt 2>/dev/null" }
 }
 ```
 
@@ -104,11 +104,11 @@ Add to `~/.zshrc` (or `~/.bashrc` with `bash`):
 eval "$(quest init zsh)"
 ```
 
-Commands send heartbeats, so monsters can show up. For the status in your prompt, use `tokenquest_prompt`:
+Commands send heartbeats, so monsters can show up. For the status in your prompt, use `dnd_prompt`:
 
 ```sh
 setopt prompt_subst
-RPROMPT='$(tokenquest_prompt)'
+RPROMPT='$(dnd_prompt)'
 ```
 
 ## Architecture
@@ -127,7 +127,7 @@ Client (per player)                       Server
 ### Repository layout
 
 ```
-tokenquest/
+dungeons-and-deploys/
 ├─ apps/
 │  ├─ api/        Fastify API + queue workers
 │  ├─ web/        Vite + React website (static)
@@ -188,14 +188,14 @@ pnpm install
 cp apps/api/.env.example apps/api/.env
 pnpm dev                                # Postgres on :5433, API on :3000
 curl localhost:3000/health              # ok
-pnpm --filter @tokenquest/api access-code --uses 5 --days 30
+pnpm --filter @dnd/api access-code --uses 5 --days 30
 pnpm quest login --code <CODE>          # `pnpm quest` talks to localhost, the installed CLI to production
 pnpm quest                              # start a quest, then: pnpm quest status, pnpm quest char
 pnpm test                               # needs Postgres running, uses the `test` schema
-pnpm --filter @tokenquest/web dev       # website on :5173, log in with a code from `pnpm quest pair`
+pnpm --filter @dnd/web dev       # website on :5173, log in with a code from `pnpm quest pair`
 pnpm typecheck
 pnpm lint
-pnpm --filter @tokenquest/api migrate   # create/apply migrations
+pnpm --filter @dnd/api migrate   # create/apply migrations
 ```
 
 Player-facing changes go into [CHANGELOG.md](CHANGELOG.md) under *Unreleased*, rules that players need to know into the [manual](docs/manual.md).

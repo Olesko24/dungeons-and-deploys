@@ -7,12 +7,12 @@ COPY packages/shared/package.json packages/shared/
 COPY apps/web/package.json apps/web/
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     --mount=type=cache,id=pnpm-meta,target=/root/.cache \
-    pnpm install --frozen-lockfile --filter @tokenquest/web...
+    pnpm install --frozen-lockfile --filter @dnd/web...
 COPY tsconfig.base.json CHANGELOG.md ./
 COPY docs/manual.md docs/
 COPY packages/shared packages/shared
 COPY apps/web apps/web
-RUN pnpm --filter @tokenquest/web build
+RUN pnpm --filter @dnd/web build
 
 FROM node:24-slim
 
@@ -26,7 +26,7 @@ COPY apps/api/prisma apps/api/prisma
 # The Prisma CLI is a regular dependency because migrate deploy runs at container start.
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     --mount=type=cache,id=pnpm-meta,target=/root/.cache \
-    pnpm install --frozen-lockfile --prod --filter @tokenquest/api...
+    pnpm install --frozen-lockfile --prod --filter @dnd/api...
 
 COPY packages/shared packages/shared
 COPY apps/api apps/api

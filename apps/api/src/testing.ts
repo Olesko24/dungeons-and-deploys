@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "./generated/prisma/client.ts";
 
-const url = process.env.TEST_DATABASE_URL ?? "postgresql://tokenquest:tokenquest@localhost:5433/tokenquest";
+const url = process.env.TEST_DATABASE_URL ?? "postgresql://dnd:dnd@localhost:5433/dnd";
 
 /** Applies migrations to the `test` schema and returns an empty database. */
 export async function testDb() {

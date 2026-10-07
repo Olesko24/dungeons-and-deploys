@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { item, levelFromXp, rollStats, shopDay, shopOffers } from "@tokenquest/shared";
+import { item, levelFromXp, rollStats, shopDay, shopOffers } from "@dnd/shared";
 import type { Deps } from "./app.ts";
 import { itemView, requireCharacter } from "./characters.ts";
 import { Prisma } from "./generated/prisma/client.ts";

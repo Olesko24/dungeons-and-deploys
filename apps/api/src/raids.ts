@@ -17,7 +17,7 @@ import {
   rollStats,
   talentBonus,
   withBonus,
-} from "@tokenquest/shared";
+} from "@dnd/shared";
 import type { Deps } from "./app.ts";
 import { requireCharacter } from "./characters.ts";
 import type { PrismaClient } from "./generated/prisma/client.ts";

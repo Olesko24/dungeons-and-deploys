@@ -13,7 +13,7 @@ type Step = {
 };
 
 const steps = (name: string): Step[] => [
-  { text: `Welcome to Tokenquest, ${name}! This takes about a minute. Finish it to unlock the achievement Hello, World.` },
+  { text: `Welcome to Dungeons & Deploys, ${name}! This takes about a minute. Finish it to unlock the achievement Hello, World.` },
   { target: "[data-tour=hero]", view: "character", text: "This is you: level, gold and XP. Every level gives you a talent point." },
   {
     target: "[data-tour=quest]",

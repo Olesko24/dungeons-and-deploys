@@ -1,9 +1,9 @@
 {
-  "name": "@tokenquest/web",
+  "name": "@dnd/web",
   "private": true,
   "type": "module",
   "devDependencies": {
-    "@tokenquest/shared": "workspace:*",
+    "@dnd/shared": "workspace:*",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "vite": "^8.3.3"

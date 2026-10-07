@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
-import { ENCOUNTER_MS } from "@tokenquest/shared";
+import { ENCOUNTER_MS } from "@dnd/shared";
 import { buildApp } from "./app.ts";
 import { hash } from "./auth.ts";
 import type { PrismaClient } from "./generated/prisma/client.ts";

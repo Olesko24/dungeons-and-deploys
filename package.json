@@ -1,5 +1,5 @@
 {
-  "name": "tokenquest-workspace",
+  "name": "dungeons-and-deploys-workspace",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@12.9.1",
@@ -7,11 +7,11 @@
     "node": ">=24"
   },
   "scripts": {
-    "dev": "docker compose up -d --wait && pnpm --filter @tokenquest/api dev",
+    "dev": "docker compose up -d --wait && pnpm --filter @dnd/api dev",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "lint": "oxlint --type-aware --deny-warnings",
-    "quest": "TOKENQUEST_URL=${TOKENQUEST_URL:-http://localhost:3000} node apps/cli/src/quest.ts",
+    "quest": "DND_URL=${DND_URL:-http://localhost:3000} node apps/cli/src/quest.ts",
     "build": "pnpm -r build"
   },
   "devDependencies": {

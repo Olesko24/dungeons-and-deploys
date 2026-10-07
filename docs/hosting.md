@@ -1,6 +1,6 @@
 # Hosting
 
-Tokenquest is hosted with [Coolify](https://coolify.io) on a single VPS.
+Dungeons & Deploys is hosted with [Coolify](https://coolify.io) on a single VPS.
 
 ## Sizing
 
@@ -22,8 +22,8 @@ Start small. Scale the VPS vertically when needed.
 
 ## Deploy
 
-The API runs as a Coolify application built from this repository, at `https://tokenquest.meiners-dev.de`.
-The CLI uses this URL by default, `TOKENQUEST_URL` overrides it on login.
+The API runs as a Coolify application built from this repository, at `https://dnd.meiners-dev.de`.
+The CLI uses this URL by default, `DND_URL` overrides it on login.
 
 | Setting | Value |
 |---|---|
@@ -51,7 +51,7 @@ pnpm ban --name <character>            # --unban to lift it
 Load test (seeds 10,000 `load_*` players, fires heartbeats, `--cleanup` removes them):
 
 ```sh
-pnpm loadtest --url https://tokenquest.meiners-dev.de --seconds 60
+pnpm loadtest --url https://dnd.meiners-dev.de --seconds 60
 pnpm loadtest --cleanup
 ```
 

@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes for players. Tokenquest is in **beta**: rules, numbers and basic mechanics can change between
+All notable changes for players. Dungeons & Deploys is in **beta**: rules, numbers and basic mechanics can change between
 versions, and progress may be reset. Entries marked **Breaking** change how the game plays or affect existing characters.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
@@ -20,6 +20,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Breaking:** Tokenquest is now called **Dungeons & Deploys**. The npm package and the Claude Code plugin are
+  `dungeons-and-deploys`, local files move to `~/.dungeons-and-deploys` (log in again), the prompt function is
+  `dnd_prompt` and the server override `DND_URL`. The command stays `quest`.
 - **Breaking:** Quests resolve at once. `quest` and the website show the quest name, XP, gold and any loot right away,
   then a 45-minute rest follows (was: 45-minute quest plus 15-minute rest).
 
@@ -47,5 +50,5 @@ First public beta.
   for gold and every section.
 - Player [manual](docs/manual.md) and this changelog, on the website and via `quest manual` and `quest changelog`.
 
-[Unreleased]: https://github.com/Olesko24/tokenquest/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/Olesko24/tokenquest/releases/tag/v0.1.0
+[Unreleased]: https://github.com/Olesko24/dungeons-and-deploys/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Olesko24/dungeons-and-deploys/releases/tag/v0.1.0

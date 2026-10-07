@@ -1,11 +1,11 @@
 {
-  "name": "tokenquest",
+  "name": "dungeons-and-deploys",
   "version": "0.1.0",
   "description": "Idle RPG alongside Claude Code. Your prompts can spawn monsters, the statusline shows your quest.",
   "author": {
     "name": "Olesko24"
   },
-  "repository": "https://github.com/Olesko24/tokenquest",
+  "repository": "https://github.com/Olesko24/dungeons-and-deploys",
   "keywords": [
     "game",
     "rpg",

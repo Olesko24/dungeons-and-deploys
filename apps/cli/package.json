@@ -1,5 +1,5 @@
 {
-  "name": "tokenquest",
+  "name": "dungeons-and-deploys",
   "version": "0.1.0",
   "description": "Idle RPG for the terminal. Runs alongside Claude Code or any shell.",
   "type": "module",
@@ -14,7 +14,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Olesko24/tokenquest.git",
+    "url": "git+https://github.com/Olesko24/dungeons-and-deploys.git",
     "directory": "apps/cli"
   },
   "scripts": {

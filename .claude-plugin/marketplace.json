@@ -1,10 +1,10 @@
 {
-  "name": "tokenquest",
-  "description": "Tokenquest, an idle RPG for the terminal",
+  "name": "dungeons-and-deploys",
+  "description": "Dungeons & Deploys, an idle RPG for the terminal",
   "owner": { "name": "Olesko24" },
   "plugins": [
     {
-      "name": "tokenquest",
+      "name": "dungeons-and-deploys",
       "source": "./plugin",
       "description": "Idle RPG alongside Claude Code. Your prompts can spawn monsters, the statusline shows your quest."
     }

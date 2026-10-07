@@ -80,7 +80,7 @@ function Login({ onDone, onOpen }: { onDone: () => void; onOpen: (doc: DocName) 
   return (
     <main className="login">
       <img src="/icon.svg" alt="" width={96} height={96} className="icon" />
-      <h1>Tokenquest</h1>
+      <h1>Dungeons & Deploys</h1>
       <BetaNote onOpen={onOpen} />
       <form className="panel" onSubmit={submit}>
         <label htmlFor="code">Pair code</label>

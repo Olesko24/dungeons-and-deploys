@@ -14,7 +14,7 @@ import {
   talentBonus,
   talentPoints,
   talentText,
-} from "@tokenquest/shared";
+} from "@dnd/shared";
 import { requireCharacter } from "./characters.ts";
 import type { Character, PrismaClient } from "./generated/prisma/client.ts";
 

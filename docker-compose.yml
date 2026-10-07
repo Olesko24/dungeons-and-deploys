@@ -2,15 +2,15 @@ services:
   postgres:
     image: postgres:18
     environment:
-      POSTGRES_USER: tokenquest
-      POSTGRES_PASSWORD: tokenquest
-      POSTGRES_DB: tokenquest
+      POSTGRES_USER: dnd
+      POSTGRES_PASSWORD: dnd
+      POSTGRES_DB: dnd
     ports:
       - "5433:5432"
     volumes:
       - postgres:/var/lib/postgresql
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "tokenquest"]
+      test: ["CMD", "pg_isready", "-U", "dnd"]
       interval: 2s
       retries: 15
 

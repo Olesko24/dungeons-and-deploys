@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { type Slot, equipPlan, equipmentBonus } from "@tokenquest/shared";
+import { type Slot, equipPlan, equipmentBonus } from "@dnd/shared";
 import type { PrismaClient } from "./generated/prisma/client.ts";
 import { itemView, requireCharacter } from "./characters.ts";
 

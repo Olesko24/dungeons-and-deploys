@@ -7,7 +7,7 @@ import {
   type Rarity,
   levelFromXp,
   sellerPayout,
-} from "@tokenquest/shared";
+} from "@dnd/shared";
 import type { Deps } from "./app.ts";
 import { itemView, requireCharacter } from "./characters.ts";
 import { trySyncAchievements } from "./stats.ts";

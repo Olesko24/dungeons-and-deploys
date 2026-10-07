@@ -15,7 +15,7 @@ import {
   talentBonus,
   winChance,
   withBonus,
-} from "@tokenquest/shared";
+} from "@dnd/shared";
 import type { Deps } from "./app.ts";
 import { equippedItems, itemView, requireCharacter } from "./characters.ts";
 import type { Character, PrismaClient } from "./generated/prisma/client.ts";

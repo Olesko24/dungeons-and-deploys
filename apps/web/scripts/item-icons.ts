@@ -1,6 +1,6 @@
 // Generates 16x16 pixel-art SVG icons for every item in the catalog, every talent and the UI: node scripts/item-icons.ts
 import { mkdirSync, writeFileSync } from "node:fs";
-import { ITEM_BASES, RARITIES, type Rarity, TALENTS, type TalentTree } from "@tokenquest/shared";
+import { ITEM_BASES, RARITIES, type Rarity, TALENTS, type TalentTree } from "@dnd/shared";
 
 // Material shades per rarity, derived from the rarity colors in docs/style.md.
 const MATERIAL: Record<Rarity, { l: string; m: string; d: string }> = {

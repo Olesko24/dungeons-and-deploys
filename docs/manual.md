@@ -1,9 +1,9 @@
-# Tokenquest manual
+# Dungeons & Deploys manual
 
-> **Beta.** Tokenquest is in beta. Rules, numbers and even basic mechanics can still change, and progress may be reset.
+> **Beta.** Dungeons & Deploys is in beta. Rules, numbers and even basic mechanics can still change, and progress may be reset.
 > Changes are listed in the [changelog](../CHANGELOG.md).
 
-Tokenquest is an idle RPG that runs next to your work. Start a quest, come back later, collect loot.
+Dungeons & Deploys is an idle RPG that runs next to your work. Start a quest, come back later, collect loot.
 Rewards depend on time, gear and dice, never on how much or how well you work. You never have to keep a terminal open.
 
 ## Contents
@@ -30,7 +30,7 @@ Rewards depend on time, gear and dice, never on how much or how well you work. Y
 You need Node.js 24 or newer and an access code from someone who runs the game.
 
 ```sh
-npm install -g tokenquest
+npm install -g dungeons-and-deploys
 quest login --code <ACCESS_CODE>    # pick a character name, 2-20 letters, digits, _ or -
 quest                               # start your first quest
 ```
@@ -40,14 +40,14 @@ That is all you need. Optionally connect Claude Code or your shell: they show yo
 **Claude Code:**
 
 ```
-/plugin marketplace add Olesko24/tokenquest
-/plugin install tokenquest@tokenquest
+/plugin marketplace add Olesko24/dungeons-and-deploys
+/plugin install dungeons-and-deploys@dungeons-and-deploys
 ```
 
 Your prompts send heartbeats. To see your status in Claude Code, add this to `~/.claude/settings.json`:
 
 ```json
-{ "statusLine": { "type": "command", "command": "cat ~/.tokenquest/status.txt 2>/dev/null" } }
+{ "statusLine": { "type": "command", "command": "cat ~/.dungeons-and-deploys/status.txt 2>/dev/null" } }
 ```
 
 In Claude Code, run game commands with the `!` prefix, for example `! quest status`. They run in your shell and cost no tokens.
@@ -58,11 +58,11 @@ In Claude Code, run game commands with the `!` prefix, for example `! quest stat
 eval "$(quest init zsh)"     # or: quest init bash
 ```
 
-Your commands send heartbeats. For the status in your prompt, add `$(tokenquest_prompt)` to it, for example in zsh:
+Your commands send heartbeats. For the status in your prompt, add `$(dnd_prompt)` to it, for example in zsh:
 
 ```sh
 setopt prompt_subst
-RPROMPT='$(tokenquest_prompt)'
+RPROMPT='$(dnd_prompt)'
 ```
 
 ## Heartbeats
@@ -338,11 +338,11 @@ On your first visit a short tour walks you through the page. It highlights the r
 
 ## Account and devices
 
-Tokenquest has no email and no password. Your login token on your devices is your account.
+Dungeons & Deploys has no email and no password. Your login token on your devices is your account.
 
 - To play on another device, run `quest pair` on a device that is logged in, then `quest login --pair <code>` on the new one within 10 minutes.
 - **If you lose every logged-in device, your character is lost.** Keep it paired on a second device if you care about it.
-- The token is stored in `~/.tokenquest/config.json`, readable only by you.
+- The token is stored in `~/.dungeons-and-deploys/config.json`, readable only by you.
 
 ## What is sent to the server
 
