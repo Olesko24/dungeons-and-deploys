@@ -82,11 +82,12 @@ No email: the API token on the player's devices is the identity. Losing all devi
 
 Fair by chance, not by bidding. More gold must not mean better equipment.
 
-- [ ] Players list items, the price is fixed by rarity
-- [ ] Buyers pay the fixed price for a draw from one rarity and get a random listed item of that rarity
-- [ ] Daily draw limit per player
-- [ ] Epic draws from level 5, legendary draws from level 10
-- [ ] 10% fee on sales as a gold sink
+- [x] Players list unequipped items, the price is fixed by rarity (20 / 60 / 200 / 800 gold)
+- [x] Buyers pay the fixed price for a draw from one rarity and get a random listed item of that rarity
+- [x] Daily draw limit per player (1 per UTC day)
+- [x] Epic draws from level 5, legendary draws from level 10
+- [x] 10% fee on sales as a gold sink
+- [x] CLI: `quest market`, `quest market draw <rarity>`, `quest market list|unlist <#id>`
 
 **Done when:** A listed item reaches a random buyer, the seller gets the price minus the fee, the daily limit holds.
 

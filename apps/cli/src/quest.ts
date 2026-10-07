@@ -153,6 +153,28 @@ async function fightMonster() {
   await refresh();
 }
 
+async function market(action: string | undefined, arg: string | undefined) {
+  if (action === "list" || action === "unlist") {
+    if (!arg) throw new Error(`Usage: quest market ${action} <#id>`);
+    const res = await authed(`/market/${action}/${arg.replace("#", "")}`, "POST");
+    if (res.status >= 400) throw new Error(res.data.error ?? `Failed (${res.status})`);
+    return console.log(action === "list" ? "Listed. You get the price minus 10% when someone draws it." : "Taken off the market.");
+  }
+  if (action === "draw") {
+    const res = await authed("/market/draw", "POST", { rarity: arg });
+    if (res.status >= 400) throw new Error(res.data.error ?? res.data.message ?? `Draw failed (${res.status})`);
+    const i = res.data.item;
+    return console.log(`You paid ${res.data.price}g and drew: ${rarityColor(i.name, i.rarity)} (${i.rarity}) · ${statsText(i.stats)}`);
+  }
+  const { data } = await authed("/market");
+  console.log(`Market · ${data.gold}g · ${data.drawsLeft ? "1 draw left today" : "daily draw used"}`);
+  for (const o of data.offers) {
+    const lock = o.unlocked ? "" : ` · unlocks at Lv ${o.unlockLevel}`;
+    console.log(`  ${rarityColor(o.rarity.padEnd(10), o.rarity)} ${String(o.price).padStart(4)}g  ${String(o.available).padStart(3)} listed${lock}`);
+  }
+  console.log("\nquest market draw <rarity> · quest market list <#id> · quest market unlist <#id>");
+}
+
 async function character() {
   const { data: c } = await authed("/character");
   console.log(`${c.name} · Lv ${c.level} · ${c.gold}g`);
@@ -192,6 +214,7 @@ const USAGE = `Usage: quest [command]
   quest status [--short]    current quest (--short: one cached line, no network)
   quest char                character sheet
   quest fight               fight a monster that showed up
+  quest market              market: draw a random item of a rarity, list your own
   quest inv                 inventory
   quest equip <#id>         equip an item (--slot ring1|ring2 for rings)
   quest unequip <#id>       take an item off
@@ -220,6 +243,9 @@ try {
       break;
     case "fight":
       await fightMonster();
+      break;
+    case "market":
+      await market(positionals[1], positionals[2]);
       break;
     case "inv":
       await inventory();

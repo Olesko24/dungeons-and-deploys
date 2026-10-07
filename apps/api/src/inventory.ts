@@ -22,7 +22,7 @@ export function inventoryRoutes(app: FastifyInstance, db: PrismaClient) {
     async (req, reply) => {
       const character = await requireCharacter(db, req, reply);
       if (!character) return;
-      const target = await db.item.findFirst({ where: { id: Number(req.params.id), characterId: character.id } });
+      const target = await db.item.findFirst({ where: { id: Number(req.params.id), characterId: character.id, listedAt: null } });
       if (!target) return reply.code(404).send({ error: "item not found" });
 
       const equipped = await db.item.findMany({

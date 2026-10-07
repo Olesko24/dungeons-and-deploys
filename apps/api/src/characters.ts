@@ -19,6 +19,7 @@ export const itemView = (i: Item) => ({
   rarity: i.key.split(".")[1],
   stats: { attack: i.attack, defense: i.defense, luck: i.luck, fortune: i.fortune },
   equippedSlot: i.equippedSlot,
+  listed: !!i.listedAt,
 });
 
 export const equippedItems = (db: Pick<PrismaClient, "item">, characterId: number) =>

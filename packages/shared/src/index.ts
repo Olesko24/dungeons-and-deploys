@@ -18,6 +18,7 @@ export const countSlots = (slots: number) => slots.toString(2).replaceAll("0", "
 
 export * from "./combat.ts";
 export * from "./items.ts";
+export * from "./market.ts";
 
 /**
  * `random` returns values in [0, 1), like Math.random.

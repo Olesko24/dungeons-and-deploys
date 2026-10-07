@@ -53,6 +53,7 @@ quest status
 quest char                         # character sheet
 quest inv / quest equip <item>
 quest fight                        # random encounter
+quest market                       # draw a random item of a rarity, list your own
 quest dungeon start|join <id>
 quest guild create|join|leave
 quest raid join

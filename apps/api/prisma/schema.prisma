@@ -51,16 +51,17 @@ model PairCode {
 }
 
 model Character {
-  id         Int         @id @default(autoincrement())
-  userId     Int         @unique @map("user_id")
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name       String      @unique
-  xp         Int         @default(0)
-  gold       Int         @default(0)
+  id         Int          @id @default(autoincrement())
+  userId     Int          @unique @map("user_id")
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String       @unique
+  xp         Int          @default(0)
+  gold       Int          @default(0)
   quests     Quest[]
   items      Item[]
   encounters Encounter[]
-  createdAt  DateTime    @default(now()) @map("created_at")
+  draws      MarketDraw[]
+  createdAt  DateTime     @default(now()) @map("created_at")
 
   @@map("characters")
 }
@@ -95,6 +96,8 @@ model Item {
   luck         Int        @default(0)
   fortune      Int        @default(0)
   equippedSlot String?    @map("equipped_slot")
+  /// Set while the item is offered on the market. Listed items cannot be equipped.
+  listedAt     DateTime?  @map("listed_at")
   createdAt    DateTime   @default(now()) @map("created_at")
   foundIn      Quest?
   wonIn        Encounter?
@@ -121,4 +124,19 @@ model Encounter {
 
   @@index([characterId, createdAt])
   @@map("encounters")
+}
+
+/// One market purchase. Used for the daily draw limit and as history.
+model MarketDraw {
+  id        Int       @id @default(autoincrement())
+  buyerId   Int       @map("buyer_id")
+  buyer     Character @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  sellerId  Int       @map("seller_id")
+  itemId    Int       @map("item_id")
+  rarity    String
+  price     Int
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([buyerId, createdAt])
+  @@map("market_draws")
 }
