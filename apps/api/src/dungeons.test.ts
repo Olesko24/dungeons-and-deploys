@@ -25,7 +25,6 @@ async function player(name: string) {
     (
       await buildApp({
         db,
-        scheduleResolve: async () => {},
         scheduleStage: async (dungeonId, stage, at) => { stages.push({ dungeonId, stage, at }); },
         now: () => new Date(clock),
         random: () => 0.5,

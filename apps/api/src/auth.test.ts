@@ -8,7 +8,7 @@ let db: PrismaClient;
 before(async () => { db = await testDb(); });
 after(() => db.$disconnect());
 
-const app = () => buildApp({ db, scheduleResolve: async () => {} });
+const app = () => buildApp({ db });
 const post = async (url: string, payload?: object, token?: string) =>
   (await app()).inject({ method: "POST", url, payload, headers: token ? { authorization: `Bearer ${token}` } : {} });
 const characterName = async (token: string) =>

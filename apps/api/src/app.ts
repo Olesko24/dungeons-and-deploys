@@ -18,7 +18,6 @@ import { statsRoutes, trySyncAchievements } from "./stats.ts";
 
 export type Deps = {
   db: PrismaClient;
-  scheduleResolve: (questId: number, at: Date) => Promise<unknown>;
   scheduleStage?: (dungeonId: number, stage: number, at: Date) => Promise<unknown>;
   scheduleRaid?: (raidId: number, tick: number, at: Date) => Promise<unknown>;
   now?: () => Date;

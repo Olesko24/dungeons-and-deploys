@@ -20,6 +20,7 @@ export async function startJobs(boss: PgBoss, db: PrismaClient) {
   await boss.createQueue("dungeon.stage");
   await boss.createQueue("raid.tick");
 
+  // ponytail: only drains quests started before quests resolved at once, remove once none are left unresolved
   await boss.work<{ questId: number }>("quest.resolve", async (jobs) => {
     for (const job of jobs) {
       await resolveQuest(db, job.data.questId);
@@ -60,7 +61,6 @@ export async function startJobs(boss: PgBoss, db: PrismaClient) {
 
   return {
     scheduleRaid,
-    scheduleResolve: (questId: number, at: Date) => boss.send("quest.resolve", { questId }, { startAfter: at }),
     scheduleStage,
   };
 }

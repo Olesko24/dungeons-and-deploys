@@ -105,6 +105,8 @@ function QuestStatus({ status, onChange }: { status: Status; onChange: () => voi
     }
     onChange();
   }
+  const questResult = (r: Quest & { readyAt: string }) =>
+    `${r.name}: ${r.success ? `✓ success · +${r.xp} XP · +${r.gold} gold${r.loot ? ` · found ${r.loot.name}` : ""}` : `✗ failed · +${r.xp} XP`}`;
   const fightResult = (f: { won: boolean; xp: number; gold: number; loot: Item | null }) =>
     f.won ? `Victory · +${f.xp} XP · +${f.gold} gold${f.loot ? ` · found ${f.loot.name}` : ""}` : "Defeated. It got away, nothing lost.";
 
@@ -131,15 +133,15 @@ function QuestStatus({ status, onChange }: { status: Status; onChange: () => voi
       )}
       {q?.resolved && (
         <p>
-          Last quest: {q.success ? `✓ success · +${q.xp} XP · +${q.gold} gold` : `✗ failed · +${q.xp} XP`}
+          Last quest: {q.name} · {q.success ? `✓ success · +${q.xp} XP · +${q.gold} gold` : `✗ failed · +${q.xp} XP`}
           {q.loot && <> · found <span className={q.loot.rarity}>{q.loot.name}</span></>}
           {minutesUntil(status.readyAt) ? ` · next quest in ${minutesUntil(status.readyAt)}m` : ""}
         </p>
       )}
       {ready && (
         <div className="row">
-          <p>{q ? "Ready for a new quest." : "No quest yet."} It takes 45 minutes, nothing else to do.</p>
-          <button type="button" onClick={() => act("/quests", () => "Quest started. Back in 45 minutes.")}>Start quest</button>
+          <p>{q ? "Ready for a new quest." : "No quest yet."} The result comes at once, then 45 minutes rest.</p>
+          <button type="button" onClick={() => act("/quests", questResult)}>Start quest</button>
         </div>
       )}
       {message && <p role="status" className="dim">{message}</p>}

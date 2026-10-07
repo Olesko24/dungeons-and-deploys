@@ -73,17 +73,17 @@ A heartbeat comes from Claude Code (your prompts), the shell integration (your c
 
 ## Quests
 
-Start a quest with `quest` or the **Start quest** button on the website. After 45 minutes the dice decide, you do not need to be online:
+Start a quest with `quest` or the **Start quest** button on the website. The dice decide at once and you see the quest, its rewards and any loot right away:
 
 - 75% success chance, plus your **Luck**, at most 95%
 - Success: 70 XP and 14–19 gold. **Fortune** adds percent to that gold
 - Failure: 10 XP
 - A successful quest has a 40% chance to drop an item, with two rarity rolls (the better one counts)
 
-After a quest ends there is a 15-minute rest before the next one. Only one quest runs at a time.
+After a quest there is a 45-minute rest before the next one.
 
 ```sh
-quest status            # current quest and the last result
+quest status            # last result and when the next quest is ready
 quest status --short    # the one-line status used by status lines, no network
 ```
 

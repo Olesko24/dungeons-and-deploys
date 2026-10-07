@@ -18,7 +18,7 @@ async function player(name: string, gold: number, xp = 0) {
     include: { character: true },
   });
   const call = async (method: "GET" | "POST", url: string, payload?: object) =>
-    (await buildApp({ db, scheduleResolve: async () => {}, now: () => new Date(clock), random: () => 0 })).inject({
+    (await buildApp({ db, now: () => new Date(clock), random: () => 0 })).inject({
       method,
       url,
       payload,

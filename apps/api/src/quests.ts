@@ -2,9 +2,9 @@ import type { FastifyInstance } from "fastify";
 import {
   COOLDOWN_MS,
   QUEST_LOOT_ROLLS,
-  QUEST_MS,
   equipmentBonus,
   levelFromXp,
+  questName,
   questOutcome,
   rollLoot,
   rollStats,
@@ -17,6 +17,7 @@ import { encounterView, maybeSpawnEncounter } from "./encounters.ts";
 import { type Character, type Item, Prisma, type PrismaClient, type Quest } from "./generated/prisma/client.ts";
 
 const questView = (q: Quest & { lootItem?: Item | null }) => ({
+  name: questName(q.id),
   startedAt: q.startedAt,
   endsAt: q.endsAt,
   resolved: !!q.resolvedAt,
@@ -26,31 +27,24 @@ const questView = (q: Quest & { lootItem?: Item | null }) => ({
   loot: q.lootItem ? itemView(q.lootItem) : null,
 });
 
-export function questRoutes(app: FastifyInstance, { db, scheduleResolve, now, random }: Required<Deps>) {
+export function questRoutes(app: FastifyInstance, { db, now, random }: Required<Deps>) {
   app.post("/quests", async (req, reply) => {
     const character = await requireCharacter(db, req, reply);
     if (!character) return;
     const t = now();
-    const last = await db.quest.findFirst({ where: { characterId: character.id }, orderBy: { startedAt: "desc" } });
-    if (last && !last.resolvedAt) return reply.code(409).send({ error: "quest already running" });
-    if (last && last.endsAt.getTime() + COOLDOWN_MS > t.getTime()) {
-      return reply.code(409).send({ error: "cooldown", readyAt: new Date(last.endsAt.getTime() + COOLDOWN_MS) });
-    }
-
-    // The partial unique index `quests_one_active_per_character` rejects a parallel second start.
-    const quest = await db.quest
-      .create({ data: { characterId: character.id, startedAt: t, endsAt: new Date(t.getTime() + QUEST_MS) } })
-      .catch((err) => {
-        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") return null;
-        throw err;
-      });
-    if (!quest) return reply.code(409).send({ error: "quest already running" });
-    // Without its job the quest would never resolve and block every new quest, so undo it if planning fails.
-    await scheduleResolve(quest.id, quest.endsAt).catch(async (err) => {
-      await db.quest.delete({ where: { id: quest.id } });
-      throw err;
+    const result = await db.$transaction(async (tx) => {
+      // Locks the character, so a parallel start waits and then runs into the cooldown.
+      await tx.$queryRaw`SELECT id FROM characters WHERE id = ${character.id} FOR UPDATE`;
+      const last = await tx.quest.findFirst({ where: { characterId: character.id }, orderBy: { startedAt: "desc" } });
+      if (last && !last.resolvedAt) return { error: "quest already running" };
+      if (last && last.endsAt.getTime() + COOLDOWN_MS > t.getTime()) {
+        return { error: "cooldown", readyAt: new Date(last.endsAt.getTime() + COOLDOWN_MS) };
+      }
+      const quest = await tx.quest.create({ data: { characterId: character.id, startedAt: t, endsAt: t } });
+      const outcome = await grantQuest(tx, quest.id, random, t);
+      return { name: questName(quest.id), ...outcome, readyAt: new Date(t.getTime() + COOLDOWN_MS) };
     });
-    return reply.code(201).send(questView(quest));
+    return reply.code("error" in result ? 409 : 201).send(result);
   });
 
   // The running quest is always the latest one, so one query serves both status and heartbeat.
@@ -110,29 +104,31 @@ export function questRoutes(app: FastifyInstance, { db, scheduleResolve, now, ra
 
 /** Grants the rewards of a finished quest. Safe to run twice: the second run changes nothing. */
 export function resolveQuest(db: PrismaClient, questId: number, random = Math.random, t = new Date()) {
-  return db.$transaction(async (tx) => {
-    const quest = await tx.quest.findUnique({
-      where: { id: questId },
-      include: { character: { include: { items: { where: { equippedSlot: { not: null } } } } } },
-    });
-    if (!quest || quest.resolvedAt) return null;
+  return db.$transaction((tx) => grantQuest(tx, questId, random, t));
+}
 
-    const { character } = quest;
-    const { luck, fortune } = equipmentBonus(character.items);
-    const outcome = questOutcome(random, luck, fortune);
-    const loot = outcome.success ? rollLoot(levelFromXp(character.xp).level, QUEST_LOOT_ROLLS, random) : null;
-
-    const updated = await tx.quest.updateMany({ where: { id: questId, resolvedAt: null }, data: { ...outcome, resolvedAt: t } });
-    if (updated.count === 0) return null;
-    await tx.character.update({
-      where: { id: character.id },
-      data: { xp: { increment: outcome.xp }, gold: { increment: outcome.gold } },
-    });
-    const membership = await tx.guildMember.findUnique({ where: { characterId: character.id } });
-    if (membership) await tx.guild.update({ where: { id: membership.guildId }, data: { xp: { increment: outcome.xp } } });
-    if (!loot) return { ...outcome, loot: null };
-    const lootItem = await tx.item.create({ data: { characterId: character.id, key: loot, ...rollStats(loot, random) } });
-    await tx.quest.update({ where: { id: questId }, data: { lootItemId: lootItem.id } });
-    return { ...outcome, loot: itemView(lootItem) };
+async function grantQuest(tx: Prisma.TransactionClient, questId: number, random: () => number, t: Date) {
+  const quest = await tx.quest.findUnique({
+    where: { id: questId },
+    include: { character: { include: { items: { where: { equippedSlot: { not: null } } } } } },
   });
+  if (!quest || quest.resolvedAt) return null;
+
+  const { character } = quest;
+  const { luck, fortune } = equipmentBonus(character.items);
+  const outcome = questOutcome(random, luck, fortune);
+  const loot = outcome.success ? rollLoot(levelFromXp(character.xp).level, QUEST_LOOT_ROLLS, random) : null;
+
+  const updated = await tx.quest.updateMany({ where: { id: questId, resolvedAt: null }, data: { ...outcome, resolvedAt: t } });
+  if (updated.count === 0) return null;
+  await tx.character.update({
+    where: { id: character.id },
+    data: { xp: { increment: outcome.xp }, gold: { increment: outcome.gold } },
+  });
+  const membership = await tx.guildMember.findUnique({ where: { characterId: character.id } });
+  if (membership) await tx.guild.update({ where: { id: membership.guildId }, data: { xp: { increment: outcome.xp } } });
+  if (!loot) return { ...outcome, loot: null };
+  const lootItem = await tx.item.create({ data: { characterId: character.id, key: loot, ...rollStats(loot, random) } });
+  await tx.quest.update({ where: { id: questId }, data: { lootItemId: lootItem.id } });
+  return { ...outcome, loot: itemView(lootItem) };
 }

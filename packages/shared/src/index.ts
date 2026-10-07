@@ -1,5 +1,5 @@
-export const QUEST_MS = 45 * 60 * 1000;
-export const COOLDOWN_MS = 15 * 60 * 1000;
+/** Rest after a quest. The quest itself resolves at once. */
+export const COOLDOWN_MS = 45 * 60 * 1000;
 export const QUEST_BASE_CHANCE = 0.75;
 /** Rarity rolls for quest loot, the best one counts. */
 export const QUEST_LOOT_ROLLS = 2;
@@ -23,7 +23,7 @@ export * from "./raids.ts";
 export * from "./shop.ts";
 
 /**
- * A quest needs nothing but time: after 45 minutes the dice decide.
+ * A quest resolves the moment it starts, the dice decide.
  * `luck` adds percentage points to the success chance, `fortune` adds percent to the gold reward.
  */
 export function questOutcome(random: () => number, luck = 0, fortune = 0) {
@@ -32,6 +32,23 @@ export function questOutcome(random: () => number, luck = 0, fortune = 0) {
   const gold = 14 + Math.floor(random() * 6);
   return { success: true, xp: 70, gold: Math.floor(gold * (1 + fortune / 100)) };
 }
+
+const QUEST_NAMES = [
+  "Hunt the Off-by-One Goblin",
+  "Clear the Merge Conflict Swamp",
+  "Escort the Legacy Monolith",
+  "Banish the Flaky Test Wraith",
+  "Recover the Lost Semicolon",
+  "Slay the Memory Leak Hydra",
+  "Map the Undocumented Catacombs",
+  "Tame the Race Condition Twins",
+  "Storm the Dependency Hell Keep",
+  "Silence the Pager at 3 AM",
+  "Untangle the Regex Labyrinth",
+  "Defend the Production Gate",
+];
+
+export const questName = (id: number) => QUEST_NAMES[id % QUEST_NAMES.length];
 
 export const GUILD_MAX_MEMBERS = 50;
 

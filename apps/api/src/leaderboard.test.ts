@@ -17,7 +17,7 @@ async function player(name: string, xp: number, banned = false) {
   return user.character!.id;
 }
 const get = async (name: string, board: string) =>
-  (await (await buildApp({ db, scheduleResolve: async () => {} })).inject({ url: `/leaderboard?board=${board}`, headers: { authorization: `Bearer tq_${name}` } })).json();
+  (await (await buildApp({ db })).inject({ url: `/leaderboard?board=${board}`, headers: { authorization: `Bearer tq_${name}` } })).json();
 
 test("xp, achievements and guild boards with your own rank", async () => {
   await player("ace", 5000);
@@ -37,7 +37,7 @@ test("xp, achievements and guild boards with your own rank", async () => {
   assert.deepEqual([ach.top[0].name, ach.top[0].value, ach.you.rank], ["mid", 2, 1]);
   assert.equal((await get("rookie", "achievements")).you, null, "no achievements, no rank");
 
-  await (await buildApp({ db, scheduleResolve: async () => {} })).inject({
+  await (await buildApp({ db })).inject({
     method: "POST", url: "/guild", payload: { name: "Top Guild" }, headers: { authorization: "Bearer tq_ace" },
   });
   await db.guild.updateMany({ where: { name: "Top Guild" }, data: { xp: 3000 } });

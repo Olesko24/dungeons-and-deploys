@@ -62,7 +62,7 @@ async function refresh() {
   const { data } = await authed("/quests/current");
   await saveStatus(data);
   return data as Status & {
-    quest: { success: boolean | null; xp: number; gold: number; loot: { name: string; rarity: string } | null } | null;
+    quest: QuestResult | null;
   };
 }
 
@@ -110,10 +110,18 @@ async function heartbeat(send: boolean) {
   spawn(process.execPath, [process.argv[1], "heartbeat", "--send"], { detached: true, stdio: "ignore" }).unref();
 }
 
+type QuestResult = { name: string; success: boolean | null; xp: number; gold: number; loot: { name: string; rarity: string } | null };
+
+function questResult(q: QuestResult) {
+  const loot = q.loot ? ` · Found: ${rarityColor(q.loot.name, q.loot.rarity)} (${q.loot.rarity})` : "";
+  return `${q.name}: ${q.success ? `✓ Success · +${q.xp} XP · +${q.gold} gold${loot}` : `✗ Failed · +${q.xp} XP`}`;
+}
+
 async function startQuest() {
   const res = await authed("/quests", "POST");
   if (res.status === 201) {
-    console.log(`⚔ Quest started. Back in ${minutesUntil(res.data.endsAt)}m, nothing else to do.`);
+    console.log(`⚔ ${questResult(res.data)}`);
+    console.log(`Next quest in ${minutesUntil(res.data.readyAt)}m.`);
     await refresh();
   } else if (res.data.error === "cooldown") {
     console.log(`Resting. Next quest in ${minutesUntil(res.data.readyAt)}m.`);
@@ -134,10 +142,8 @@ async function status() {
     const left = minutesUntil(q.endsAt);
     return console.log(left > 0 ? `⚔ Quest ${left}m left · ${progress(q)}` : "⚔ Quest finished, rolling the dice...");
   }
-  const loot = q.loot ? ` · Found: ${rarityColor(q.loot.name, q.loot.rarity)} (${q.loot.rarity})` : "";
-  const result = q.success ? `✓ Success · +${q.xp} XP · +${q.gold} gold${loot}` : `✗ Failed · +${q.xp} XP`;
   const ready = minutesUntil(data.readyAt);
-  console.log(`Last quest: ${result}`);
+  console.log(`Last quest: ${questResult(q)}`);
   console.log(ready > 0 ? `Next quest in ${ready}m.` : "Ready for a new quest: quest");
 }
 
@@ -329,7 +335,7 @@ const INIT: Record<string, string> = {
 
 const USAGE = `Usage: quest [command]
 
-  quest                                          start a quest
+  quest                                          do a quest, result at once, then 45 min rest
   quest status [--short]                         current quest (--short: cached line, no network)
   quest char                                     character sheet
   quest inv                                      inventory

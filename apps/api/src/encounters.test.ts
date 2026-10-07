@@ -21,7 +21,7 @@ async function player(name: string) {
     include: { character: true },
   });
   const call = async (method: "GET" | "POST", url: string) =>
-    (await buildApp({ db, scheduleResolve: async () => {}, now: () => new Date(clock), random: () => dice() })).inject({
+    (await buildApp({ db, now: () => new Date(clock), random: () => dice() })).inject({
       method,
       url,
       headers: { authorization: `Bearer ${token}` },

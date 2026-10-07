@@ -7,6 +7,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** Quests resolve at once. `quest` and the website show the quest name, XP, gold and any loot right away,
+  then a 45-minute rest follows (was: 45-minute quest plus 15-minute rest).
+
 ## [0.1.0] – Beta
 
 First public beta.

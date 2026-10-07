@@ -17,7 +17,7 @@ async function player(name: string) {
     include: { character: true },
   });
   const call = async (method: "GET" | "POST", url: string, payload?: object) =>
-    (await buildApp({ db, scheduleResolve: async () => {} })).inject({ method, url, payload, headers: { authorization: `Bearer ${token}` } });
+    (await buildApp({ db })).inject({ method, url, payload, headers: { authorization: `Bearer ${token}` } });
   return { call, characterId: user.character!.id };
 }
 

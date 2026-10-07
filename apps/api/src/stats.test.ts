@@ -16,7 +16,7 @@ test("stats and achievements come from what a player did", async () => {
   });
   const id = user.character!.id;
   const get = async () =>
-    (await (await buildApp({ db, scheduleResolve: async () => {} })).inject({ url: "/stats", headers: { authorization: "Bearer tq_stat" } })).json();
+    (await (await buildApp({ db })).inject({ url: "/stats", headers: { authorization: "Bearer tq_stat" } })).json();
 
   const fresh = await get();
   assert.equal(fresh.stats.questsWon, 0);
@@ -40,7 +40,7 @@ test("stats and achievements come from what a player did", async () => {
 test("unlocked achievements stay unlocked", async () => {
   await db.user.create({ data: { character: { create: { name: "keeper" } }, sessions: { create: { tokenHash: hash("tq_keeper") } } } });
   const call = async (method: "GET" | "POST", url: string, payload?: object) =>
-    (await buildApp({ db, scheduleResolve: async () => {} })).inject({ method, url, payload, headers: { authorization: "Bearer tq_keeper" } });
+    (await buildApp({ db })).inject({ method, url, payload, headers: { authorization: "Bearer tq_keeper" } });
   const founder = async () =>
     (await call("GET", "/stats")).json().achievements.find((a: { key: string }) => a.key === "founder").unlockedAt;
 

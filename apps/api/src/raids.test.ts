@@ -25,7 +25,6 @@ async function player(name: string) {
     (
       await buildApp({
         db,
-        scheduleResolve: async () => {},
         scheduleRaid: async (raidId, tick, at) => { ticks.push({ raidId, tick, at }); },
         now: () => new Date(clock),
       })

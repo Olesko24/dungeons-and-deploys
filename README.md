@@ -24,7 +24,7 @@ New here? Read the [player manual](docs/manual.md).
 
 | Content | Players | Notes |
 |---|---|---|
-| Quest | 1 | `quest` or a button on the website, 45 min, then 15 min cooldown. 75% success plus luck |
+| Quest | 1 | `quest` or a button on the website, result at once, then 45 min cooldown. 75% success plus luck |
 | Random encounter | 1 | 2% chance per heartbeat (terminal, Claude Code or open website). Fight within 5 min |
 | Dungeon | 1–5 | Three stages and a boss, 15 min each. Difficulty and loot scale with party size |
 | Raid | 5+ | Guild only, scheduled by the leader. Shared boss HP, every raider deals damage each tick |
@@ -152,7 +152,7 @@ tokenquest/
 
 A queue holds jobs that should run later or outside the request. Workers pick jobs up and execute them.
 
-- `quest.resolve` – scheduled when a quest starts, runs 45 min later: roll success and loot.
+- `quest.resolve` – legacy, only resolves quests started before quests resolved at once.
 - `raid.start` / `raid.tick` – scheduled by guild leaders, processes the shared boss fight.
 - `dungeon.stage` – advances a dungeon to the next stage.
 

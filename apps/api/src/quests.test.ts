@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
-import { COOLDOWN_MS, QUEST_MS } from "@tokenquest/shared";
+import { COOLDOWN_MS } from "@tokenquest/shared";
 import { buildApp } from "./app.ts";
 import { hash } from "./auth.ts";
 import type { PrismaClient } from "./generated/prisma/client.ts";
@@ -13,14 +13,9 @@ after(() => db.$disconnect());
 
 const T0 = new Date("2026-01-01T12:00:00Z").getTime();
 let clock = T0;
-const scheduled: { questId: number; at: Date }[] = [];
+let dice = 0;
 // A fresh app per request, so the real-time heartbeat rate limit never interferes with the fake clock.
-const app = () =>
-  buildApp({
-    db,
-    scheduleResolve: async (questId, at) => { scheduled.push({ questId, at }); },
-    now: () => new Date(clock),
-  });
+const app = () => buildApp({ db, now: () => new Date(clock), random: () => dice });
 
 async function player(name: string) {
   const token = `tq_${name}`;
@@ -35,31 +30,30 @@ async function player(name: string) {
 const at = (ms: number) => { clock = T0 + ms; };
 const lastQuestId = async () => (await db.quest.findFirstOrThrow({ orderBy: { id: "desc" } })).id;
 
-test("a quest only needs time and grants rewards once", async () => {
+test("a quest resolves at once and reports its rewards", async () => {
   at(0);
+  dice = 0;
   const p = await player("hero");
   const start = await p.call("POST", "/quests");
   assert.equal(start.statusCode, 201);
-  assert.equal(scheduled.at(-1)!.at.getTime(), T0 + QUEST_MS);
-  assert.equal((await p.call("POST", "/quests")).statusCode, 409, "only one quest at a time");
-
-  at(QUEST_MS + 1000);
-  assert.deepEqual((await p.call("POST", "/heartbeat")).json().character, { name: "hero", gold: 0, level: 1 });
-
-  const id = await lastQuestId();
-  const result = await resolveQuest(db, id, () => 0);
-  assert.deepEqual({ ...result, loot: result?.loot?.name }, { success: true, xp: 70, gold: 14, loot: "Leather Cap" });
-  assert.equal(await resolveQuest(db, id, () => 0), null, "second run changes nothing");
+  const { name, ...result } = start.json();
+  assert.ok(name);
+  assert.deepEqual({ ...result, loot: result.loot.name }, {
+    success: true, xp: 70, gold: 14, loot: "Leather Cap", readyAt: new Date(T0 + COOLDOWN_MS).toISOString(),
+  });
+  assert.equal((await p.call("GET", "/quests/current")).json().quest.name, name);
   assert.deepEqual((await p.call("GET", "/character")).json(), {
     name: "hero", xp: 70, gold: 14, level: 1, xpIntoLevel: 70, xpForNext: 100, attack: 0, defense: 0, luck: 0, fortune: 0,
   });
+  assert.equal(await resolveQuest(db, await lastQuestId(), () => 0), null, "second run changes nothing");
 });
 
 test("a quest can fail on the dice", async () => {
   at(0);
+  dice = 0.99;
   const p = await player("unlucky");
-  await p.call("POST", "/quests");
-  assert.deepEqual(await resolveQuest(db, await lastQuestId(), () => 0.99), { success: false, xp: 10, gold: 0, loot: null });
+  const res = (await p.call("POST", "/quests")).json();
+  assert.deepEqual([res.success, res.xp, res.gold, res.loot], [false, 10, 0, null]);
   assert.equal((await p.character()).xp, 10);
 });
 
@@ -67,33 +61,28 @@ test("cooldown after a quest", async () => {
   at(0);
   const p = await player("eager");
   await p.call("POST", "/quests");
-  await resolveQuest(db, await lastQuestId(), () => 0);
 
-  at(QUEST_MS + COOLDOWN_MS - 1);
+  at(COOLDOWN_MS - 1);
   const early = await p.call("POST", "/quests");
   assert.equal(early.statusCode, 409);
   assert.equal(early.json().error, "cooldown");
 
-  at(QUEST_MS + COOLDOWN_MS);
+  at(COOLDOWN_MS);
   assert.equal((await p.call("POST", "/quests")).statusCode, 201);
 });
 
-test("database allows only one running quest per character", async () => {
+test("parallel starts give only one quest", async () => {
   at(0);
   const p = await player("twin");
-  await p.call("POST", "/quests");
-  const { id: characterId } = await p.character();
-  await assert.rejects(
-    db.quest.create({ data: { characterId, startedAt: new Date(), endsAt: new Date() } }),
-    (err: { code?: string }) => err.code === "P2002",
-  );
+  const codes = (await Promise.all([p.call("POST", "/quests"), p.call("POST", "/quests")])).map((r) => r.statusCode);
+  assert.deepEqual(codes.sort((a, b) => a - b), [201, 409]);
 });
 
 test("loot lands in the inventory and equipment raises the odds", async () => {
   at(0);
+  dice = 0;
   const p = await player("looter");
   await p.call("POST", "/quests");
-  await resolveQuest(db, await lastQuestId(), () => 0);
   const inv = (await p.call("GET", "/inventory")).json();
   assert.equal(inv.items.length, 1);
   assert.deepEqual(inv.items[0].stats, { attack: 0, defense: 1, luck: 0, fortune: 0 }, "stats are rolled on drop");
@@ -112,9 +101,9 @@ test("loot lands in the inventory and equipment raises the odds", async () => {
   assert.deepEqual(names, ["Leather Cap", "Merchant's Signet of Root", "Merchant's Ring of Caching", "Gambler's Chainmail"]);
 
   // 75% base + 15 luck = 90%: a roll of 0.85 fails without the gear and succeeds with it.
-  at(QUEST_MS + COOLDOWN_MS);
-  await p.call("POST", "/quests");
-  assert.equal((await resolveQuest(db, await lastQuestId(), () => 0.85))!.success, true);
+  at(COOLDOWN_MS);
+  dice = 0.85;
+  assert.equal((await p.call("POST", "/quests")).json().success, true);
 });
 
 test("equip and unequip", async () => {
@@ -130,16 +119,6 @@ test("equip and unequip", async () => {
   assert.equal((await other.call("POST", `/inventory/${shield.id}/equip`)).statusCode, 404, "only own items");
   assert.equal((await p.call("POST", `/inventory/${shield.id}/unequip`)).statusCode, 204);
   assert.equal((await p.call("GET", "/inventory")).json().items.filter((i: { equippedSlot: string | null }) => i.equippedSlot).length, 0);
-});
-
-test("a quest whose job cannot be planned is undone", async () => {
-  at(0);
-  const p = await player("unplanned");
-  const failing = await buildApp({ db, scheduleResolve: async () => { throw new Error("queue down"); }, now: () => new Date(clock) });
-  const res = await failing.inject({ method: "POST", url: "/quests", headers: { authorization: "Bearer tq_unplanned" } });
-  assert.equal(res.statusCode, 500);
-  assert.equal(await db.quest.count({ where: { character: { name: "unplanned" } } }), 0, "no quest left behind to block the next one");
-  assert.equal((await p.call("POST", "/quests")).statusCode, 201);
 });
 
 test("quest routes need a token", async () => {
