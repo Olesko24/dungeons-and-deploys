@@ -84,6 +84,17 @@ test("cooldown after a quest", async () => {
   assert.equal((await p.call("POST", "/quests")).statusCode, 201);
 });
 
+test("database allows only one running quest per character", async () => {
+  at(0);
+  const p = await player("twin@example.com");
+  await p.call("POST", "/quests");
+  const { id: characterId } = await p.character();
+  await assert.rejects(
+    db.quest.create({ data: { characterId, startedAt: new Date(), endsAt: new Date() } }),
+    (err: { code?: string }) => err.code === "P2002",
+  );
+});
+
 test("quest routes need a token", async () => {
   const res = await (await app()).inject({ method: "POST", url: "/quests" });
   assert.equal(res.statusCode, 401);

@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { COOLDOWN_MS, QUEST_MS, QUEST_SLOTS, SLOT_MS, countSlots, levelFromXp, questOutcome } from "@tokenquest/shared";
 import type { Deps } from "./app.ts";
 import { requireUser } from "./auth.ts";
-import type { PrismaClient, Quest } from "./generated/prisma/client.ts";
+import { Prisma, type PrismaClient, type Quest } from "./generated/prisma/client.ts";
 
 async function requireCharacter(db: PrismaClient, req: FastifyRequest, reply: FastifyReply) {
   const user = await requireUser(db, req);
@@ -35,10 +35,14 @@ export function questRoutes(app: FastifyInstance, { db, scheduleResolve, now }: 
       return reply.code(409).send({ error: "cooldown", readyAt: new Date(last.endsAt.getTime() + COOLDOWN_MS) });
     }
 
-    // ponytail: check-then-insert can race on two parallel starts by one player, add a partial unique index if it happens
-    const quest = await db.quest.create({
-      data: { characterId: character.id, startedAt: t, endsAt: new Date(t.getTime() + QUEST_MS), slots: 1 },
-    });
+    // The partial unique index `quests_one_active_per_character` rejects a parallel second start.
+    const quest = await db.quest
+      .create({ data: { characterId: character.id, startedAt: t, endsAt: new Date(t.getTime() + QUEST_MS), slots: 1 } })
+      .catch((err) => {
+        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") return null;
+        throw err;
+      });
+    if (!quest) return reply.code(409).send({ error: "quest already running" });
     await scheduleResolve(quest.id, quest.endsAt);
     return reply.code(201).send(questView(quest));
   });
