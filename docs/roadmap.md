@@ -150,6 +150,7 @@ Measured locally (single Node process, Postgres in Docker, Apple Silicon): 165 h
 - [x] Daily shop: three offers (common, rare, epic) the same for every player, new at midnight UTC
 - [x] Each offer once per player and day, prices 40 / 120 / 400 gold, epic from level 5, no legendaries
 - [x] CLI: `quest shop`, `quest shop buy <1-3>`, website Shop page
+- [x] Leaderboards by XP, achievements and guild XP: top 20 plus your own rank, banned players hidden, no gold board (`quest top`, website Ranks page)
 
 **Done when:** A player sees stats and unlocked achievements, buys a shop offer once per day.
 

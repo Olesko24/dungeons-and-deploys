@@ -267,6 +267,18 @@ async function stats() {
   }
 }
 
+async function top(board = "xp") {
+  if (!["xp", "achievements", "guilds"].includes(board)) throw new Error("Usage: quest top [xp|achievements|guilds]");
+  const { data } = await authed(`/leaderboard?board=${board}`);
+  const unit = board === "achievements" ? "achievements" : "XP";
+  const line = (r: { rank: number; name: string; value: number; level?: number }) =>
+    `${String(r.rank).padStart(4)}. ${r.name.padEnd(24)}${r.level ? `Lv ${String(r.level).padEnd(4)}` : ""}${r.value} ${unit}`;
+  console.log(`Leaderboard · ${board}`);
+  for (const r of data.top) console.log(line(r));
+  if (data.you && data.you.rank > data.top.length) console.log(`   …\n${line(data.you)}`);
+  if (!data.you) console.log(board === "guilds" ? "\nYou are not in a guild." : "\nNo achievements yet.");
+}
+
 async function character() {
   const { data: c } = await authed("/character");
   console.log(`${c.name} · Lv ${c.level} · ${c.gold}g`);
@@ -312,6 +324,7 @@ const USAGE = `Usage: quest [command]
   quest market                                   draw a random item of a rarity, list your own
   quest shop [buy <1-3>]                         three new offers every day
   quest stats                                    statistics and achievements
+  quest top [xp|achievements|guilds]             leaderboards
   quest dungeon [start|join <code>]              dungeon with up to 5 players
   quest guild [create <name>|join <code>|leave]  your guild
   quest raid [schedule <min>|join]               guild raid, at least 5 raiders
@@ -352,6 +365,9 @@ try {
       break;
     case "shop":
       await shop(positionals[1], positionals[2]);
+      break;
+    case "top":
+      await top(positionals[1]);
       break;
     case "stats":
       await stats();

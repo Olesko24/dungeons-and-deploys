@@ -130,6 +130,7 @@ table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nu
 th, td { padding: 4px 8px; text-align: left; white-space: nowrap; }
 th { font: 8px var(--display); color: var(--ink-dim); text-transform: uppercase; }
 tbody tr:nth-child(odd) td { background: var(--panel-deep); }
+tbody tr.you td { color: var(--gold); }
 
 @media (max-width: 30rem) {
   .hero { grid-template-columns: minmax(0, 1fr); }

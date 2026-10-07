@@ -4,6 +4,7 @@ import {
   type Character,
   type Guild,
   type Item,
+  type Leaderboard,
   type PlayerStats,
   type Quest,
   type Raid,
@@ -320,7 +321,44 @@ function StatsView() {
   );
 }
 
-type View = "character" | "shop" | "stats";
+const BOARDS = [["xp", "Level"], ["achievements", "Achievements"], ["guilds", "Guilds"]] as const;
+
+function RanksView() {
+  const [board, setBoard] = useState<(typeof BOARDS)[number][0]>("xp");
+  const [data, setData] = useState<Leaderboard | null>(null);
+  useEffect(() => void api<Leaderboard>(`/leaderboard?board=${board}`).then(setData), [board]);
+  const unit = board === "achievements" ? "achievements" : "XP";
+  const showYou = data?.you && !data.top.some((r) => r.rank === data.you?.rank && r.name === data.you?.name);
+  return (
+    <section className="panel">
+      <h2>Leaderboard</h2>
+      <div className="tabs">
+        {BOARDS.map(([key, label]) => (
+          <button key={key} type="button" className={`small ${board === key ? "" : "ghost"}`} aria-pressed={board === key} onClick={() => setBoard(key)}>
+            {label}
+          </button>
+        ))}
+      </div>
+      {!data ? <p>Loading…</p> : (
+        <div className="scroll">
+          <table>
+            <thead><tr><th>#</th><th>Name</th>{board !== "achievements" && <th>Level</th>}<th>{unit}</th></tr></thead>
+            <tbody>
+              {[...data.top, ...(showYou && data.you ? [data.you] : [])].map((r) => (
+                <tr key={`${r.rank}-${r.name}`} className={r.name === data.you?.name ? "you" : ""}>
+                  <td>{r.rank}</td><td>{r.name}</td>{board !== "achievements" && <td>{r.level}</td>}<td>{r.value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {data && !data.you && <p className="dim">{board === "guilds" ? "You are not in a guild yet." : "No achievements yet."}</p>}
+    </section>
+  );
+}
+
+type View = "character" | "shop" | "stats" | "ranks";
 
 type Data = { character: Character; status: Status; items: Item[]; history: Quest[]; guild: Guild | null; raid: Raid | null };
 
@@ -371,7 +409,7 @@ export function App() {
         <button type="button" className="small ghost" onClick={() => api("/auth/logout", {}).then(() => setLoggedOut(true))}>Log out</button>
       </header>
       <nav className="tabs" aria-label="Sections">
-        {(["character", "shop", "stats"] as const).map((v) => (
+        {(["character", "shop", "stats", "ranks"] as const).map((v) => (
           <button key={v} type="button" className={`small ${view === v ? "" : "ghost"}`} aria-current={view === v ? "page" : undefined} onClick={() => setView(v)}>
             {v}
           </button>
@@ -388,6 +426,7 @@ export function App() {
       )}
       {view === "shop" && <ShopView onChange={() => void load()} />}
       {view === "stats" && <StatsView />}
+      {view === "ranks" && <RanksView />}
     </main>
   );
 }

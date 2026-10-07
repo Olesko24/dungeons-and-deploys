@@ -46,6 +46,9 @@ export type Shop = { gold: number; refreshesAt: string; offers: ShopOffer[] };
 export type Achievement = { key: string; name: string; description: string; unlockedAt: string | null };
 export type PlayerStats = Record<string, number | boolean>;
 
+export type RankRow = { rank: number; name: string; value: number; level?: number };
+export type Leaderboard = { board: string; top: RankRow[]; you: RankRow | null };
+
 export class Unauthorized extends Error {}
 
 /** Same-origin calls, the session lives in an httpOnly cookie. */

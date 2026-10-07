@@ -9,6 +9,7 @@ import { dungeonRoutes } from "./dungeons.ts";
 import { encounterRoutes } from "./encounters.ts";
 import { guildRoutes } from "./guilds.ts";
 import { inventoryRoutes } from "./inventory.ts";
+import { leaderboardRoutes } from "./leaderboard.ts";
 import { marketRoutes } from "./market.ts";
 import { questRoutes } from "./quests.ts";
 import { raidRoutes } from "./raids.ts";
@@ -63,6 +64,7 @@ export async function buildApp(deps: Deps, opts: FastifyServerOptions = {}) {
   raidRoutes(app, full);
   shopRoutes(app, full);
   statsRoutes(app, db);
+  leaderboardRoutes(app, db);
 
   // Every successful player action may unlock achievements. Heartbeats are skipped: they are frequent and change little.
   app.addHook("onResponse", async (req, reply) => {

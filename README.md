@@ -26,6 +26,7 @@ Inspired by Twitch idle RPGs: presence and luck, not performance.
 | Market | – | Fixed prices by rarity, buyers draw a random listing, one draw per day |
 | Shop | – | Three new offers every day, each once per player |
 | Achievements | – | 18 achievements and a statistics page, just for fun |
+| Leaderboards | – | Top 20 by level, achievements and guild level |
 
 Items drop in four rarities and eleven equipment slots, with rolled stats and twelve weapon kinds.
 Higher levels raise the chance for better loot. All items: see `apps/web/public/items/`.
@@ -62,6 +63,7 @@ quest fight                        # random encounter
 quest market                       # draw a random item of a rarity, list your own
 quest shop                         # three new offers every day
 quest stats                        # statistics and achievements
+quest top [xp|achievements|guilds] # leaderboards
 quest dungeon start|join <code>
 quest guild create <name>|join <code>|leave
 quest raid schedule <minutes>|join
