@@ -27,7 +27,13 @@ Rewards depend on time, gear and dice, never on how much or how well you work. Y
 
 ## Getting started
 
-You need Node.js 24 or newer and an access code from someone who runs the game.
+You need an access code from someone who runs the game. Start in the terminal or on the website, both reach the
+same character.
+
+**Website:** enter the access code and a character name under **New here? Start playing**. To add the terminal
+later, click **Terminal** at the top: it shows the install command and a pair code.
+
+**Terminal:** you need Node.js 24 or newer.
 
 ```sh
 npm install -g dungeons-and-deploys
@@ -332,7 +338,7 @@ A win gives every raider who dealt damage XP, gold and an item with three rarity
 
 ## Website
 
-The website shows your character, equipment, bag, quest history, guild, talents, shop, statistics and leaderboards. To log in, run `quest pair` and enter the code it shows.
+The website shows your character, equipment, bag, quest history, guild, talents, shop, statistics and leaderboards. New players can create their character there with an access code. Players who started in the terminal run `quest pair` and enter the code it shows. **Terminal** at the top does the opposite: it shows a pair code to log in the terminal.
 
 On your first visit a short tour walks you through the page. It highlights the real buttons and moves on when you click them. You can skip it and restart it any time with **Tour** at the top. Finishing it unlocks the achievement Hello, World.
 
@@ -340,7 +346,7 @@ On your first visit a short tour walks you through the page. It highlights the r
 
 Dungeons & Deploys has no email and no password. Your login token on your devices is your account.
 
-- To play on another device, run `quest pair` on a device that is logged in, then `quest login --pair <code>` on the new one within 10 minutes.
+- To play on another device, run `quest pair` (or click **Terminal** on the website) on a device that is logged in, then `quest login --pair <code>` on the new one within 10 minutes.
 - **If you lose every logged-in device, your character is lost.** Keep it paired on a second device if you care about it.
 - The token is stored in `~/.dungeons-and-deploys/config.json`, readable only by you.
 

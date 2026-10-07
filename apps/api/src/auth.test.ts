@@ -87,3 +87,18 @@ test("banned players are rejected", async () => {
   await db.user.updateMany({ where: { character: { name: "cheater" } }, data: { bannedAt: new Date() } });
   assert.equal(await sheet(), 401);
 });
+
+test("website registers with an access code and pairs the terminal", async () => {
+  await db.accessCode.create({ data: { code: "TEST-0006", maxUses: 1, expiresAt: new Date(Date.now() + 60_000) } });
+  assert.equal((await post("/auth/web/register", { code: "WRONG", name: "bard" })).statusCode, 400);
+
+  const res = await post("/auth/web/register", { code: "TEST-0006", name: "bard" });
+  assert.equal(res.statusCode, 204);
+  const cookie = res.cookies.find((c) => c.name === "tq_session")!;
+  assert.equal(cookie.httpOnly, true);
+  assert.equal(res.body, "", "the token stays in the cookie");
+
+  const pair = await (await app()).inject({ method: "POST", url: "/auth/pair", cookies: { tq_session: cookie.value } });
+  const terminal = await post("/auth/pair/redeem", { code: pair.json().code });
+  assert.equal(await characterName(terminal.json().token), "bard");
+});

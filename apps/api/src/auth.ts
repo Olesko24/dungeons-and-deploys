@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomInt } from "node:crypto";
-import type { FastifyInstance, FastifyRequest } from "fastify";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { Prisma, type PrismaClient } from "./generated/prisma/client.ts";
 
 const PAIR_TTL_MS = 10 * 60 * 1000;
@@ -38,42 +38,59 @@ export async function requireUser(db: PrismaClient, req: FastifyRequest) {
   return session && !session.user.bannedAt ? session.user : null;
 }
 
+/** Uses up one access code and creates the player. A taken name keeps the code's use. */
+function register(db: PrismaClient, code: string, name: string) {
+  return db
+    .$transaction(async (tx) => {
+      const consumed = await tx.accessCode.updateMany({
+        where: { code: normalizeCode(code), uses: { lt: tx.accessCode.fields.maxUses }, expiresAt: { gt: new Date() } },
+        data: { uses: { increment: 1 } },
+      });
+      if (consumed.count === 0) return { error: "invalid or used-up access code" };
+      const user = await tx.user.create({ data: { character: { create: { name } } } });
+      return { token: await createSession(tx, user.id) };
+    })
+    .catch((err): { error: string } => {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") return { error: "name taken" };
+      throw err;
+    });
+}
+
+const registerOptions = {
+  config: { rateLimit: { max: 5, timeWindow: "1 minute" } },
+  schema: {
+    body: {
+      type: "object",
+      required: ["code", "name"],
+      properties: { code: { type: "string" }, name: { type: "string", pattern: "^[a-zA-Z0-9_-]{2,20}$" } },
+    },
+  },
+};
+
+/** The website keeps its token in an httpOnly cookie instead of handing it to the page. */
+function setSessionCookie(reply: FastifyReply, token: string) {
+  reply.setCookie(SESSION_COOKIE, token, {
+    path: "/",
+    httpOnly: true,
+    sameSite: "strict",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+}
+
 export function authRoutes(app: FastifyInstance, db: PrismaClient) {
-  app.post<{ Body: { code: string; name: string } }>(
-    "/auth/register",
-    {
-      config: { rateLimit: { max: 5, timeWindow: "1 minute" } },
-      schema: {
-        body: {
-          type: "object",
-          required: ["code", "name"],
-          properties: { code: { type: "string" }, name: { type: "string", pattern: "^[a-zA-Z0-9_-]{2,20}$" } },
-        },
-      },
-    },
-    async (req, reply) => {
-      const result = await db
-        .$transaction(async (tx) => {
-          const consumed = await tx.accessCode.updateMany({
-            where: {
-              code: normalizeCode(req.body.code),
-              uses: { lt: tx.accessCode.fields.maxUses },
-              expiresAt: { gt: new Date() },
-            },
-            data: { uses: { increment: 1 } },
-          });
-          if (consumed.count === 0) return { error: "invalid or used-up access code" };
-          const user = await tx.user.create({ data: { character: { create: { name: req.body.name } } } });
-          return { token: await createSession(tx, user.id) };
-        })
-        .catch((err) => {
-          if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") return { error: "name taken" };
-          throw err;
-        });
-      if ("error" in result) return reply.code(result.error === "name taken" ? 409 : 400).send(result);
-      return result;
-    },
-  );
+  app.post<{ Body: { code: string; name: string } }>("/auth/register", registerOptions, async (req, reply) => {
+    const result = await register(db, req.body.code, req.body.name);
+    if ("error" in result) return reply.code(result.error === "name taken" ? 409 : 400).send(result);
+    return result;
+  });
+
+  app.post<{ Body: { code: string; name: string } }>("/auth/web/register", registerOptions, async (req, reply) => {
+    const result = await register(db, req.body.code, req.body.name);
+    if ("error" in result) return reply.code(result.error === "name taken" ? 409 : 400).send(result);
+    setSessionCookie(reply, result.token);
+    return reply.code(204).send();
+  });
 
   app.post("/auth/pair", async (req, reply) => {
     const user = await requireUser(db, req);
@@ -97,7 +114,7 @@ export function authRoutes(app: FastifyInstance, db: PrismaClient) {
     },
   );
 
-  // The website logs in with a pair code too, but keeps the token in an httpOnly cookie.
+  // The website logs in with a pair code too.
   app.post<{ Body: { code: string } }>(
     "/auth/web",
     {
@@ -107,13 +124,7 @@ export function authRoutes(app: FastifyInstance, db: PrismaClient) {
     async (req, reply) => {
       const token = await redeemPairCode(db, req.body.code);
       if (!token) return reply.code(400).send({ error: "invalid or expired pair code" });
-      reply.setCookie(SESSION_COOKIE, token, {
-        path: "/",
-        httpOnly: true,
-        sameSite: "strict",
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 60 * 60 * 24 * 365,
-      });
+      setSessionCookie(reply, token);
       return reply.code(204).send();
     },
   );

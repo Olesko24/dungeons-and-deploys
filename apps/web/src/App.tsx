@@ -65,31 +65,89 @@ function ItemIcon({ item }: { item: Item }) {
   return <img className="icon" src={`/items/${item.key}.svg`} alt="" width={48} height={48} />;
 }
 
+const INSTALL = "npm install -g dungeons-and-deploys";
+
 function Login({ onDone, onOpen }: { onDone: () => void; onOpen: (doc: DocName) => void }) {
-  const [code, setCode] = useState("");
-  const [error, setError] = useState("");
-  async function submit(e: FormEvent) {
+  const [pair, setPair] = useState("");
+  const [access, setAccess] = useState("");
+  const [name, setName] = useState("");
+  const [error, setError] = useState<{ form: "login" | "register"; text: string } | null>(null);
+  async function submit(e: FormEvent, form: "login" | "register") {
     e.preventDefault();
     try {
-      await api("/auth/web", { code });
+      await (form === "login" ? api("/auth/web", { code: pair }) : api("/auth/web/register", { code: access, name: name.trim() }));
       onDone();
     } catch (err) {
-      setError((err as Error).message);
+      setError({ form, text: (err as Error).message });
     }
   }
+  const failed = (form: "login" | "register") => error?.form === form && <p className="error" role="alert">{error.text}</p>;
   return (
     <main className="login">
       <img src="/icon.svg" alt="" width={96} height={96} className="icon" />
       <h1>Dungeons & Deploys</h1>
+      <p className="dim">An idle RPG that runs next to your work. Quests, loot, talents, dungeons and raids, in your terminal and here.</p>
       <BetaNote onOpen={onOpen} />
-      <form className="panel" onSubmit={submit}>
+      <form className="panel" onSubmit={(e) => submit(e, "register")}>
+        <h2>New here? Start playing</h2>
+        <p className="dim">You need an access code from whoever runs the game.</p>
+        <label htmlFor="access">Access code</label>
+        <input id="access" value={access} onChange={(e) => setAccess(e.target.value)} autoComplete="off" required />
+        <label htmlFor="name">Character name</label>
+        <input
+          id="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          pattern="[a-zA-Z0-9_\-]{2,20}"
+          title="2-20 letters, digits, _ or -"
+          autoComplete="off"
+          required
+        />
+        {failed("register")}
+        <button type="submit">Create character</button>
+      </form>
+      <form className="panel" onSubmit={(e) => submit(e, "login")}>
+        <h2>Already playing?</h2>
         <label htmlFor="code">Pair code</label>
         <p className="dim">Run <code>quest pair</code> in your terminal and enter the code it shows.</p>
-        <input id="code" value={code} onChange={(e) => setCode(e.target.value)} placeholder="ABCD-EFGH" autoComplete="off" autoFocus />
-        {error && <p className="error" role="alert">{error}</p>}
+        <input id="code" value={pair} onChange={(e) => setPair(e.target.value)} placeholder="ABCD-EFGH" autoComplete="off" required />
+        {failed("login")}
         <button type="submit">Log in</button>
       </form>
+      <section className="panel install">
+        <h2>Prefer the terminal?</h2>
+        <ol>
+          <li>Install <a href="https://nodejs.org">Node.js</a> 24 or newer, then <code>{INSTALL}</code></li>
+          <li>New player: <code>quest login --code &lt;ACCESS_CODE&gt;</code></li>
+          <li>Run <code>quest</code> to start a quest. <code>quest pair</code> logs in this website.</li>
+        </ol>
+        <p className="dim">
+          Claude Code plugin, status line and shell prompt: see the{" "}
+          <button type="button" className="link" onClick={() => onOpen("manual")}>manual</button>.
+        </p>
+      </section>
     </main>
+  );
+}
+
+/** Pair code for logging in the terminal, for players who started on the website. */
+function TerminalPair({ onClose, onOpen }: { onClose: () => void; onOpen: (doc: DocName) => void }) {
+  const [pair, setPair] = useState<{ code: string; expiresAt: string } | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => void api<{ code: string; expiresAt: string }>("/auth/pair", {}).then(setPair, (err: Error) => setError(err.message)), []);
+  return (
+    <section className="panel install" aria-label="Connect your terminal">
+      <div className="row">
+        <h2>Connect your terminal</h2>
+        <button type="button" className="small ghost" onClick={onClose}>Close</button>
+      </div>
+      {error && <p className="error" role="alert">{error}</p>}
+      <ol>
+        <li>Install <a href="https://nodejs.org">Node.js</a> 24 or newer, then <code>{INSTALL}</code></li>
+        <li>{pair ? <>Run <code>quest login --pair {pair.code}</code> within {minutesUntil(pair.expiresAt)} minutes</> : "Creating a pair code…"}</li>
+        <li>Run <code>quest</code> for a quest. The <button type="button" className="link" onClick={() => onOpen("manual")}>manual</button> shows the Claude Code plugin and shell prompt.</li>
+      </ol>
+    </section>
   );
 }
 
@@ -501,6 +559,7 @@ export function App() {
   const [loggedOut, setLoggedOut] = useState(false);
   const [view, setView] = useState<View>("character");
   const [touring, setTouring] = useState(false);
+  const [pairing, setPairing] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -572,9 +631,11 @@ export function App() {
         </div>
         <div className="hero-actions">
           <button type="button" className="small ghost" onClick={() => setTouring(true)}>Tour</button>
+          <button type="button" className="small ghost" data-tour="terminal" onClick={() => setPairing(true)}>Terminal</button>
           <button type="button" className="small ghost" onClick={() => api("/auth/logout", {}).then(() => setLoggedOut(true))}>Log out</button>
         </div>
       </header>
+      {pairing && <TerminalPair onClose={() => setPairing(false)} onOpen={setView} />}
       <BetaNote onOpen={setView} />
       <nav className="tabs" aria-label="Sections">
         {(["character", "talents", "shop", "stats", "ranks", "manual", "changelog"] as const).map((v) => (
