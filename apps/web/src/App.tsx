@@ -5,6 +5,7 @@ import {
   type Guild,
   type Item,
   type Leaderboard,
+  type RankRow,
   type PlayerStats,
   type Quest,
   type Raid,
@@ -348,6 +349,28 @@ function History({ quests }: { quests: Quest[] }) {
   );
 }
 
+/** Every guild to compare before joining. Join codes stay private, a member has to share theirs. */
+function GuildList() {
+  const [guilds, setGuilds] = useState<RankRow[] | null>(null);
+  useEffect(() => void api<Leaderboard>("/leaderboard?board=guilds").then((b) => setGuilds(b.top)), []);
+  if (!guilds?.length) return null;
+  return (
+    <>
+      <h3 className="sub">Guilds · ask a member for the join code</h3>
+      <div className="scroll">
+        <table>
+          <thead><tr><th>Guild</th><th>Level</th><th>Members</th><th>Ø Power</th></tr></thead>
+          <tbody>
+            {guilds.map((g) => (
+              <tr key={g.name}><td>{g.name}</td><td>{g.level}</td><td>{g.members}</td><td>{g.power}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
 function GuildHall({ guild, raids, me, onChange }: { guild: Guild | null; raids: Raids; me: string; onChange: () => void }) {
   const [amount, setAmount] = useState("");
   const [name, setName] = useState("");
@@ -381,6 +404,7 @@ function GuildHall({ guild, raids, me, onChange }: { guild: Guild | null; raids:
             <button type="submit" className="small">Join</button>
           </form>
           {message && <p className="error" role="alert">{message}</p>}
+          <GuildList />
         </>
       ) : (
         <>
