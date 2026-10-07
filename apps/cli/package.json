@@ -1,11 +1,26 @@
 {
-  "name": "@tokenquest/cli",
-  "private": true,
+  "name": "tokenquest",
+  "version": "0.1.0",
+  "description": "Idle RPG for the terminal. Runs alongside Claude Code or any shell.",
   "type": "module",
   "bin": {
-    "quest": "src/quest.ts"
+    "quest": "dist/quest.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Olesko24/tokenquest.git",
+    "directory": "apps/cli"
   },
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "pnpm build",
+    "test": "node --test",
     "typecheck": "tsc"
   }
 }

@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { COOLDOWN_MS, QUEST_MS, QUEST_SLOTS, SLOT_MS, countSlots, levelFromXp, questOutcome } from "@tokenquest/shared";
 import type { Deps } from "./app.ts";
 import { requireUser } from "./auth.ts";
-import { Prisma, type PrismaClient, type Quest } from "./generated/prisma/client.ts";
+import { type Character, Prisma, type PrismaClient, type Quest } from "./generated/prisma/client.ts";
 
 async function requireCharacter(db: PrismaClient, req: FastifyRequest, reply: FastifyReply) {
   const user = await requireUser(db, req);
@@ -47,14 +47,20 @@ export function questRoutes(app: FastifyInstance, { db, scheduleResolve, now }: 
     return reply.code(201).send(questView(quest));
   });
 
+  // The running quest is always the latest one, so one query serves both status and heartbeat.
+  const latestQuest = (characterId: number) =>
+    db.quest.findFirst({ where: { characterId }, orderBy: { startedAt: "desc" } });
+
+  const status = (character: Character, last: Quest | null) => ({
+    quest: last ? questView(last) : null,
+    readyAt: last ? new Date(last.endsAt.getTime() + COOLDOWN_MS) : now(),
+    character: { name: character.name, gold: character.gold, level: levelFromXp(character.xp).level },
+  });
+
   app.get("/quests/current", async (req, reply) => {
     const character = await requireCharacter(db, req, reply);
     if (!character) return;
-    const last = await db.quest.findFirst({ where: { characterId: character.id }, orderBy: { startedAt: "desc" } });
-    return {
-      quest: last ? questView(last) : null,
-      readyAt: last ? new Date(last.endsAt.getTime() + COOLDOWN_MS) : now(),
-    };
+    return status(character, await latestQuest(character.id));
   });
 
   app.post(
@@ -64,14 +70,13 @@ export function questRoutes(app: FastifyInstance, { db, scheduleResolve, now }: 
       const character = await requireCharacter(db, req, reply);
       if (!character) return;
       const t = now();
-      const quest = await db.quest.findFirst({
-        where: { characterId: character.id, resolvedAt: null, endsAt: { gt: t } },
-      });
-      if (quest) {
-        const bit = 1 << Math.floor((t.getTime() - quest.startedAt.getTime()) / SLOT_MS);
-        await db.$executeRaw`UPDATE quests SET slots = slots | ${bit} WHERE id = ${quest.id}`;
+      const last = await latestQuest(character.id);
+      if (last && !last.resolvedAt && last.endsAt > t) {
+        const bit = 1 << Math.floor((t.getTime() - last.startedAt.getTime()) / SLOT_MS);
+        await db.$executeRaw`UPDATE quests SET slots = slots | ${bit} WHERE id = ${last.id}`;
+        last.slots |= bit;
       }
-      return reply.code(204).send();
+      return status(character, last);
     },
   );
 

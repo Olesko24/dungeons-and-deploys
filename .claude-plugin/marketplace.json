@@ -1,0 +1,12 @@
+{
+  "name": "tokenquest",
+  "description": "Tokenquest, an idle RPG for the terminal",
+  "owner": { "name": "Olesko24" },
+  "plugins": [
+    {
+      "name": "tokenquest",
+      "source": "./plugin",
+      "description": "Idle RPG alongside Claude Code. Your prompts count as presence on your quest."
+    }
+  ]
+}

@@ -44,14 +44,15 @@ Every phase ends in a playable or deployable state.
 
 ## Phase 3 – Integrations and first deploy
 
-- [ ] CLI: `quest heartbeat` (sends at most 1/min, fire and forget), `quest status --short` for status lines
-- [ ] Claude Code plugin: `UserPromptSubmit` heartbeat hook, statusline, CLI bundled
-- [ ] Shell integration: `quest init zsh|bash` prints a `precmd` hook and a prompt segment
-- [ ] Statusline reads local cache, CLI refreshes it
+- [x] CLI: `quest heartbeat` (sends at most 1/min, fire and forget), `quest status --short` for status lines
+- [x] Claude Code plugin: `UserPromptSubmit` heartbeat hook, repo is the marketplace. CLI comes from npm, statusline is a settings snippet (plugins cannot set it)
+- [x] Shell integration: `quest init zsh|bash` prints a `precmd` hook and a prompt segment
+- [x] Statusline reads local cache (`~/.tokenquest/status.txt`), heartbeat and CLI refresh it
+- [x] CLI build for npm (`tokenquest` package)
 - [ ] CLI published to npm
-- [ ] Dockerfiles for API and web
-- [ ] Deploy to Coolify, Postgres backups to S3 enabled
-- [ ] Install guide in README
+- [x] Dockerfile for the API (web follows in Phase 6)
+- [ ] Deploy to Coolify, Postgres backups to S3 enabled, mail via Resend
+- [x] Install guide in README, deploy guide in [hosting.md](hosting.md)
 
 **Done when:** One person plays via the Claude Code plugin, another via the shell integration. Both log in with a code and finish a quest against the deployed server.
 
@@ -121,5 +122,4 @@ Every phase ends in a playable or deployable state.
 ## Open decisions
 
 - Domain and server URL
-- SMTP provider for magic links
 - Game content: quest texts, item names, monsters

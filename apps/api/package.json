@@ -18,9 +18,7 @@
     "@tokenquest/shared": "workspace:*",
     "fastify": "^5.12.5",
     "nodemailer": "^10.0.15",
-    "pg-boss": "^12.37.0"
-  },
-  "devDependencies": {
+    "pg-boss": "^12.37.0",
     "prisma": "7.10.0"
   }
 }

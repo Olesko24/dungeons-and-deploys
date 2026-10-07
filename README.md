@@ -57,6 +57,45 @@ quest guild create|join|leave
 quest raid join
 ```
 
+## Install
+
+Requires Node.js 24+.
+
+```sh
+npm install -g tokenquest
+quest login --code <ACCESS_CODE>
+```
+
+### Claude Code
+
+```
+/plugin marketplace add Olesko24/tokenquest
+/plugin install tokenquest@tokenquest
+```
+
+The plugin sends a heartbeat on every prompt. Plugins cannot set the statusline, so add it to `~/.claude/settings.json`:
+
+```json
+{
+  "statusLine": { "type": "command", "command": "cat ~/.tokenquest/status.txt 2>/dev/null" }
+}
+```
+
+### Shell
+
+Add to `~/.zshrc` (or `~/.bashrc` with `bash`):
+
+```sh
+eval "$(quest init zsh)"
+```
+
+Every command counts as presence. For the status in your prompt, use `tokenquest_prompt`:
+
+```sh
+setopt prompt_subst
+RPROMPT='$(tokenquest_prompt)'
+```
+
 ## Architecture
 
 ```

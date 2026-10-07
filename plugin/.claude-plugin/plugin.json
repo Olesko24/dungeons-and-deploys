@@ -1,0 +1,8 @@
+{
+  "name": "tokenquest",
+  "version": "0.1.0",
+  "description": "Idle RPG alongside Claude Code. Your prompts count as presence on your quest.",
+  "author": { "name": "Olesko24" },
+  "repository": "https://github.com/Olesko24/tokenquest",
+  "keywords": ["game", "rpg", "idle"]
+}

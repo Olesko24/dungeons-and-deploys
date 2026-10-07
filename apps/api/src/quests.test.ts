@@ -47,11 +47,12 @@ test("quest succeeds with enough presence and grants rewards once", async () => 
 
   for (const slot of [2, 4, 6, 8]) {
     at(slot * SLOT_MS + 1000);
-    assert.equal((await p.call("POST", "/heartbeat")).statusCode, 204);
+    assert.equal((await p.call("POST", "/heartbeat")).statusCode, 200);
   }
   at(QUEST_MS + 1000);
-  await p.call("POST", "/heartbeat");
-  assert.equal((await p.call("GET", "/quests/current")).json().quest.presentSlots, 5, "heartbeat after the end is ignored");
+  const late = (await p.call("POST", "/heartbeat")).json();
+  assert.equal(late.quest.presentSlots, 5, "heartbeat after the end is ignored");
+  assert.deepEqual(late.character, { name: "hero@example.com", gold: 0, level: 1 });
 
   const id = await lastQuestId();
   assert.deepEqual(await resolveQuest(db, id, () => 0), { success: true, xp: 50, gold: 10 });

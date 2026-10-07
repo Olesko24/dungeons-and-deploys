@@ -39,6 +39,35 @@ UPDATE quests SET slots = slots | $bit WHERE id = $id
 
 With this model the database stays small (~10k characters, ~1M items, a few thousand guilds).
 
+## Deploy
+
+The API runs as a Coolify application built from this repository.
+
+| Setting | Value |
+|---|---|
+| Build pack | Dockerfile |
+| Base directory | `/` |
+| Dockerfile location | `apps/api/Dockerfile` |
+| Port | 3000 |
+| Health check | `GET /health` (also defined in the Dockerfile) |
+
+Migrations run on container start (`prisma migrate deploy`).
+
+Environment variables:
+
+| Variable | Example |
+|---|---|
+| `DATABASE_URL` | Internal URL of the Coolify Postgres resource |
+| `SMTP_URL` | `smtp://resend:<RESEND_API_KEY>@smtp.resend.com:587` |
+| `MAIL_FROM` | `Tokenquest <login@your-verified-domain>` |
+| `PUBLIC_URL` | `https://<api-domain>`, used in magic links |
+
+Access codes are created inside the running container:
+
+```sh
+pnpm access-code --uses 10 --days 30
+```
+
 ## Operations
 
 - **Backups:** Enable scheduled Postgres backups to S3 in Coolify from day one.
