@@ -60,14 +60,17 @@ export function guildRoutes(app: FastifyInstance, db: PrismaClient) {
       if (await db.guildMember.findUnique({ where: { characterId: character.id } })) {
         return reply.code(409).send({ error: "already in a guild, leave it first" });
       }
-      const guild = await db.guild.findUnique({
-        where: { code: req.body.code.trim().toUpperCase() },
-        include: { _count: { select: { members: true } } },
+      const result = await db.$transaction(async (tx) => {
+        const guild = await tx.guild.findUnique({ where: { code: req.body.code.trim().toUpperCase() } });
+        if (!guild) return { error: "no guild with that code" };
+        // Locking the guild row serializes parallel joins, so the guild cannot grow past the limit.
+        await tx.$queryRaw`SELECT id FROM guilds WHERE id = ${guild.id} FOR UPDATE`;
+        if ((await tx.guildMember.count({ where: { guildId: guild.id } })) >= GUILD_MAX_MEMBERS) return { error: "guild is full" };
+        await tx.guildMember.create({ data: { guildId: guild.id, characterId: character.id } });
+        return { guildId: guild.id };
       });
-      if (!guild) return reply.code(400).send({ error: "no guild with that code" });
-      if (guild._count.members >= GUILD_MAX_MEMBERS) return reply.code(400).send({ error: "guild is full" });
-      await db.guildMember.create({ data: { guildId: guild.id, characterId: character.id } });
-      return { guild: await guildView(db, guild.id) };
+      if ("error" in result) return reply.code(400).send(result);
+      return { guild: await guildView(db, result.guildId) };
     },
   );
 

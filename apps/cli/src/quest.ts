@@ -262,22 +262,22 @@ const INIT: Record<string, string> = {
 
 const USAGE = `Usage: quest [command]
 
-  quest                     start a quest
-  quest status [--short]    current quest (--short: one cached line, no network)
-  quest char                character sheet
-  quest fight               fight a monster that showed up
-  quest market              market: draw a random item of a rarity, list your own
-  quest dungeon [start|join <code>]  dungeon with up to 5 players
+  quest                                          start a quest
+  quest status [--short]                         current quest (--short: cached line, no network)
+  quest char                                     character sheet
+  quest inv                                      inventory
+  quest equip <#id> [--slot ring2]               equip an item
+  quest unequip <#id>                            take an item off
+  quest fight                                    fight a monster that showed up
+  quest market                                   draw a random item of a rarity, list your own
+  quest dungeon [start|join <code>]              dungeon with up to 5 players
   quest guild [create <name>|join <code>|leave]  your guild
-  quest raid [schedule <min>|join]  guild raid, at least 5 raiders
-  quest inv                 inventory
-  quest equip <#id>         equip an item (--slot ring1|ring2 for rings)
-  quest unequip <#id>       take an item off
-  quest login --code <C>    new player, needs an access code
-  quest pair                log in another device
-  quest login --pair <C>    log in with a code from quest pair
-  quest init zsh|bash       shell integration, add to your rc file: eval "$(quest init zsh)"
-  quest heartbeat           report presence (called by hooks)`;
+  quest raid [schedule <min>|join]               guild raid, at least 5 raiders
+  quest login --code <code>                      new player, needs an access code
+  quest pair                                     log in another device or the website
+  quest login --pair <code>                      log in with a code from quest pair
+  quest init zsh|bash                            shell integration: eval "$(quest init zsh)"
+  quest heartbeat                                report presence (called by hooks)`;
 
 const { positionals, values } = parseArgs({
   allowPositionals: true,

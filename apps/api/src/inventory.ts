@@ -33,10 +33,20 @@ export function inventoryRoutes(app: FastifyInstance, db: PrismaClient) {
         target.key,
         req.body?.slot,
       );
-      await db.$transaction([
-        db.item.updateMany({ where: { id: { in: [...plan.unequip, target.id] } }, data: { equippedSlot: null } }),
-        db.item.update({ where: { id: target.id }, data: { equippedSlot: plan.slot } }),
-      ]);
+      // Ownership and listing are checked again inside the transaction: the item may have been listed and drawn meanwhile.
+      const equippedNow = await db.$transaction(async (tx) => {
+        await tx.item.updateMany({
+          where: { id: { in: [...plan.unequip, target.id] }, characterId: character.id },
+          data: { equippedSlot: null },
+        });
+        const { count } = await tx.item.updateMany({
+          where: { id: target.id, characterId: character.id, listedAt: null },
+          data: { equippedSlot: plan.slot },
+        });
+        if (count === 0) throw new Error("item changed hands");
+        return true;
+      }).catch(() => false);
+      if (!equippedNow) return reply.code(404).send({ error: "item not found" });
       return { slot: plan.slot, unequipped: plan.unequip };
     },
   );

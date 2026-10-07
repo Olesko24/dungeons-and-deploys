@@ -108,3 +108,14 @@ test("a 3-player run completes with scaled rewards", async () => {
     assert.ok(m.lootItemId, "every member gets boss loot");
   }
 });
+
+test("joins stop at five members", async () => {
+  clock = T0;
+  const leader = await player("crowd0");
+  const { code } = (await leader.call("POST", "/dungeons")).json();
+  for (const name of ["crowd1", "crowd2", "crowd3"]) await (await player(name)).call("POST", "/dungeons/join", { code });
+  const late = await Promise.all(["crowd4", "crowd5", "crowd6"].map(async (n) => (await player(n)).call("POST", "/dungeons/join", { code })));
+  assert.deepEqual(late.map((r) => r.statusCode).sort((a, b) => a - b), [200, 400, 400]);
+  const dungeon = await db.dungeon.findUniqueOrThrow({ where: { code }, include: { _count: { select: { members: true } } } });
+  assert.equal(dungeon._count.members, 5);
+});

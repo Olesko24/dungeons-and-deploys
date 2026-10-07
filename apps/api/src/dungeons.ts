@@ -121,13 +121,16 @@ export function dungeonRoutes(app: FastifyInstance, { db, now, scheduleStage }: 
       const character = await requireCharacter(db, req, reply);
       if (!character) return;
       if (await activeMembership(db, character.id)) return reply.code(409).send({ error: "already in a dungeon" });
-      const dungeon = await db.dungeon.findUnique({
-        where: { code: req.body.code.trim().toUpperCase() },
-        include: { _count: { select: { members: true } } },
+      const error = await db.$transaction(async (tx) => {
+        const dungeon = await tx.dungeon.findUnique({ where: { code: req.body.code.trim().toUpperCase() } });
+        if (!dungeon || dungeon.endedAt || now() >= dungeon.startsAt) return "no open dungeon with that code";
+        // Locking the dungeon row serializes parallel joins, so the party cannot grow past the limit.
+        await tx.$queryRaw`SELECT id FROM dungeons WHERE id = ${dungeon.id} FOR UPDATE`;
+        if ((await tx.dungeonMember.count({ where: { dungeonId: dungeon.id } })) >= DUNGEON_MAX_PARTY) return "party is full";
+        await tx.dungeonMember.create({ data: { dungeonId: dungeon.id, characterId: character.id } });
+        return null;
       });
-      if (!dungeon || dungeon.endedAt || now() >= dungeon.startsAt) return reply.code(400).send({ error: "no open dungeon with that code" });
-      if (dungeon._count.members >= DUNGEON_MAX_PARTY) return reply.code(400).send({ error: "party is full" });
-      await db.dungeonMember.create({ data: { dungeonId: dungeon.id, characterId: character.id } });
+      if (error) return reply.code(400).send({ error });
       return dungeonView(db, character.id, now());
     },
   );
