@@ -131,6 +131,8 @@ export function resolveQuest(db: PrismaClient, questId: number, random = Math.ra
       where: { id: character.id },
       data: { xp: { increment: outcome.xp }, gold: { increment: outcome.gold } },
     });
+    const membership = await tx.guildMember.findUnique({ where: { characterId: character.id } });
+    if (membership) await tx.guild.update({ where: { id: membership.guildId }, data: { xp: { increment: outcome.xp } } });
     if (!loot) return { ...outcome, loot: null };
     const lootItem = await tx.item.create({ data: { characterId: character.id, key: loot, ...rollStats(loot, random) } });
     await tx.quest.update({ where: { id: questId }, data: { lootItemId: lootItem.id } });

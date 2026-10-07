@@ -32,3 +32,8 @@ export function questOutcome(presentSlots: number, random: () => number, luck = 
   const gold = 2 * presentSlots + Math.floor(random() * 6);
   return { success: true, xp: 10 * presentSlots, gold: Math.floor(gold * (1 + fortune / 100)) };
 }
+
+export const GUILD_MAX_MEMBERS = 50;
+
+/** Guilds level on the same curve as characters, fed by 1/10 of their members' quest XP. */
+export const guildLevel = (xp: number) => levelFromXp(Math.floor(xp / 10));

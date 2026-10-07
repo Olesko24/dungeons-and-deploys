@@ -1,5 +1,5 @@
 import { type FormEvent, useCallback, useEffect, useState } from "react";
-import { type Character, type Item, type Quest, type Stats, type Status, Unauthorized, api } from "./api.ts";
+import { type Character, type Guild, type Item, type Quest, type Stats, type Status, Unauthorized, api } from "./api.ts";
 
 const SLOTS = [
   ["head", "Head"], ["chest", "Chest"], ["legs", "Legs"], ["hands", "Hands"], ["feet", "Feet"], ["mainHand", "Main hand"],
@@ -169,7 +169,28 @@ function History({ quests }: { quests: Quest[] }) {
   );
 }
 
-type Data = { character: Character; status: Status; items: Item[]; history: Quest[] };
+function GuildHall({ guild }: { guild: Guild | null }) {
+  return (
+    <section className="panel">
+      <h2>Guild hall</h2>
+      {!guild ? (
+        <p className="dim">No guild yet. Found one with <code>quest guild create &lt;name&gt;</code> or join with <code>quest guild join &lt;code&gt;</code>.</p>
+      ) : (
+        <>
+          <p>{guild.name} · Lv {guild.level} · {guild.members.length} members · join code <code>{guild.code}</code></p>
+          <Bar filled={Math.floor((guild.xpIntoLevel / guild.xpForNext) * 10)} total={10} label={`${guild.xpIntoLevel} of ${guild.xpForNext} guild XP`} />
+          <ul className="members">
+            {guild.members.map((m) => (
+              <li key={m.name}><span>{m.role === "leader" ? "♛ " : ""}{m.name}</span><span className="dim">Lv {m.level}</span></li>
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
+  );
+}
+
+type Data = { character: Character; status: Status; items: Item[]; history: Quest[]; guild: Guild | null };
 
 export function App() {
   const [data, setData] = useState<Data | null>(null);
@@ -177,13 +198,14 @@ export function App() {
 
   const load = useCallback(async () => {
     try {
-      const [character, status, inventory, history] = await Promise.all([
+      const [character, status, inventory, history, guild] = await Promise.all([
         api<Character>("/character"),
         api<Status>("/quests/current"),
         api<{ items: Item[] }>("/inventory"),
         api<Quest[]>("/quests/history"),
+        api<{ guild: Guild | null }>("/guild"),
       ]);
-      setData({ character, status, items: inventory.items, history });
+      setData({ character, status, items: inventory.items, history, guild: guild.guild });
       setLoggedOut(false);
     } catch (err) {
       if (err instanceof Unauthorized) setLoggedOut(true);
@@ -214,6 +236,7 @@ export function App() {
       </header>
       <QuestStatus status={data.status} />
       <Inventory items={data.items} onChange={() => void load()} />
+      <GuildHall guild={data.guild} />
       <History quests={data.history} />
     </main>
   );

@@ -197,6 +197,21 @@ async function dungeon(action: string | undefined, code: string | undefined) {
   if (d.you.xp) console.log(`Your loot so far: +${d.you.xp} XP · +${d.you.gold} gold`);
 }
 
+async function guild(action: string | undefined, arg: string) {
+  const call =
+    action === "create" ? authed("/guild", "POST", { name: arg })
+    : action === "join" ? authed("/guild/join", "POST", { code: arg })
+    : action === "leave" ? authed("/guild/leave", "POST")
+    : authed("/guild");
+  const res = await call;
+  if (res.status >= 400) throw new Error(res.data.error ?? res.data.message ?? `Failed (${res.status})`);
+  if (action === "leave") return console.log("You left the guild.");
+  const g = res.data.guild;
+  if (!g) return console.log("No guild yet. quest guild create <name> or quest guild join <code>");
+  console.log(`${g.name} · guild Lv ${g.level} · ${g.members.length} members · join code ${g.code}`);
+  for (const m of g.members) console.log(`  ${m.role === "leader" ? "♛" : " "} ${m.name.padEnd(20)} Lv ${m.level}`);
+}
+
 async function character() {
   const { data: c } = await authed("/character");
   console.log(`${c.name} · Lv ${c.level} · ${c.gold}g`);
@@ -238,6 +253,7 @@ const USAGE = `Usage: quest [command]
   quest fight               fight a monster that showed up
   quest market              market: draw a random item of a rarity, list your own
   quest dungeon [start|join <code>]  dungeon with up to 5 players
+  quest guild [create <name>|join <code>|leave]  your guild
   quest inv                 inventory
   quest equip <#id>         equip an item (--slot ring1|ring2 for rings)
   quest unequip <#id>       take an item off
@@ -266,6 +282,9 @@ try {
       break;
     case "fight":
       await fightMonster();
+      break;
+    case "guild":
+      await guild(positionals[1], positionals.slice(2).join(" "));
       break;
     case "dungeon":
       await dungeon(positionals[1], positionals[2]);

@@ -62,6 +62,7 @@ model Character {
   encounters Encounter[]
   draws      MarketDraw[]
   dungeons   DungeonMember[]
+  guild      GuildMember?
   createdAt  DateTime        @default(now()) @map("created_at")
 
   @@map("characters")
@@ -173,4 +174,29 @@ model DungeonMember {
 
   @@id([dungeonId, characterId])
   @@map("dungeon_members")
+}
+
+/// Guild XP grows with the quest XP of its members.
+model Guild {
+  id        Int           @id @default(autoincrement())
+  name      String        @unique
+  code      String        @unique
+  xp        Int           @default(0)
+  members   GuildMember[]
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  @@map("guilds")
+}
+
+/// A character is in at most one guild. `role` is `leader` or `member`.
+model GuildMember {
+  characterId Int       @id @map("character_id")
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  guildId     Int       @map("guild_id")
+  guild       Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  role        String    @default("member")
+  joinedAt    DateTime  @default(now()) @map("joined_at")
+
+  @@index([guildId])
+  @@map("guild_members")
 }

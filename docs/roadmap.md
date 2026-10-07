@@ -114,10 +114,11 @@ Fair by chance, not by bidding. More gold must not mean better equipment.
 
 ## Phase 8 – Guilds
 
-- [ ] Tables: `guilds`, `guild_members` (roles: leader, member)
-- [ ] CLI: `quest guild create|join|leave|info`
-- [ ] Guild level grows from members' quests
-- [ ] Guild hall page on the website
+- [x] Tables: `guilds`, `guild_members` (roles: leader, member), join by guild code, max 50 members
+- [x] CLI: `quest guild create <name>|join <code>|leave`, `quest guild` for info
+- [x] Guild level grows from 1/10 of members' quest XP
+- [x] Leaving leader hands over to the longest-standing member, the last member dissolves the guild
+- [x] Guild hall section on the website
 
 **Done when:** Players create, join and leave guilds. Guild level rises from member activity.
 

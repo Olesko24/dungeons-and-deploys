@@ -4,6 +4,6 @@ import { defineConfig } from "vite";
 const api = { target: "http://localhost:3000" };
 export default defineConfig({
   server: {
-    proxy: Object.fromEntries(["/auth", "/character", "/quests", "/inventory", "/market", "/fight"].map((p) => [p, api])),
+    proxy: Object.fromEntries(["/auth", "/character", "/quests", "/inventory", "/market", "/fight", "/guild", "/dungeons"].map((p) => [p, api])),
   },
 });

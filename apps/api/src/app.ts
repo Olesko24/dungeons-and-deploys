@@ -7,6 +7,7 @@ import { authRoutes } from "./auth.ts";
 import type { PrismaClient } from "./generated/prisma/client.ts";
 import { dungeonRoutes } from "./dungeons.ts";
 import { encounterRoutes } from "./encounters.ts";
+import { guildRoutes } from "./guilds.ts";
 import { inventoryRoutes } from "./inventory.ts";
 import { marketRoutes } from "./market.ts";
 import { questRoutes } from "./quests.ts";
@@ -54,6 +55,7 @@ export async function buildApp(deps: Deps, opts: FastifyServerOptions = {}) {
   encounterRoutes(app, full);
   marketRoutes(app, full);
   dungeonRoutes(app, full);
+  guildRoutes(app, db);
 
   return app;
 }

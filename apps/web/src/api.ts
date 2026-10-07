@@ -18,6 +18,15 @@ export type Status = {
   encounter: { name: string; level: number; expiresAt: string; winChance: number } | null;
 };
 
+export type Guild = {
+  name: string;
+  code: string;
+  level: number;
+  xpIntoLevel: number;
+  xpForNext: number;
+  members: { name: string; role: string; level: number }[];
+};
+
 export class Unauthorized extends Error {}
 
 /** Same-origin calls, the session lives in an httpOnly cookie. */
