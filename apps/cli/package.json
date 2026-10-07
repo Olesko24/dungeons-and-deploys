@@ -22,5 +22,6 @@
     "prepublishOnly": "pnpm build",
     "test": "node --test",
     "typecheck": "tsc"
-  }
+  },
+  "license": "MIT"
 }
