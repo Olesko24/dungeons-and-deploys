@@ -29,6 +29,19 @@ export function rollMonster(random: () => number): MonsterKey {
 /** Attack scales linearly, defense multiplies it with a gentle slope so tanks are not invincible. */
 export const combatPower = (level: number, gear: Stats) => (4 + level + gear.attack) * (1 + (level + gear.defense) / 20);
 
+/** Combat power as players see it: tenfold and rounded, so progress shows in whole numbers. */
+export const powerScore = (power: number) => Math.round(power * 10);
+
+/** A player's shown combat power. `percent` is the talent and buff bonus that applies in that context. */
+export const playerPower = (level: number, gear: Stats, percent = 0) => powerScore(combatPower(level, gear) * (1 + percent / 100));
+
+/**
+ * Shown power for a 60% chance, before luck, against an opponent `strength` times as strong as an
+ * unequipped player of `level`: winChance is power / (power + opponent), so 60% needs 1.5 times the opponent.
+ */
+export const recommendedPower = (level: number, strength: number) =>
+  powerScore(1.5 * combatPower(level, { attack: 0, defense: 0, luck: 0, fortune: 0 }) * strength);
+
 /**
  * Win chance against a monster of the player's level, plus luck in percentage points, kept within 5-95%.
  * `power` adds percent to the player's combat power.

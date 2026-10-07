@@ -1,4 +1,4 @@
-import { type MonsterKey, fightRewards, winChance } from "./combat.ts";
+import { MONSTERS, type MonsterKey, fightRewards, recommendedPower, winChance } from "./combat.ts";
 import { type Stats, randomItemKey } from "./items.ts";
 
 export const DUNGEON_LOBBY_MS = 5 * 60 * 1000;
@@ -15,6 +15,12 @@ export const DUNGEON_STAGES: { name: string; monster: MonsterKey; power: number 
 
 /** `power` adds percent combat power, `stageChance` percentage points on the stage. */
 export type DungeonMember = { level: number; gear: Stats; power?: number; stageChance?: number };
+
+/** Recommended shown power per member for a stage, by the same toughness `stageChance` uses. Teamwork comes on top. */
+export function stageRecommendation(stage: number, level: number, size: number) {
+  const { monster, power } = DUNGEON_STAGES[stage];
+  return recommendedPower(level, MONSTERS[monster].power * power * (1 + 0.1 * (size - 1)));
+}
 
 /**
  * Average member odds against the stage plus 5 points of teamwork per extra member.

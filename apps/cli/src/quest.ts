@@ -63,6 +63,7 @@ async function refresh() {
   await saveStatus(data);
   return data as Status & {
     quest: QuestResult | null;
+    encounter: { name: string; expiresAt: string; winChance: number; power: number; recommended: number } | null;
   };
 }
 
@@ -137,7 +138,10 @@ async function status() {
   const data = await refresh();
   const q = data.quest;
   const e = data.encounter;
-  if (e) console.log(`⚠ ${e.name} appeared! quest fight within ${minutesUntil(e.expiresAt)}m · odds ${Math.round(e.winChance * 100)}%`);
+  if (e) {
+    console.log(`⚠ ${e.name} appeared! quest fight within ${minutesUntil(e.expiresAt)}m · odds ${Math.round(e.winChance * 100)}%`);
+    console.log(`  your power ${e.power} · recommended ${e.recommended}`);
+  }
   if (!q) return console.log("No quest yet. Start one: quest");
   if (!q.resolved) {
     const left = minutesUntil(q.endsAt);
@@ -206,26 +210,37 @@ async function dungeon(action: string | undefined, code: string | undefined) {
   console.log(`  ${d.story}`);
   d.stages.forEach((name: string, i: number) => {
     const mark = i < d.cleared ? "✓" : d.state === "failed" && i === d.cleared ? "✗" : i === d.cleared && d.current ? "⚔" : "·";
-    console.log(`  ${mark} ${name}`);
+    console.log(`  ${mark} ${name.padEnd(32)} power ${d.power[i]} / ${d.recommended[i]} recommended`);
   });
   if (d.state === "lobby") console.log(`Starts in ${minutesUntil(d.startsAt)}m. Others join with: quest dungeon join ${d.code}`);
   if (d.state === "running") console.log(`Stage ends in ${minutesUntil(d.stageEndsAt)}m.`);
   if (d.you.xp) console.log(`Your loot so far: +${d.you.xp} XP · +${d.you.gold} gold`);
 }
 
+type Buff = { key: string; name: string; text: string; cost: number; level: number; unlocked: boolean; endsAt: string | null };
+
 async function guild(action: string | undefined, arg: string) {
+  if (action === "donate" && !/^\d+$/.test(arg)) throw new Error("Usage: quest guild donate <gold>");
   const call =
     action === "create" ? authed("/guild", "POST", { name: arg })
     : action === "join" ? authed("/guild/join", "POST", { code: arg })
     : action === "leave" ? authed("/guild/leave", "POST")
+    : action === "donate" ? authed("/guild/donate", "POST", { amount: Number(arg) })
+    : action === "buff" && arg ? authed("/guild/buffs", "POST", { key: arg })
     : authed("/guild");
   const res = await call;
   if (res.status >= 400) throw new Error(res.data.error ?? res.data.message ?? `Failed (${res.status})`);
   if (action === "leave") return console.log("You left the guild.");
   const g = res.data.guild;
   if (!g) return console.log("No guild yet. quest guild create <name> or quest guild join <code>");
-  console.log(`${g.name} · guild Lv ${g.level} · ${g.members.length} members · join code ${g.code}`);
-  for (const m of g.members) console.log(`  ${m.role === "leader" ? "♛" : " "} ${m.name.padEnd(20)} Lv ${m.level}`);
+  console.log(`${g.name} · guild Lv ${g.level} · ${g.members.length} members · bank ${g.gold}g · join code ${g.code}`);
+  for (const m of g.members) console.log(`  ${m.role === "leader" ? "♛" : " "} ${m.name.padEnd(20)} Lv ${String(m.level).padEnd(4)} donated ${m.donated}g`);
+  console.log("\nBuffs, 24h for every member:");
+  for (const b of g.buffs as Buff[]) {
+    const state = b.endsAt ? `active, ${Math.ceil(minutesUntil(b.endsAt) / 60)}h left` : b.unlocked ? `${b.cost}g` : `guild Lv ${b.level}`;
+    console.log(`  ${b.key.padEnd(15)} ${b.text.padEnd(32)} ${state}`);
+  }
+  console.log("\nquest guild donate <gold> · leader: quest guild buff <key>");
 }
 
 async function raid(action: string | undefined, minutes: string | undefined) {
@@ -329,7 +344,7 @@ async function doc(name: "manual" | "changelog") {
 
 async function character() {
   const { data: c } = await authed("/character");
-  console.log(`${c.name} · Lv ${c.level} · ${c.gold}g`);
+  console.log(`${c.name} · Lv ${c.level} · Power ${c.power} · ${c.gold}g`);
   console.log(`XP ${bar(Math.floor((c.xpIntoLevel / c.xpForNext) * 10), 10)} ${c.xpIntoLevel}/${c.xpForNext}`);
   console.log(statsText(c) || "No equipment yet. See: quest inv");
 }
@@ -378,6 +393,7 @@ const USAGE = `Usage: quest [command]
   quest changelog                                what changed
   quest dungeon [start|join <code>]              dungeon with up to 5 players
   quest guild [create <name>|join <code>|leave]  your guild
+  quest guild donate <gold> | buff <key>         guild bank and buffs
   quest raid [schedule <min>|join]               guild raid, at least 5 raiders
   quest login --code <code>                      new player, needs an access code
   quest pair                                     log in another device or the website

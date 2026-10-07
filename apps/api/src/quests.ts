@@ -4,8 +4,10 @@ import {
   QUEST_LOOT_ROLLS,
   type Talents,
   equipmentBonus,
+  guildShare,
   levelFromXp,
   playerBonus,
+  playerPower,
   questName,
   questOutcome,
   questStory,
@@ -19,6 +21,7 @@ import { equippedItems, itemView, requireCharacter } from "./characters.ts";
 import { SESSION_COOKIE } from "./auth.ts";
 import { dungeonView } from "./dungeons.ts";
 import { encounterView, maybeSpawnEncounter } from "./encounters.ts";
+import { guildBuffs } from "./guilds.ts";
 import { type Character, type Item, Prisma, type PrismaClient, type Quest } from "./generated/prisma/client.ts";
 
 const questView = (q: Quest & { lootItem?: Item | null }) => ({
@@ -33,7 +36,8 @@ const questView = (q: Quest & { lootItem?: Item | null }) => ({
   loot: q.lootItem ? itemView(q.lootItem) : null,
 });
 
-const cooldownMs = (character: Character) => COOLDOWN_MS * (1 - talentBonus(character.talents as Talents).cooldown / 100);
+const cooldownMs = async (db: Pick<PrismaClient, "guildBuff">, character: Character, t: Date) =>
+  COOLDOWN_MS * (1 - talentBonus(character.talents as Talents, await guildBuffs(db, character.id, t)).cooldown / 100);
 
 export function questRoutes(app: FastifyInstance, { db, now, random }: Required<Deps>) {
   app.post("/quests", async (req, reply) => {
@@ -45,7 +49,7 @@ export function questRoutes(app: FastifyInstance, { db, now, random }: Required<
       await tx.$queryRaw`SELECT id FROM characters WHERE id = ${character.id} FOR UPDATE`;
       const last = await tx.quest.findFirst({ where: { characterId: character.id }, orderBy: { startedAt: "desc" } });
       if (last && !last.resolvedAt) return { error: "quest already running" };
-      const cooldown = cooldownMs(character);
+      const cooldown = await cooldownMs(tx, character, t);
       if (last && last.endsAt.getTime() + cooldown > t.getTime()) {
         return { error: "cooldown", readyAt: new Date(last.endsAt.getTime() + cooldown) };
       }
@@ -62,7 +66,7 @@ export function questRoutes(app: FastifyInstance, { db, now, random }: Required<
 
   const status = async (character: Character, last: (Quest & { lootItem: Item | null }) | null) => ({
     quest: last ? questView(last) : null,
-    readyAt: last ? new Date(last.endsAt.getTime() + cooldownMs(character)) : now(),
+    readyAt: last ? new Date(last.endsAt.getTime() + (await cooldownMs(db, character, now()))) : now(),
     character: { name: character.name, gold: character.gold, level: levelFromXp(character.xp).level },
     encounter: await encounterView(db, character, now()),
     dungeon: await dungeonView(db, character.id, now()),
@@ -107,6 +111,8 @@ export function questRoutes(app: FastifyInstance, { db, now, random }: Required<
     const character = await requireCharacter(db, req, reply);
     if (!character) return;
     const equipped = await equippedItems(db, character.id);
+    const { level } = levelFromXp(character.xp);
+    const bonus = playerBonus(equipped, character.talents as Talents, await guildBuffs(db, character.id, now()));
     return {
       name: character.name,
       xp: character.xp,
@@ -114,6 +120,7 @@ export function questRoutes(app: FastifyInstance, { db, now, random }: Required<
       tour: character.tour,
       ...levelFromXp(character.xp),
       ...equipmentBonus(equipped),
+      power: playerPower(level, bonus.gear, bonus.power),
     };
   });
 }
@@ -131,7 +138,7 @@ async function grantQuest(tx: Prisma.TransactionClient, questId: number, random:
   if (!quest || quest.resolvedAt) return null;
 
   const { character } = quest;
-  const bonus = playerBonus(character.items, character.talents as Talents);
+  const bonus = playerBonus(character.items, character.talents as Talents, await guildBuffs(tx, character.id, t));
   const outcome = questOutcome(random, bonus.gear.luck + bonus.questLuck, bonus.gear.fortune + bonus.questGold);
   outcome.xp = withBonus(outcome.success ? outcome.xp : outcome.xp + bonus.failXp, bonus.xp + bonus.questXp);
   const loot = outcome.success ? rollLoot(levelFromXp(character.xp).level, QUEST_LOOT_ROLLS, random, bonus) : null;
@@ -143,7 +150,9 @@ async function grantQuest(tx: Prisma.TransactionClient, questId: number, random:
     data: { xp: { increment: outcome.xp }, gold: { increment: outcome.gold } },
   });
   const membership = await tx.guildMember.findUnique({ where: { characterId: character.id } });
-  if (membership) await tx.guild.update({ where: { id: membership.guildId }, data: { xp: { increment: outcome.xp } } });
+  if (membership) {
+    await tx.guild.update({ where: { id: membership.guildId }, data: { xp: { increment: outcome.xp }, gold: { increment: guildShare(outcome.gold) } } });
+  }
   if (!loot) return { ...outcome, loot: null };
   const lootItem = await tx.item.create({ data: { characterId: character.id, key: loot, ...rollStats(loot, random) } });
   await tx.quest.update({ where: { id: questId }, data: { lootItemId: lootItem.id } });

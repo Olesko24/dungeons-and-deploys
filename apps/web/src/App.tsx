@@ -44,6 +44,12 @@ function statParts(s: Stats) {
   ].filter(Boolean) as string[];
 }
 
+/** Your shown power against a recommendation, colored green at 100%, yellow from 75%, red below. */
+function Power({ yours, recommended }: { yours: number; recommended: number }) {
+  const tone = yours >= recommended ? "good" : yours >= recommended * 0.75 ? "warn" : "bad";
+  return <span className={`power ${tone}`} title="Your combat power / recommended for about 60% odds">⚔ {yours} / {recommended}</span>;
+}
+
 function Bar({ filled, total, label }: { filled: number; total: number; label: string }) {
   return (
     <div className="bar" role="img" aria-label={label}>
@@ -180,7 +186,7 @@ function QuestStatus({ status, onChange }: { status: Status; onChange: () => voi
       <h2><UiIcon name="hourglass" />Status</h2>
       {e && (
         <div className="row">
-          <p className="alert">⚠ {e.name} (Lv {e.level}) appeared · {Math.round(e.winChance * 100)}% odds · leaves in {minutesUntil(e.expiresAt)}m</p>
+          <p className="alert">⚠ {e.name} (Lv {e.level}) appeared · {Math.round(e.winChance * 100)}% odds · <Power yours={e.power} recommended={e.recommended} /> · leaves in {minutesUntil(e.expiresAt)}m</p>
           <button type="button" className="small" onClick={() => act("/fight", fightResult)}>Fight</button>
         </div>
       )}
@@ -188,7 +194,10 @@ function QuestStatus({ status, onChange }: { status: Status; onChange: () => voi
         <p>Dungeon <code>{status.dungeon.code}</code> starts in {minutesUntil(status.dungeon.startsAt)}m · party: {status.dungeon.members.join(", ")}</p>
       )}
       {status.dungeon?.state === "running" && (
-        <p>Dungeon stage {status.dungeon.cleared + 1}/4 · {status.dungeon.current} · {minutesUntil(status.dungeon.stageEndsAt ?? "")}m left</p>
+        <p>
+          Dungeon stage {status.dungeon.cleared + 1}/4 · {status.dungeon.current} ·{" "}
+          <Power yours={status.dungeon.power[status.dungeon.cleared]} recommended={status.dungeon.recommended[status.dungeon.cleared]} /> · {minutesUntil(status.dungeon.stageEndsAt ?? "")}m left
+        </p>
       )}
       {status.dungeon && <p className="dim">{status.dungeon.story}</p>}
       {q && !q.resolved && (
@@ -305,7 +314,20 @@ function History({ quests }: { quests: Quest[] }) {
   );
 }
 
-function GuildHall({ guild }: { guild: Guild | null }) {
+function GuildHall({ guild, me, onChange }: { guild: Guild | null; me: string; onChange: () => void }) {
+  const [amount, setAmount] = useState("");
+  const [message, setMessage] = useState("");
+  async function act(path: string, body: object) {
+    try {
+      await api(path, body);
+      setMessage("");
+      setAmount("");
+      onChange();
+    } catch (err) {
+      setMessage((err as Error).message);
+    }
+  }
+  const leader = guild?.members.some((m) => m.name === me && m.role === "leader");
   return (
     <section className="panel">
       <h2><UiIcon name="guild" />Guild hall</h2>
@@ -317,7 +339,36 @@ function GuildHall({ guild }: { guild: Guild | null }) {
           <Bar filled={Math.floor((guild.xpIntoLevel / guild.xpForNext) * 10)} total={10} label={`${guild.xpIntoLevel} of ${guild.xpForNext} guild XP`} />
           <ul className="members">
             {guild.members.map((m) => (
-              <li key={m.name}><span>{m.role === "leader" ? "♛ " : ""}{m.name}</span><span className="dim">Lv {m.level}</span></li>
+              <li key={m.name}>
+                <span>{m.role === "leader" ? "♛ " : ""}{m.name}</span>
+                <span className="dim">Lv {m.level} · donated <Gold amount={m.donated} /></span>
+              </li>
+            ))}
+          </ul>
+          <h3 className="sub">Guild bank · <Gold amount={guild.gold} /></h3>
+          <p className="dim">Every quest adds 10% of its gold to the bank, on top of your own reward. Donations help too.</p>
+          <form className="donate" onSubmit={(e) => { e.preventDefault(); void act("/guild/donate", { amount: Number(amount) }); }}>
+            <input type="number" min={1} step={1} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Gold" aria-label="Gold to donate" required />
+            <button type="submit" className="small">Donate</button>
+          </form>
+          {message && <p className="error" role="alert">{message}</p>}
+          <h3 className="sub">Buffs · 24h for every member{leader ? "" : " · the leader activates them"}</h3>
+          <ul className="buffs">
+            {guild.buffs.map((b) => (
+              <li key={b.key} className={b.endsAt ? "active" : b.unlocked ? "" : "locked"}>
+                <span><strong>{b.name}</strong> · {b.text}<br /><em className="dim">{b.flavor}</em></span>
+                {b.endsAt ? (
+                  <span className="good">active · {Math.ceil(minutesUntil(b.endsAt) / 60)}h left</span>
+                ) : !b.unlocked ? (
+                  <span className="dim">guild Lv {b.level}</span>
+                ) : leader ? (
+                  <button type="button" className="small" disabled={guild.gold < b.cost} onClick={() => act("/guild/buffs", { key: b.key })}>
+                    <Gold amount={b.cost} />
+                  </button>
+                ) : (
+                  <span className="dim"><Gold amount={b.cost} /></span>
+                )}
+              </li>
             ))}
           </ul>
         </>
@@ -630,7 +681,7 @@ export function App() {
         <img src="/icon.svg" alt="" width={64} height={64} className="icon" />
         <div className="hero-text">
           <h1>{c.name}</h1>
-          <p>Lv {c.level} · <Gold amount={c.gold} /> · {statParts(c).join(" · ") || "no equipment yet"}</p>
+          <p>Lv {c.level} · <span className="power" title="Combat power from level, equipment, talents and guild buffs">⚔ {c.power}</span> · <Gold amount={c.gold} /> · {statParts(c).join(" · ") || "no equipment yet"}</p>
           <Bar filled={Math.floor((c.xpIntoLevel / c.xpForNext) * 10)} total={10} label={`${c.xpIntoLevel} of ${c.xpForNext} XP`} />
           <p className="dim">XP {c.xpIntoLevel}/{c.xpForNext}</p>
         </div>
@@ -654,7 +705,7 @@ export function App() {
           <QuestStatus status={data.status} onChange={() => void load()} />
           <Inventory items={data.items} onChange={() => void load()} />
           {data.raid && <RaidView raid={data.raid} />}
-          <GuildHall guild={data.guild} />
+          <GuildHall guild={data.guild} me={c.name} onChange={() => void load()} />
           <History quests={data.history} />
         </>
       )}

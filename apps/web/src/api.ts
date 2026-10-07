@@ -11,12 +11,12 @@ export type Quest = {
   gold: number;
   loot: Item | null;
 };
-export type Character = Stats & { name: string; xp: number; gold: number; tour: "new" | "skipped" | "done"; level: number; xpIntoLevel: number; xpForNext: number };
+export type Character = Stats & { name: string; xp: number; gold: number; tour: "new" | "skipped" | "done"; level: number; xpIntoLevel: number; xpForNext: number; power: number };
 export type Status = {
   quest: Quest | null;
   readyAt: string;
-  encounter: { name: string; level: number; expiresAt: string; winChance: number } | null;
-  dungeon: { code: string; state: string; story: string; startsAt: string; cleared: number; current: string | null; stageEndsAt: string | null; members: string[] } | null;
+  encounter: { name: string; level: number; expiresAt: string; winChance: number; power: number; recommended: number } | null;
+  dungeon: { code: string; state: string; story: string; startsAt: string; cleared: number; current: string | null; stageEndsAt: string | null; members: string[]; power: number[]; recommended: number[] } | null;
 };
 
 export type Guild = {
@@ -25,7 +25,9 @@ export type Guild = {
   level: number;
   xpIntoLevel: number;
   xpForNext: number;
-  members: { name: string; role: string; level: number }[];
+  gold: number;
+  members: { name: string; role: string; level: number; donated: number }[];
+  buffs: { key: string; name: string; text: string; flavor: string; cost: number; level: number; unlocked: boolean; endsAt: string | null }[];
 };
 
 export type Raid = {

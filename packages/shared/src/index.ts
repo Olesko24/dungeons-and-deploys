@@ -19,6 +19,7 @@ export function levelFromXp(totalXp: number) {
 export * from "./achievements.ts";
 export * from "./combat.ts";
 export * from "./dungeons.ts";
+export * from "./guilds.ts";
 export * from "./items.ts";
 export * from "./market.ts";
 export * from "./raids.ts";

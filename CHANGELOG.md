@@ -13,6 +13,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   open with points spent and prerequisites. `quest talents` or the talent trees with icons on the website.
   A reset costs 10 gold per spent point.
 - Level cap 100.
+- Combat power, shown on the character and as a recommendation for every monster and dungeon stage.
+- Guild bank and guild buffs: members donate gold and every quest adds 10% of its gold on top. The leader buys
+  buffs for every member, such as +10% XP or +5% combat power, for 24 hours.
 - Start on the website: create a character with an access code, no terminal needed. **Terminal** on the website
   shows how to install the CLI and a pair code to connect it. The start page explains how to get the CLI.
 - Interactive website tour on the first visit, restartable with the Tour button. Finishing it unlocks the

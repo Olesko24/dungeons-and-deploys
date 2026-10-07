@@ -9,6 +9,8 @@ import {
   fightStory,
   levelFromXp,
   playerBonus,
+  playerPower,
+  recommendedPower,
   rollLoot,
   rollMonster,
   rollStats,
@@ -18,6 +20,7 @@ import {
 } from "@dnd/shared";
 import type { Deps } from "./app.ts";
 import { equippedItems, itemView, requireCharacter } from "./characters.ts";
+import { guildBuffs } from "./guilds.ts";
 import type { Character, PrismaClient } from "./generated/prisma/client.ts";
 
 const activeEncounter = (db: PrismaClient, characterId: number, t: Date) =>
@@ -25,7 +28,7 @@ const activeEncounter = (db: PrismaClient, characterId: number, t: Date) =>
 
 /** Called on every accepted heartbeat. Spawns at most one monster at a time. */
 export async function maybeSpawnEncounter(db: PrismaClient, character: Character, t: Date, random: () => number) {
-  const chance = ENCOUNTER_CHANCE * (1 + talentBonus(character.talents as Talents).encounter / 100);
+  const chance = ENCOUNTER_CHANCE * (1 + talentBonus(character.talents as Talents, await guildBuffs(db, character.id, t)).encounter / 100);
   if (random() >= chance || (await activeEncounter(db, character.id, t))) return;
   await db.encounter.create({
     data: {
@@ -41,13 +44,17 @@ export async function maybeSpawnEncounter(db: PrismaClient, character: Character
 export async function encounterView(db: PrismaClient, character: Character, t: Date) {
   const encounter = await activeEncounter(db, character.id, t);
   if (!encounter) return null;
-  const bonus = playerBonus(await equippedItems(db, character.id), character.talents as Talents);
+  const bonus = playerBonus(await equippedItems(db, character.id), character.talents as Talents, await guildBuffs(db, character.id, t));
   const monster = encounter.monster as MonsterKey;
+  const { level } = levelFromXp(character.xp);
+  const percent = bonus.power + bonus.fightPower;
   return {
     name: MONSTERS[monster].name,
     level: encounter.level,
     expiresAt: encounter.expiresAt,
-    winChance: winChance(levelFromXp(character.xp).level, bonus.gear, monster, bonus.power + bonus.fightPower),
+    winChance: winChance(level, bonus.gear, monster, percent),
+    power: playerPower(level, bonus.gear, percent),
+    recommended: recommendedPower(level, MONSTERS[monster].power),
   };
 }
 
@@ -64,7 +71,7 @@ export function encounterRoutes(app: FastifyInstance, { db, now, random }: Requi
       if (!encounter) return null;
       const monster = encounter.monster as MonsterKey;
       const level = levelFromXp(character.xp).level;
-      const bonus = playerBonus(await equippedItems(tx, character.id), character.talents as Talents);
+      const bonus = playerBonus(await equippedItems(tx, character.id), character.talents as Talents, await guildBuffs(tx, character.id, t));
       const chance = winChance(level, bonus.gear, monster, bonus.power + bonus.fightPower);
       const won = random() < chance;
       const rewards = won ? fightRewards(monster, level, bonus.gear.fortune + bonus.fightGold) : { xp: bonus.failXp, gold: 0 };

@@ -12,7 +12,7 @@ export type TalentTree = (typeof TALENT_TREES)[number];
  * What a talent rank adds. Percent effects keep one point worth the same at level 5 and level 95,
  * which flat attack or defense would not.
  */
-type Effects = {
+export type Effects = {
   /** % combat power in fights, dungeons and raids */
   power: number;
   /** % combat power in monster fights */
@@ -144,15 +144,17 @@ export function talentText(key: TalentKey, rank: number) {
   return rank < 1 || rank > t.max ? null : t.text.replace("{v}", String(rank * t.per));
 }
 
-export function talentBonus(talents: Talents): Effects {
+/** Talent effects plus `extra`, such as active guild buffs. */
+export function talentBonus(talents: Talents, extra: Partial<Effects> = {}): Effects {
   const bonus = Object.fromEntries(TALENT_KEYS.map((k) => [TALENTS[k].effect, 0])) as Effects;
   for (const k of TALENT_KEYS) bonus[TALENTS[k].effect] += (talents[k] ?? 0) * TALENTS[k].per;
+  for (const [effect, value] of Object.entries(extra) as [TalentEffect, number][]) bonus[effect] += value;
   return bonus;
 }
 
-/** Equipment and talents together. Talent luck and fortune count like the same stats on gear. */
-export function playerBonus(items: Stats[], talents: Talents) {
-  const t = talentBonus(talents);
+/** Equipment, talents and `extra` effects together. Talent luck and fortune count like the same stats on gear. */
+export function playerBonus(items: Stats[], talents: Talents, extra: Partial<Effects> = {}) {
+  const t = talentBonus(talents, extra);
   const gear = equipmentBonus(items);
   return { ...t, gear: { ...gear, luck: gear.luck + t.luck, fortune: gear.fortune + t.fortune } };
 }

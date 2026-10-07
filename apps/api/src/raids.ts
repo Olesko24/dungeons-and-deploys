@@ -20,6 +20,7 @@ import {
 } from "@dnd/shared";
 import type { Deps } from "./app.ts";
 import { requireCharacter } from "./characters.ts";
+import { guildBuffs } from "./guilds.ts";
 import type { PrismaClient } from "./generated/prisma/client.ts";
 
 const NO_GEAR = { attack: 0, defense: 0, luck: 0, fortune: 0 };
@@ -64,13 +65,14 @@ export function advanceRaid(db: PrismaClient, raidId: number, tick: number, rand
     const expected = tick === 0 ? "scheduled" : "running";
     if (!raid || raid.state !== expected || (tick > 0 && raid.tick !== tick - 1)) return null;
 
-    const fighters = raid.members.map((m) => {
+    const fighters = [];
+    for (const m of raid.members) {
       const level = levelFromXp(m.character.xp).level;
-      const bonus = talentBonus(m.character.talents as Talents);
-      // Boss HP follows gear power only, so talents make raiders hit harder instead of growing the boss.
+      const bonus = talentBonus(m.character.talents as Talents, await guildBuffs(tx, m.characterId, new Date()));
+      // Boss HP follows gear power only, so talents and buffs make raiders hit harder instead of growing the boss.
       const talentScale = (1 + (bonus.power + bonus.groupPower) / 100) * (1 + bonus.raidDamage / 100);
-      return { m, level, bonus, talentScale, power: combatPower(level, equipmentBonus(m.character.items)), base: combatPower(level, NO_GEAR) };
-    });
+      fighters.push({ m, level, bonus, talentScale, power: combatPower(level, equipmentBonus(m.character.items)), base: combatPower(level, NO_GEAR) });
+    }
 
     if (tick === 0) {
       if (fighters.length < RAID_MIN_PLAYERS) {

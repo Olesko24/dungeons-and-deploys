@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { MONSTERS, fightRewards, rollMonster, winChance } from "./index.ts";
+import { MONSTERS, buffEffects, fightRewards, guildShare, playerPower, recommendedPower, rollMonster, stageRecommendation, winChance } from "./index.ts";
 
 const none = { attack: 0, defense: 0, luck: 0, fortune: 0 };
 
@@ -28,4 +28,21 @@ test("fight rewards scale with toughness and fortune", () => {
   assert.deepEqual(fightRewards("flakyTestGoblin", 10), { xp: 40, gold: 13 });
   assert.deepEqual(fightRewards("dependencyDragon", 10), { xp: 100, gold: 33 });
   assert.deepEqual(fightRewards("flakyTestGoblin", 10, 100), { xp: 40, gold: 26 });
+});
+
+test("shown power and recommendations", () => {
+  assert.equal(playerPower(1, none), 53, "(4 + 1) × 1.05, tenfold");
+  assert.equal(playerPower(1, none, 10), 58, "talents and buffs add percent");
+  // The first gear that reaches the recommendation gives about 60% before luck.
+  let attack = 0;
+  while (playerPower(10, { ...none, attack }) < recommendedPower(10, 1)) attack++;
+  assert.ok(Math.abs(winChance(10, { ...none, attack }, "flakyTestGoblin") - 0.6) < 0.02);
+  assert.ok(recommendedPower(10, MONSTERS.dependencyDragon.power) > recommendedPower(10, MONSTERS.bugSwarm.power));
+  assert.ok(stageRecommendation(3, 10, 1) > stageRecommendation(0, 10, 1), "the boss needs the most");
+  assert.ok(stageRecommendation(0, 10, 5) > stageRecommendation(0, 10, 1), "bigger parties face tougher stages");
+});
+
+test("guild buffs and bank share", () => {
+  assert.deepEqual(buffEffects(["standupSnacks", "warRoom", "nope"]), { xp: 10, power: 5 });
+  assert.deepEqual([guildShare(0), guildShare(4), guildShare(14), guildShare(19)], [0, 1, 1, 2]);
 });

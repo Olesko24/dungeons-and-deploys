@@ -54,3 +54,41 @@ test("guild level grows from members' quests", async () => {
   assert.equal(guild.xp, 70);
   assert.equal(guild.level, 1);
 });
+
+test("quests fill the guild bank on top, members donate", async () => {
+  const p = await player("epsilon");
+  await p.call("POST", "/guild", { name: "Bank Shift" });
+  const quest = await db.quest.create({ data: { characterId: p.characterId, startedAt: new Date(), endsAt: new Date() } });
+  await resolveQuest(db, quest.id, () => 0);
+  assert.equal((await db.character.findUniqueOrThrow({ where: { id: p.characterId } })).gold, 14, "the player keeps the full reward");
+  assert.equal((await p.call("GET", "/guild")).json().guild.gold, 1, "10% of 14 gold, rounded");
+
+  assert.equal((await p.call("POST", "/guild/donate", { amount: 50 })).json().error, "not enough gold");
+  const guild = (await p.call("POST", "/guild/donate", { amount: 5 })).json().guild;
+  assert.deepEqual([guild.gold, guild.members[0].donated], [6, 5]);
+  assert.equal((await db.character.findUniqueOrThrow({ where: { id: p.characterId } })).gold, 9);
+});
+
+test("the leader buys buffs that work for every member", async () => {
+  const leader = await player("zeta");
+  const member = await player("eta");
+  const { code } = (await leader.call("POST", "/guild", { name: "Buff Shift" })).json().guild;
+  await member.call("POST", "/guild/join", { code });
+  // Guild level 3, enough gold for one buff and a bit.
+  await db.guild.updateMany({ where: { name: "Buff Shift" }, data: { xp: 4000, gold: 400 } });
+
+  assert.equal((await member.call("POST", "/guild/buffs", { key: "standupSnacks" })).json().error, "only the guild leader can activate buffs");
+  assert.equal((await leader.call("POST", "/guild/buffs", { key: "sharedCache" })).json().error, "needs guild level 5");
+  const bought = (await leader.call("POST", "/guild/buffs", { key: "standupSnacks" })).json().guild;
+  assert.equal(bought.gold, 100);
+  assert.ok(bought.buffs.find((b: { key: string }) => b.key === "standupSnacks").endsAt);
+  assert.equal((await leader.call("POST", "/guild/buffs", { key: "standupSnacks" })).json().error, "buff already active");
+  assert.equal((await leader.call("POST", "/guild/buffs", { key: "bonusRound" })).json().error, "costs 300 gold, the guild bank has 100");
+
+  const quest = await db.quest.create({ data: { characterId: member.characterId, startedAt: new Date(), endsAt: new Date() } });
+  assert.equal((await resolveQuest(db, quest.id, () => 0))!.xp, 77, "+10% XP for members too");
+
+  await db.guildBuff.updateMany({ data: { endsAt: new Date(Date.now() - 1) } });
+  const later = await db.quest.create({ data: { characterId: member.characterId, startedAt: new Date(), endsAt: new Date() } });
+  assert.equal((await resolveQuest(db, later.id, () => 0))!.xp, 70, "an expired buff no longer counts");
+});

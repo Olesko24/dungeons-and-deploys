@@ -9,14 +9,17 @@ import {
   dungeonStory,
   levelFromXp,
   playerBonus,
+  playerPower,
   rollStats,
   stageChance,
+  stageRecommendation,
   stageRewards,
   withBonus,
 } from "@dnd/shared";
 import type { Deps } from "./app.ts";
 import { randomCode } from "./auth.ts";
-import { requireCharacter } from "./characters.ts";
+import { equippedItems, requireCharacter } from "./characters.ts";
+import { guildBuffs } from "./guilds.ts";
 import type { PrismaClient } from "./generated/prisma/client.ts";
 
 const STAGES = DUNGEON_STAGES.length;
@@ -35,12 +38,20 @@ export async function dungeonView(db: PrismaClient, characterId: number, t: Date
   if (!membership) return null;
   const d = membership.dungeon;
   const state = d.endedAt ? (d.success ? "won" : "failed") : t < d.startsAt ? "lobby" : "running";
+  const me = d.members.find((m) => m.characterId === characterId)!.character;
+  const { level } = levelFromXp(me.xp);
+  const bonus = playerBonus(await equippedItems(db, characterId), me.talents as Talents, await guildBuffs(db, characterId, t));
   return {
     code: d.code,
     state,
     startsAt: d.startsAt,
     cleared: d.stage,
     stages: DUNGEON_STAGES.map((s) => s.name),
+    // Your shown power and the recommendation per stage. The boss stage adds Boss Slayer.
+    power: DUNGEON_STAGES.map((_, i) =>
+      playerPower(level, bonus.gear, bonus.power + bonus.groupPower + (i === STAGES - 1 ? bonus.bossPower : 0)),
+    ),
+    recommended: DUNGEON_STAGES.map((_, i) => stageRecommendation(i, level, d.members.length)),
     current: state === "running" ? DUNGEON_STAGES[d.stage].name : null,
     story: dungeonStory(d.id, state, d.stage),
     stageEndsAt: state === "running" ? stageEndsAt(d.startsAt, d.stage) : null,
@@ -58,11 +69,12 @@ export function resolveStage(db: PrismaClient, dungeonId: number, stage: number,
     });
     if (!dungeon || dungeon.endedAt || dungeon.stage !== stage) return null;
 
-    const members = dungeon.members.map((m) => {
-      const bonus = playerBonus(m.character.items, m.character.talents as Talents);
+    const members = [];
+    for (const m of dungeon.members) {
+      const bonus = playerBonus(m.character.items, m.character.talents as Talents, await guildBuffs(tx, m.characterId, t));
       const power = bonus.power + bonus.groupPower + (stage === STAGES - 1 ? bonus.bossPower : 0);
-      return { m, level: levelFromXp(m.character.xp).level, gear: bonus.gear, power, stageChance: bonus.stageChance, bonus };
-    });
+      members.push({ m, level: levelFromXp(m.character.xp).level, gear: bonus.gear, power, stageChance: bonus.stageChance, bonus });
+    }
     const chance = stageChance(stage, members);
     const cleared = random() < chance;
     const last = stage === STAGES - 1;

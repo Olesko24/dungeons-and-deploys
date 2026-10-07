@@ -60,7 +60,7 @@ export async function buildApp(deps: Deps, opts: FastifyServerOptions = {}) {
   encounterRoutes(app, full);
   marketRoutes(app, full);
   dungeonRoutes(app, full);
-  guildRoutes(app, db);
+  guildRoutes(app, full);
   raidRoutes(app, full);
   shopRoutes(app, full);
   statsRoutes(app, db);

@@ -189,11 +189,25 @@ model Guild {
   name      String        @unique
   code      String        @unique
   xp        Int           @default(0)
+  /// Guild bank, filled by donations and a share of quest gold. The leader spends it on buffs.
+  gold      Int           @default(0)
   members   GuildMember[]
   raids     Raid[]
+  buffs     GuildBuff[]
   createdAt DateTime      @default(now()) @map("created_at")
 
   @@map("guilds")
+}
+
+/// A guild buff, active for every member until `endsAt`. `key` refers to the catalog in packages/shared.
+model GuildBuff {
+  guildId Int      @map("guild_id")
+  guild   Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  key     String
+  endsAt  DateTime @map("ends_at")
+
+  @@id([guildId, key])
+  @@map("guild_buffs")
 }
 
 /// A character is in at most one guild. `role` is `leader` or `member`.
@@ -203,6 +217,8 @@ model GuildMember {
   guildId     Int       @map("guild_id")
   guild       Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
   role        String    @default("member")
+  /// Gold this member gave to the guild bank.
+  donated     Int       @default(0)
   joinedAt    DateTime  @default(now()) @map("joined_at")
 
   @@index([guildId])

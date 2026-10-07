@@ -186,6 +186,20 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .tour-card p { margin: 0; }
 .tour-card .hint { color: var(--good); font-size: 18px; }
 
+.power.good, .good { color: var(--good); }
+.power.warn { color: var(--warn); }
+.power.bad { color: var(--bad); }
+h3.sub { margin: 4px 0 0; font: 10px/1.6 var(--display); color: var(--gold); text-transform: uppercase; }
+.buffs { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.buffs li { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--panel-deep); padding: 8px 12px; }
+.buffs li.active { box-shadow: inset var(--pixel) 0 0 var(--good); }
+.buffs li.locked { opacity: .55; }
+.buffs strong { font-weight: normal; color: var(--ink); }
+.buffs em { font-size: 18px; }
+.buffs button .gold { color: inherit; }
+.donate { display: flex; gap: 12px; align-items: center; }
+.donate input { width: 10rem; }
+
 .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr)); gap: 8px; margin: 0; }
 .stats div { background: var(--panel-deep); padding: 8px 12px; display: grid; gap: 2px; }
 .stats dt { font: 8px/1.6 var(--display); color: var(--ink-dim); text-transform: uppercase; }

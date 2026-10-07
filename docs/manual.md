@@ -105,6 +105,19 @@ quest status --short    # the one-line status used by status lines, no network
 
 Higher levels mainly mean better loot (see below) and talent points. The level cap is 100.
 
+### Combat power
+
+Your **combat power** (⚔) sums up how strong you are in fights, dungeons and raids. It grows with your level,
+attack and defense, and talents and guild buffs add percent on top:
+
+```
+power = (4 + level + attack) × (1 + (level + defense) / 20) × 10
+```
+
+`quest char` and the website header show it. Monsters and dungeon stages show a **recommended** power: with it
+your chance is about 60% before luck. Green means you reach it, yellow at least 75% of it, red below. Monsters
+grow with your level, so only gear, talents and buffs move you past the recommendation.
+
 ### Talents
 
 Every level gives one talent point, 100 at the cap. Four trees hold 36 ranks each, so you cannot max everything.
@@ -239,7 +252,7 @@ Every heartbeat has a 2% chance to spawn a monster, at most one at a time. Your 
 quest fight
 ```
 
-Your win chance compares your attack and defense with the monster and adds your luck. It is always between 5% and 95%. Without gear an average monster is a coin flip.
+Your win chance compares your combat power with the monster and adds your luck. It is always between 5% and 95%. Without gear an average monster is a coin flip. The status shows your power next to the recommended power for this monster.
 
 | Monster | Toughness |
 |---|---|
@@ -301,7 +314,7 @@ quest dungeon join <code>    # others join during the lobby
 quest dungeon                # progress
 ```
 
-Each stage succeeds or fails for the whole party. The chance depends on everyone's level and gear and a teamwork bonus per member. Nobody needs to be online during the run. Stages get 10% tougher and pay 10% more per member, so groups are rewarded but solo works too.
+Each stage succeeds or fails for the whole party. The chance depends on everyone's combat power and a teamwork bonus per member. `quest dungeon` and the website show your power and the recommendation for every stage. Nobody needs to be online during the run. Stages get 10% tougher and pay 10% more per member, so groups are rewarded but solo works too.
 
 Every cleared stage pays XP and gold. A failed stage ends the run, you keep what you earned. Beating the boss gives every member a guaranteed item, with more rarity rolls in bigger parties.
 
@@ -311,10 +324,26 @@ Every cleared stage pays XP and gold. A failed stage ends the run, you keep what
 quest guild create <name>    # you become the leader, the guild gets a join code
 quest guild join <code>
 quest guild leave
-quest guild                  # members and guild level
+quest guild                  # members, guild level, bank and buffs
+quest guild donate <gold>    # gold into the guild bank
+quest guild buff <key>       # leader only: activate a buff
 ```
 
 A guild has up to 50 members. Its level grows with a tenth of the members' quest XP and with raid wins. If the leader leaves, the longest-standing member takes over. The last member to leave dissolves the guild.
+
+### Guild bank and buffs
+
+Every successful quest of a member adds 10% of its gold to the guild bank, on top of the member's own reward.
+Members can donate more. The leader spends the bank on buffs that work for every member for 24 hours. Several
+different buffs can run at once, the same buff once at a time.
+
+| Buff | Effect | Cost | Guild level |
+|---|---|---|---|
+| Standup Snacks | +10% XP | 300 | 1 |
+| Bonus Round | +10% gold | 300 | 1 |
+| War Room | +5% combat power | 500 | 3 |
+| Shared Cache | +5% loot drop chance | 500 | 5 |
+| Async Standup | 15% shorter rest after a quest | 800 | 8 |
 
 ## Raids
 
@@ -371,6 +400,7 @@ Dungeons & Deploys has no email and no password. Your login token on your device
 | `quest market [draw <rarity>\|list <#id>\|unlist <#id>]` | Market |
 | `quest dungeon [start\|join <code>]` | Dungeons |
 | `quest guild [create <name>\|join <code>\|leave]` | Guilds |
+| `quest guild donate <gold>` / `quest guild buff <key>` | Guild bank and buffs |
 | `quest raid [schedule <minutes>\|join]` | Raids |
 | `quest talents [learn <key>\|reset]` | Talents |
 | `quest stats` | Statistics and achievements |
