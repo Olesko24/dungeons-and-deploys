@@ -17,7 +17,8 @@ const app = await buildApp(
   { db, ...jobs },
   {
     // Runs behind the Coolify proxy, client IPs for rate limiting come from X-Forwarded-For.
-    trustProxy: true,
+    // Trusting only that one hop takes the address the proxy saw, not one the client wrote into the header.
+    trustProxy: (_address, hop) => hop === 0,
     logger: true,
   },
 );

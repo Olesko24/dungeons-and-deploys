@@ -69,7 +69,11 @@ export function guildRoutes(app: FastifyInstance, { db, now }: Required<Deps>) {
 
   app.post<{ Body: { code: string } }>(
     "/guild/join",
-    { schema: { body: { type: "object", required: ["code"], properties: { code: { type: "string" } } } } },
+    {
+      // Join codes are short, the limit keeps them from being guessed.
+      config: { rateLimit: { max: 5, timeWindow: "1 minute" } },
+      schema: { body: { type: "object", required: ["code"], properties: { code: { type: "string" } } } },
+    },
     async (req, reply) => {
       const character = await requireCharacter(db, req, reply);
       if (!character) return;

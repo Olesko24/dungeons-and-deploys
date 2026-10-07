@@ -43,6 +43,16 @@ test("create, join, leave and hand over leadership", async () => {
   assert.equal(await db.guild.count({ where: { name: "Night Shift" } }), 0, "the last member dissolves the guild");
 });
 
+test("join codes cannot be guessed quickly", async () => {
+  await player("guesser");
+  const app = await buildApp({ db });
+  const codes = [];
+  for (let i = 0; i < 6; i++) {
+    codes.push((await app.inject({ method: "POST", url: "/guild/join", payload: { code: "NOPE00" }, headers: { authorization: "Bearer tq_guesser" } })).statusCode);
+  }
+  assert.deepEqual(codes, [400, 400, 400, 400, 400, 429]);
+});
+
 test("guild level grows from members' quests", async () => {
   const p = await player("delta");
   await p.call("POST", "/guild", { name: "Day Shift" });
