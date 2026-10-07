@@ -70,7 +70,7 @@ export type TalentSheet = { points: number; spent: number; resetCost: number; go
 export type Achievement = { key: string; name: string; description: string; unlockedAt: string | null };
 export type PlayerStats = Record<string, number | boolean>;
 
-export type RankRow = { rank: number; name: string; value: number; level?: number };
+export type RankRow = { rank: number; name: string; value: number; level?: number; members?: number; power?: number };
 export type Leaderboard = { board: string; top: RankRow[]; you: RankRow | null };
 
 export class Unauthorized extends Error {}

@@ -53,4 +53,6 @@ test("xp, achievements and guild boards with your own rank", async () => {
   await db.guild.updateMany({ where: { name: "Top Guild" }, data: { xp: 3000 } });
   const guilds = await get("ace", "guilds");
   assert.deepEqual([guilds.top[0].name, guilds.you.rank], ["Top Guild", 1]);
+  const ace = await db.character.findUniqueOrThrow({ where: { name: "ace" } });
+  assert.deepEqual([guilds.top[0].members, guilds.top[0].power], [1, ace.power], "size and average power");
 });

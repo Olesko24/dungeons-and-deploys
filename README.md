@@ -32,7 +32,7 @@ New here? Read the [player manual](docs/manual.md).
 | Shop | – | Three new offers every day, each once per player |
 | Talents | – | One point per level up to 100, four trees of 8 talents with 36 ranks each, reset for 10 gold per point |
 | Achievements | – | 19 achievements and a statistics page, just for fun |
-| Leaderboards | – | Top 20 by level, combat power, achievements and guild level |
+| Leaderboards | – | Top 20 by level, combat power and achievements, every guild with size and average power |
 
 Items drop in ten rarities and eleven equipment slots, with rolled stats and twelve weapon kinds.
 Higher levels raise the chance for better loot. All items: see `apps/web/public/items/`.

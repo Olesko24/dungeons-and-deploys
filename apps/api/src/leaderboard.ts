@@ -7,7 +7,7 @@ const BOARDS = ["xp", "power", "achievements", "guilds"] as const;
 type Board = (typeof BOARDS)[number];
 const TOP = 20;
 
-type Row = { rank: number; name: string; value: number; level?: number };
+type Row = { rank: number; name: string; value: number; level?: number; members?: number; power?: number };
 
 const notBanned = { user: { bannedAt: null } };
 
@@ -38,11 +38,21 @@ async function board(db: PrismaClient, name: Board, characterId: number): Promis
     return { top, you: mine >= 0 ? { rank: mine + 1, name: me.name, value: counts[mine]._count._all } : null };
   }
 
-  const top = await db.guild.findMany({ orderBy: [{ xp: "desc" }, { id: "asc" }], take: TOP });
-  const membership = await db.guildMember.findUnique({ where: { characterId }, include: { guild: true } });
-  const row = (g: { name: string; xp: number }, rank: number) => ({ rank, name: g.name, value: g.xp, level: guildLevel(g.xp).level });
-  const you = membership ? row(membership.guild, (await db.guild.count({ where: { xp: { gt: membership.guild.xp } } })) + 1) : null;
-  return { top: top.map((g, i) => row(g, i + 1)), you };
+  // Every guild with its size and average combat power, so players can compare them before joining.
+  // ponytail: lists all guilds, page or cap it once there are hundreds
+  const guilds = await db.guild.findMany({
+    orderBy: [{ xp: "desc" }, { id: "asc" }],
+    include: { members: { select: { characterId: true, character: { select: { power: true } } } } },
+  });
+  const top = guilds.map((g, i) => ({
+    rank: i + 1,
+    name: g.name,
+    value: g.xp,
+    level: guildLevel(g.xp).level,
+    members: g.members.length,
+    power: Math.round(g.members.reduce((sum, m) => sum + m.character.power, 0) / Math.max(1, g.members.length)),
+  }));
+  return { top, you: top.find((_, i) => guilds[i].members.some((m) => m.characterId === characterId)) ?? null };
 }
 
 export function leaderboardRoutes(app: FastifyInstance, db: PrismaClient) {

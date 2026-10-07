@@ -407,7 +407,7 @@ least their loot level, so their average loot is better.
 
 `quest stats` shows what you have done so far and your achievements. There are 19 achievements, from finishing your first quest to defeating a Dependency Dragon or winning a raid. They give no rewards. Once unlocked, an achievement stays, with its date.
 
-`quest top` shows leaderboards: by level, by combat power, by achievements and by guild level. The power board counts level, gear and talents, not temporary guild buffs. You see the top 20 and your own rank. There is no gold leaderboard.
+`quest top` shows leaderboards: by level, by combat power, by achievements and by guild level. The power board counts level, gear and talents, not temporary guild buffs. You see the top 20 and your own rank. The guild board lists every guild with its members and their average combat power, so you can compare guilds before joining. There is no gold leaderboard.
 
 ## Website
 

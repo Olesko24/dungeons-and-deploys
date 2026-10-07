@@ -336,8 +336,9 @@ async function top(board = "xp") {
   if (!["xp", "power", "achievements", "guilds"].includes(board)) throw new Error("Usage: quest top [xp|power|achievements|guilds]");
   const { data } = await authed(`/leaderboard?board=${board}`);
   const unit = board === "achievements" ? "achievements" : board === "power" ? "power" : "XP";
-  const line = (r: { rank: number; name: string; value: number; level?: number }) =>
-    `${String(r.rank).padStart(4)}. ${r.name.padEnd(24)}${r.level ? `Lv ${String(r.level).padEnd(4)}` : ""}${r.value} ${unit}`;
+  const line = (r: { rank: number; name: string; value: number; level?: number; members?: number; power?: number }) =>
+    `${String(r.rank).padStart(4)}. ${r.name.padEnd(24)}${r.level ? `Lv ${String(r.level).padEnd(4)}` : ""}${r.value} ${unit}` +
+    (r.members === undefined ? "" : ` · ${r.members} members · Ø ${r.power} power`);
   console.log(`Leaderboard · ${board}`);
   for (const r of data.top) console.log(line(r));
   if (data.you && data.you.rank > data.top.length) console.log(`   …\n${line(data.you)}`);

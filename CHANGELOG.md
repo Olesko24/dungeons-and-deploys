@@ -18,6 +18,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - The shop shows the stats of its offers before you buy. Every buyer gets the same item.
+- The guild leaderboard lists every guild with its member count and average combat power.
 - Every rarity has its own symbol on the website, and the shop shows a rarity legend.
 - Ideas: suggest features for the game and upvote the ones you want, linked at the bottom of the website.
 - Found, join and leave a guild from the guild hall on the website.

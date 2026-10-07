@@ -660,11 +660,12 @@ function RanksView() {
       {!data ? <p>Loading…</p> : (
         <div className="scroll">
           <table>
-            <thead><tr><th>#</th><th>Name</th>{board !== "achievements" && <th>Level</th>}<th>{unit}</th></tr></thead>
+            <thead><tr><th>#</th><th>Name</th>{board !== "achievements" && <th>Level</th>}<th>{unit}</th>{board === "guilds" && <><th>Members</th><th>Ø Power</th></>}</tr></thead>
             <tbody>
               {[...data.top, ...(showYou && data.you ? [data.you] : [])].map((r) => (
                 <tr key={`${r.rank}-${r.name}`} className={r.name === data.you?.name ? "you" : ""}>
                   <td>{r.rank}</td><td>{r.name}</td>{board !== "achievements" && <td>{r.level}</td>}<td>{r.value}</td>
+                  {board === "guilds" && <><td>{r.members}</td><td>{r.power}</td></>}
                 </tr>
               ))}
             </tbody>
