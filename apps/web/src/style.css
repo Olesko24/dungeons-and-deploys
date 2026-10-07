@@ -106,6 +106,24 @@ input {
 .raid .bar { flex-wrap: wrap; }
 
 .tabs { display: flex; gap: 12px; flex-wrap: wrap; }
+.beta { font-size: 18px; color: var(--ink-dim); border-left: var(--pixel) solid var(--warn); padding-left: 12px; }
+.beta strong { font: 8px var(--display); color: var(--warn); text-transform: uppercase; }
+a { color: var(--gold); }
+button.link { font: inherit; background: none; box-shadow: none; padding: 0; color: var(--gold); text-decoration: underline; }
+button.link:active { transform: none; }
+.back { justify-self: start; }
+
+.doc { display: block; line-height: 1.35; }
+.doc h1 { margin-bottom: 16px; }
+.doc h2 { margin: 32px 0 12px; font-size: 12px; color: var(--gold); }
+.doc h3 { margin: 20px 0 8px; font: 10px/1.6 var(--display); color: var(--edge-light); }
+.doc p, .doc ul, .doc ol { margin: 0 0 12px; max-width: 70ch; }
+.doc li { margin-bottom: 4px; }
+.doc blockquote { margin: 0 0 16px; padding-left: 12px; border-left: var(--pixel) solid var(--warn); color: var(--ink-dim); }
+.doc pre { background: var(--panel-deep); padding: 12px; overflow-x: auto; margin: 0 0 12px; }
+.doc code { font-family: var(--body); color: var(--gold); }
+.doc pre code { color: var(--ink); }
+.doc table { margin-bottom: 12px; display: block; overflow-x: auto; }
 .tabs button { text-transform: uppercase; }
 button:disabled { opacity: .45; cursor: not-allowed; }
 

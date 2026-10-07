@@ -8,7 +8,8 @@ COPY apps/web/package.json apps/web/
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     --mount=type=cache,id=pnpm-meta,target=/root/.cache \
     pnpm install --frozen-lockfile --filter @tokenquest/web...
-COPY tsconfig.base.json ./
+COPY tsconfig.base.json CHANGELOG.md ./
+COPY docs/manual.md docs/
 COPY packages/shared packages/shared
 COPY apps/web apps/web
 RUN pnpm --filter @tokenquest/web build

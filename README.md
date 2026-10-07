@@ -5,7 +5,11 @@
 An idle RPG for the terminal. Runs alongside Claude Code or any shell. Start a quest, keep working, collect loot.
 Inspired by Twitch idle RPGs: presence and luck, not performance.
 
+> **Beta.** Rules, numbers and basic mechanics can still change, and progress may be reset. See the [changelog](CHANGELOG.md).
+>
 > Works with Claude Code. Not affiliated with Anthropic.
+
+New here? Read the [player manual](docs/manual.md).
 
 ## Principles
 
@@ -194,3 +198,5 @@ pnpm typecheck
 pnpm lint
 pnpm --filter @tokenquest/api migrate   # create/apply migrations
 ```
+
+Player-facing changes go into [CHANGELOG.md](CHANGELOG.md) under *Unreleased*, rules that players need to know into the [manual](docs/manual.md).

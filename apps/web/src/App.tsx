@@ -14,11 +14,22 @@ import {
   Unauthorized,
   api,
 } from "./api.ts";
+import { Doc, type DocName } from "./Doc.tsx";
 
 const SLOTS = [
   ["head", "Head"], ["chest", "Chest"], ["legs", "Legs"], ["hands", "Hands"], ["feet", "Feet"], ["mainHand", "Main hand"],
   ["offHand", "Off hand"], ["ring1", "Ring"], ["ring2", "Ring"], ["neck", "Neck"], ["ears", "Ears"],
 ] as const;
+
+function BetaNote({ onOpen }: { onOpen: (doc: DocName) => void }) {
+  return (
+    <p className="beta" role="note">
+      <strong>Beta</strong> · Rules and numbers can still change, progress may be reset.{" "}
+      <button type="button" className="link" onClick={() => onOpen("manual")}>Manual</button> ·{" "}
+      <button type="button" className="link" onClick={() => onOpen("changelog")}>Changelog</button>
+    </p>
+  );
+}
 
 const minutesUntil = (iso: string) => Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 60_000));
 
@@ -43,7 +54,7 @@ function ItemIcon({ item }: { item: Item }) {
   return <img className="icon" src={`/items/${item.key}.svg`} alt="" width={48} height={48} />;
 }
 
-function Login({ onDone }: { onDone: () => void }) {
+function Login({ onDone, onOpen }: { onDone: () => void; onOpen: (doc: DocName) => void }) {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   async function submit(e: FormEvent) {
@@ -59,6 +70,7 @@ function Login({ onDone }: { onDone: () => void }) {
     <main className="login">
       <img src="/icon.svg" alt="" width={96} height={96} className="icon" />
       <h1>Tokenquest</h1>
+      <BetaNote onOpen={onOpen} />
       <form className="panel" onSubmit={submit}>
         <label htmlFor="code">Pair code</label>
         <p className="dim">Run <code>quest pair</code> in your terminal and enter the code it shows.</p>
@@ -358,7 +370,7 @@ function RanksView() {
   );
 }
 
-type View = "character" | "shop" | "stats" | "ranks";
+type View = "character" | "shop" | "stats" | "ranks" | DocName;
 
 type Data = { character: Character; status: Status; items: Item[]; history: Quest[]; guild: Guild | null; raid: Raid | null };
 
@@ -392,7 +404,16 @@ export function App() {
     return () => clearInterval(timer);
   }, [load, live]);
 
-  if (loggedOut) return <Login onDone={() => void load()} />;
+  // Manual and changelog are readable without logging in.
+  if (loggedOut && (view === "manual" || view === "changelog")) {
+    return (
+      <main>
+        <button type="button" className="small ghost back" onClick={() => setView("character")}>← Log in</button>
+        <Doc name={view} onOpen={setView} />
+      </main>
+    );
+  }
+  if (loggedOut) return <Login onDone={() => void load()} onOpen={setView} />;
   if (!data) return <main className="loading">Loading…</main>;
 
   const c = data.character;
@@ -408,8 +429,9 @@ export function App() {
         </div>
         <button type="button" className="small ghost" onClick={() => api("/auth/logout", {}).then(() => setLoggedOut(true))}>Log out</button>
       </header>
+      <BetaNote onOpen={setView} />
       <nav className="tabs" aria-label="Sections">
-        {(["character", "shop", "stats", "ranks"] as const).map((v) => (
+        {(["character", "shop", "stats", "ranks", "manual", "changelog"] as const).map((v) => (
           <button key={v} type="button" className={`small ${view === v ? "" : "ghost"}`} aria-current={view === v ? "page" : undefined} onClick={() => setView(v)}>
             {v}
           </button>
@@ -427,6 +449,7 @@ export function App() {
       {view === "shop" && <ShopView onChange={() => void load()} />}
       {view === "stats" && <StatsView />}
       {view === "ranks" && <RanksView />}
+      {(view === "manual" || view === "changelog") && <Doc name={view} onOpen={setView} />}
     </main>
   );
 }

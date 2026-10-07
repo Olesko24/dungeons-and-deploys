@@ -152,6 +152,8 @@ Measured locally (single Node process, Postgres in Docker, Apple Silicon): 165 h
 - [x] CLI: `quest shop`, `quest shop buy <1-3>`, website Shop page
 - [x] Leaderboards by XP, achievements and guild XP: top 20 plus your own rank, banned players hidden, no gold board (`quest top`, website Ranks page)
 
+- [x] Player manual and changelog, on the website (readable without login) and via `quest manual` / `quest changelog`, beta notice in README, website and CLI
+
 **Done when:** A player sees stats and unlocked achievements, buys a shop offer once per day.
 
 ## Open decisions

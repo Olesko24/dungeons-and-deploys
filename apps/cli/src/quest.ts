@@ -17,6 +17,7 @@ import {
 } from "./status.ts";
 
 const DEFAULT_SERVER = "https://tokenquest.meiners-dev.de";
+const MANUAL = "https://github.com/Olesko24/tokenquest/blob/main/docs/manual.md";
 const HEARTBEAT_INTERVAL_MS = 60_000;
 
 const dir = join(homedir(), ".tokenquest");
@@ -83,6 +84,7 @@ async function login(code: string | undefined, pair: string | undefined) {
   await writeFile(configFile, JSON.stringify({ server, token: res.data.token }, null, 2), { mode: 0o600 });
   const status = await refresh();
   console.log(`✓ Logged in as ${status.character.name}`);
+  console.log(`Tokenquest is in beta: rules can change and progress may be reset.\nManual: ${MANUAL}`);
 }
 
 async function pair() {
@@ -285,6 +287,14 @@ async function top(board = "xp") {
   if (!data.you) console.log(board === "guilds" ? "\nYou are not in a guild." : "\nNo achievements yet.");
 }
 
+/** Manual and changelog come from the server, so they match the version that is running there. */
+async function doc(name: "manual" | "changelog") {
+  const server = (await readConfig())?.server ?? process.env.TOKENQUEST_URL ?? DEFAULT_SERVER;
+  const res = await fetch(`${server}/${name}.md`, { signal: AbortSignal.timeout(10_000) });
+  if (!res.ok) throw new Error(`Could not load the ${name} (${res.status}). Online: ${MANUAL}`);
+  console.log(await res.text());
+}
+
 async function character() {
   const { data: c } = await authed("/character");
   console.log(`${c.name} · Lv ${c.level} · ${c.gold}g`);
@@ -331,6 +341,8 @@ const USAGE = `Usage: quest [command]
   quest shop [buy <1-3>]                         three new offers every day
   quest stats                                    statistics and achievements
   quest top [xp|achievements|guilds]             leaderboards
+  quest manual                                   player manual
+  quest changelog                                what changed
   quest dungeon [start|join <code>]              dungeon with up to 5 players
   quest guild [create <name>|join <code>|leave]  your guild
   quest raid [schedule <min>|join]               guild raid, at least 5 raiders
@@ -338,7 +350,10 @@ const USAGE = `Usage: quest [command]
   quest pair                                     log in another device or the website
   quest login --pair <code>                      log in with a code from quest pair
   quest init zsh|bash                            shell integration: eval "$(quest init zsh)"
-  quest heartbeat                                report presence (called by hooks)`;
+  quest heartbeat                                report presence (called by hooks)
+
+Manual: ${MANUAL}
+Beta: rules can change and progress may be reset.`;
 
 const { positionals, values } = parseArgs({
   allowPositionals: true,
@@ -371,6 +386,10 @@ try {
       break;
     case "shop":
       await shop(positionals[1], positionals[2]);
+      break;
+    case "manual":
+    case "changelog":
+      await doc(positionals[0]);
       break;
     case "top":
       await top(positionals[1]);
