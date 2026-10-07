@@ -4,7 +4,9 @@
     "noEmit": false,
     "rootDir": "src",
     "outDir": "dist",
-    "rewriteRelativeImportExtensions": true
+    "rewriteRelativeImportExtensions": true,
+    // The bin needs LF, a CRLF shebang breaks `quest` on macOS and Linux even when built on Windows.
+    "newLine": "lf"
   },
   "exclude": ["src/**/*.test.ts"]
 }
