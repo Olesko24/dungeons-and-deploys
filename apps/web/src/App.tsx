@@ -147,6 +147,11 @@ function TerminalPair({ onClose, onOpen }: { onClose: () => void; onOpen: (doc: 
         <li>{pair ? <>Run <code>quest login --pair {pair.code}</code> within {minutesUntil(pair.expiresAt)} minutes</> : "Creating a pair code…"}</li>
         <li>Run <code>quest</code> for a quest. The <button type="button" className="link" onClick={() => onOpen("manual")}>manual</button> shows the Claude Code plugin and shell prompt.</li>
       </ol>
+      {pair && (
+        <p className="dim">
+          Another browser or your phone? Open this website there and enter <code>{pair.code}</code> under Already playing. Each code works once.
+        </p>
+      )}
     </section>
   );
 }

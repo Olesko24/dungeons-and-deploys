@@ -338,7 +338,7 @@ A win gives every raider who dealt damage XP, gold and an item with three rarity
 
 ## Website
 
-The website shows your character, equipment, bag, quest history, guild, talents, shop, statistics and leaderboards. New players can create their character there with an access code. Players who started in the terminal run `quest pair` and enter the code it shows. **Terminal** at the top does the opposite: it shows a pair code to log in the terminal.
+The website shows your character, equipment, bag, quest history, guild, talents, shop, statistics and leaderboards. New players can create their character there with an access code. Players who started in the terminal run `quest pair` and enter the code it shows. **Terminal** at the top does the opposite: it shows a pair code to log in the terminal, or another browser such as your phone.
 
 On your first visit a short tour walks you through the page. It highlights the real buttons and moves on when you click them. You can skip it and restart it any time with **Tour** at the top. Finishing it unlocks the achievement Hello, World.
 
