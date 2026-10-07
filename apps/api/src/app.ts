@@ -2,6 +2,7 @@ import rateLimit from "@fastify/rate-limit";
 import Fastify, { type FastifyServerOptions } from "fastify";
 import { authRoutes } from "./auth.ts";
 import type { PrismaClient } from "./generated/prisma/client.ts";
+import { encounterRoutes } from "./encounters.ts";
 import { inventoryRoutes } from "./inventory.ts";
 import { questRoutes } from "./quests.ts";
 
@@ -9,6 +10,7 @@ export type Deps = {
   db: PrismaClient;
   scheduleResolve: (questId: number, at: Date) => Promise<unknown>;
   now?: () => Date;
+  random?: () => number;
 };
 
 export async function buildApp(deps: Deps, opts: FastifyServerOptions = {}) {
@@ -28,8 +30,10 @@ export async function buildApp(deps: Deps, opts: FastifyServerOptions = {}) {
   });
 
   authRoutes(app, db);
-  questRoutes(app, { now: () => new Date(), ...deps });
+  const full = { now: () => new Date(), random: Math.random, ...deps };
+  questRoutes(app, full);
   inventoryRoutes(app, db);
+  encounterRoutes(app, full);
 
   return app;
 }

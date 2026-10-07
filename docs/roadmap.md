@@ -70,10 +70,11 @@ No email: the API token on the player's devices is the identity. Losing all devi
 
 ## Phase 5 – Random encounters
 
-- [ ] Heartbeat has a small chance to spawn an encounter (rolled on the server)
-- [ ] Encounter expires after 5 min, `quest.encounter.expire` job
-- [ ] `POST /fight` – dice duel, loot on win
-- [ ] Statusline shows active encounter
+- [x] Heartbeat has a 2% chance to spawn an encounter (rolled on the server), one monster at a time
+- [x] Encounter expires after 5 min. Checked on read, no expiry job needed
+- [x] Eight monsters from Bug Swarm to Dependency Dragon, rarer ones are tougher and pay more
+- [x] `POST /fight` – win chance from attack, defense and luck against the monster's power (5–95%), XP, gold and loot on win, nothing lost on defeat
+- [x] Statusline shows active encounter, CLI: `quest fight`
 
 **Done when:** An encounter appears, can be fought within 5 min and is gone afterwards.
 

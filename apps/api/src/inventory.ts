@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { type Slot, equipPlan, equipmentBonus } from "@tokenquest/shared";
 import type { PrismaClient } from "./generated/prisma/client.ts";
-import { itemView, requireCharacter } from "./quests.ts";
+import { itemView, requireCharacter } from "./characters.ts";
 
 const SLOTS = ["head", "chest", "legs", "hands", "feet", "mainHand", "offHand", "ring1", "ring2", "neck", "ears"];
 

@@ -51,15 +51,16 @@ model PairCode {
 }
 
 model Character {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @unique @map("user_id")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name      String   @unique
-  xp        Int      @default(0)
-  gold      Int      @default(0)
-  quests    Quest[]
-  items     Item[]
-  createdAt DateTime @default(now()) @map("created_at")
+  id         Int         @id @default(autoincrement())
+  userId     Int         @unique @map("user_id")
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String      @unique
+  xp         Int         @default(0)
+  gold       Int         @default(0)
+  quests     Quest[]
+  items      Item[]
+  encounters Encounter[]
+  createdAt  DateTime    @default(now()) @map("created_at")
 
   @@map("characters")
 }
@@ -85,18 +86,39 @@ model Quest {
 
 /// An item owned by a character. `key` refers to the catalog in packages/shared, the stats are rolled on drop.
 model Item {
-  id           Int       @id @default(autoincrement())
-  characterId  Int       @map("character_id")
-  character    Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  id           Int        @id @default(autoincrement())
+  characterId  Int        @map("character_id")
+  character    Character  @relation(fields: [characterId], references: [id], onDelete: Cascade)
   key          String
-  attack       Int       @default(0)
-  defense      Int       @default(0)
-  luck         Int       @default(0)
-  fortune      Int       @default(0)
-  equippedSlot String?   @map("equipped_slot")
-  createdAt    DateTime  @default(now()) @map("created_at")
+  attack       Int        @default(0)
+  defense      Int        @default(0)
+  luck         Int        @default(0)
+  fortune      Int        @default(0)
+  equippedSlot String?    @map("equipped_slot")
+  createdAt    DateTime   @default(now()) @map("created_at")
   foundIn      Quest?
+  wonIn        Encounter?
 
   @@unique([characterId, equippedSlot])
   @@map("items")
+}
+
+/// A monster that appeared on a heartbeat. Unfought encounters simply expire, `foughtAt` is set once fought.
+model Encounter {
+  id          Int       @id @default(autoincrement())
+  characterId Int       @map("character_id")
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  monster     String
+  level       Int
+  expiresAt   DateTime  @map("expires_at")
+  foughtAt    DateTime? @map("fought_at")
+  won         Boolean?
+  xp          Int       @default(0)
+  gold        Int       @default(0)
+  lootItemId  Int?      @unique @map("loot_item_id")
+  lootItem    Item?     @relation(fields: [lootItemId], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([characterId, createdAt])
+  @@map("encounters")
 }

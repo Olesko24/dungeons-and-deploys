@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyInstance } from "fastify";
 import {
   COOLDOWN_MS,
   MIN_SLOTS_FOR_SUCCESS,
@@ -7,33 +7,15 @@ import {
   SLOT_MS,
   countSlots,
   equipmentBonus,
-  itemName,
   levelFromXp,
   questOutcome,
   rollLoot,
   rollStats,
 } from "@tokenquest/shared";
 import type { Deps } from "./app.ts";
-import { requireUser } from "./auth.ts";
+import { equippedItems, itemView, requireCharacter } from "./characters.ts";
+import { encounterView, maybeSpawnEncounter } from "./encounters.ts";
 import { type Character, type Item, Prisma, type PrismaClient, type Quest } from "./generated/prisma/client.ts";
-
-export async function requireCharacter(db: PrismaClient, req: FastifyRequest, reply: FastifyReply) {
-  const user = await requireUser(db, req);
-  if (!user) {
-    reply.code(401).send({ error: "unauthorized" });
-    return null;
-  }
-  return db.character.findUniqueOrThrow({ where: { userId: user.id } });
-}
-
-export const itemView = (i: Item) => ({
-  id: i.id,
-  key: i.key,
-  name: itemName(i.key, i),
-  rarity: i.key.split(".")[1],
-  stats: { attack: i.attack, defense: i.defense, luck: i.luck, fortune: i.fortune },
-  equippedSlot: i.equippedSlot,
-});
 
 const questView = (q: Quest & { lootItem?: Item | null }) => ({
   startedAt: q.startedAt,
@@ -47,7 +29,7 @@ const questView = (q: Quest & { lootItem?: Item | null }) => ({
   loot: q.lootItem ? itemView(q.lootItem) : null,
 });
 
-export function questRoutes(app: FastifyInstance, { db, scheduleResolve, now }: Required<Deps>) {
+export function questRoutes(app: FastifyInstance, { db, scheduleResolve, now, random }: Required<Deps>) {
   app.post("/quests", async (req, reply) => {
     const character = await requireCharacter(db, req, reply);
     if (!character) return;
@@ -74,10 +56,11 @@ export function questRoutes(app: FastifyInstance, { db, scheduleResolve, now }: 
   const latestQuest = (characterId: number) =>
     db.quest.findFirst({ where: { characterId }, orderBy: { startedAt: "desc" }, include: { lootItem: true } });
 
-  const status = (character: Character, last: (Quest & { lootItem: Item | null }) | null) => ({
+  const status = async (character: Character, last: (Quest & { lootItem: Item | null }) | null) => ({
     quest: last ? questView(last) : null,
     readyAt: last ? new Date(last.endsAt.getTime() + COOLDOWN_MS) : now(),
     character: { name: character.name, gold: character.gold, level: levelFromXp(character.xp).level },
+    encounter: await encounterView(db, character, now()),
   });
 
   app.get("/quests/current", async (req, reply) => {
@@ -99,6 +82,7 @@ export function questRoutes(app: FastifyInstance, { db, scheduleResolve, now }: 
         await db.$executeRaw`UPDATE quests SET slots = slots | ${bit} WHERE id = ${last.id}`;
         last.slots |= bit;
       }
+      await maybeSpawnEncounter(db, character, t, random);
       return status(character, last);
     },
   );
@@ -106,7 +90,7 @@ export function questRoutes(app: FastifyInstance, { db, scheduleResolve, now }: 
   app.get("/character", async (req, reply) => {
     const character = await requireCharacter(db, req, reply);
     if (!character) return;
-    const equipped = await db.item.findMany({ where: { characterId: character.id, equippedSlot: { not: null } } });
+    const equipped = await equippedItems(db, character.id);
     return { name: character.name, xp: character.xp, gold: character.gold, ...levelFromXp(character.xp), ...equipmentBonus(equipped) };
   });
 }

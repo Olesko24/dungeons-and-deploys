@@ -16,6 +16,7 @@ export function levelFromXp(totalXp: number) {
 
 export const countSlots = (slots: number) => slots.toString(2).replaceAll("0", "").length;
 
+export * from "./combat.ts";
 export * from "./items.ts";
 
 /**

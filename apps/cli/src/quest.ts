@@ -124,6 +124,8 @@ async function startQuest() {
 async function status() {
   const data = await refresh();
   const q = data.quest;
+  const e = data.encounter;
+  if (e) console.log(`⚠ ${e.name} appeared! quest fight within ${minutesUntil(e.expiresAt)}m · odds ${Math.round(e.winChance * 100)}%`);
   if (!q) return console.log("No quest yet. Start one: quest");
   const slots = bar(q.presentSlots, q.totalSlots);
   if (!q.resolved) {
@@ -135,6 +137,20 @@ async function status() {
   const ready = minutesUntil(data.readyAt);
   console.log(`Last quest: ${result} · ${slots}`);
   console.log(ready > 0 ? `Next quest in ${ready}m.` : "Ready for a new quest: quest");
+}
+
+async function fightMonster() {
+  const res = await authed("/fight", "POST");
+  if (res.status === 404) return console.log("No monster around. They show up while you work.");
+  if (res.status >= 400) throw new Error(res.data.error ?? `Fight failed (${res.status})`);
+  const f = res.data;
+  console.log(`⚔ ${f.monster} (Lv ${f.level}) · your odds ${Math.round(f.winChance * 100)}%`);
+  if (!f.won) console.log("✗ Defeated. It got away, nothing lost.");
+  else {
+    const loot = f.loot ? ` · Found: ${rarityColor(f.loot.name, f.loot.rarity)} (${f.loot.rarity})` : "";
+    console.log(`✓ Victory · +${f.xp} XP · +${f.gold} gold${loot}`);
+  }
+  await refresh();
 }
 
 async function character() {
@@ -175,6 +191,7 @@ const USAGE = `Usage: quest [command]
   quest                     start a quest
   quest status [--short]    current quest (--short: one cached line, no network)
   quest char                character sheet
+  quest fight               fight a monster that showed up
   quest inv                 inventory
   quest equip <#id>         equip an item (--slot ring1|ring2 for rings)
   quest unequip <#id>       take an item off
@@ -200,6 +217,9 @@ try {
       break;
     case "char":
       await character();
+      break;
+    case "fight":
+      await fightMonster();
       break;
     case "inv":
       await inventory();
