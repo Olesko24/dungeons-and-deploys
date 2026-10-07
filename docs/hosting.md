@@ -59,15 +59,24 @@ Environment variables:
 |---|---|
 | `DATABASE_URL` | Internal URL of the Coolify Postgres resource |
 
-Access codes are created inside the running container:
+Admin scripts run inside the running container:
 
 ```sh
 pnpm access-code --uses 10 --days 30
+pnpm ban --name <character>            # --unban to lift it
+```
+
+Load test (seeds 10,000 `load_*` players, fires heartbeats, `--cleanup` removes them):
+
+```sh
+pnpm loadtest --url https://tokenquest.meiners-dev.de --seconds 60
+pnpm loadtest --cleanup
 ```
 
 ## Operations
 
 - **Backups:** Enable scheduled Postgres backups to S3 in Coolify from day one.
+- **Monitoring:** Coolify uses the Dockerfile health check (`GET /health`, includes a database round trip). Enable Coolify notifications for failed health checks and deployments.
 - **Connection pooling:** API and workers share a pool of 10–20 connections. Add PgBouncer only when running multiple API instances.
 - **WebSockets:** 10,000 idle connections for live raids fit into a single Node process.
 - **Splitting servers:** When load grows, move Coolify to a small dedicated server and run the game on a second one. Coolify manages multiple servers.

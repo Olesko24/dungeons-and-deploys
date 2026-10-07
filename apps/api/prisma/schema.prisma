@@ -11,6 +11,8 @@ datasource db {
 
 model User {
   id        Int        @id @default(autoincrement())
+  /// Banned players are rejected on every authenticated route.
+  bannedAt  DateTime?  @map("banned_at")
   createdAt DateTime   @default(now()) @map("created_at")
   sessions  Session[]
   pairCodes PairCode[]

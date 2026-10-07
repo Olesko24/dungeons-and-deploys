@@ -135,11 +135,13 @@ Fair by chance, not by bidding. More gold must not mean better equipment.
 
 ## Phase 10 – Hardening
 
-- [ ] Load test with 10,000 simulated players (autocannon)
-- [ ] Monitoring: health checks and error alerts in Coolify
-- [ ] Admin script: access codes, ban player
+- [x] Load test with 10,000 simulated players (`pnpm --filter @tokenquest/api loadtest`, autocannon)
+- [ ] Monitoring: health checks and error alerts in Coolify (health check is in the Dockerfile, alerts are Coolify settings)
+- [x] Admin scripts: `access-code`, `ban --name <character> [--unban]`
 
 **Done when:** The load test holds ~170 heartbeats/s with stable response times on the target server size.
+
+Measured locally (single Node process, Postgres in Docker, Apple Silicon): 165 heartbeats/s with 10,000 players, 0 errors, p50 24 ms, p99 88 ms, API at ~300 MB RSS. At 600/s still 0 errors with p99 60 ms. Still to repeat on the deployed server.
 
 ## Open decisions
 

@@ -78,3 +78,12 @@ test("website logs in with a pair code and a cookie", async () => {
   await (await app()).inject({ method: "POST", url: "/auth/logout", cookies: { tq_session: cookie.value } });
   assert.equal((await (await app()).inject({ url: "/character", cookies: { tq_session: cookie.value } })).statusCode, 401, "logout ends the session");
 });
+
+test("banned players are rejected", async () => {
+  await db.accessCode.create({ data: { code: "TEST-0005", maxUses: 1, expiresAt: new Date(Date.now() + 60_000) } });
+  const { token } = (await post("/auth/register", { code: "TEST-0005", name: "cheater" })).json();
+  const sheet = async () => (await (await app()).inject({ url: "/character", headers: { authorization: `Bearer ${token}` } })).statusCode;
+  assert.equal(await sheet(), 200);
+  await db.user.updateMany({ where: { character: { name: "cheater" } }, data: { bannedAt: new Date() } });
+  assert.equal(await sheet(), 401);
+});

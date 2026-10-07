@@ -35,7 +35,7 @@ export async function requireUser(db: PrismaClient, req: FastifyRequest) {
   const token = req.headers.authorization?.match(/^Bearer (.+)$/)?.[1] ?? req.cookies[SESSION_COOKIE];
   if (!token) return null;
   const session = await db.session.findUnique({ where: { tokenHash: hash(token) }, include: { user: true } });
-  return session?.user ?? null;
+  return session && !session.user.bannedAt ? session.user : null;
 }
 
 export function authRoutes(app: FastifyInstance, db: PrismaClient) {

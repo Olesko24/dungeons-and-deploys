@@ -9,7 +9,9 @@
     "typecheck": "tsc",
     "postinstall": "prisma generate",
     "migrate": "prisma migrate dev && prisma generate",
-    "access-code": "node --env-file-if-exists=.env src/admin/access-code.ts"
+    "access-code": "node --env-file-if-exists=.env src/admin/access-code.ts",
+    "ban": "node --env-file-if-exists=.env src/admin/ban.ts",
+    "loadtest": "node --env-file-if-exists=.env scripts/loadtest.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",
@@ -21,5 +23,9 @@
     "fastify": "^5.12.5",
     "pg-boss": "^12.37.0",
     "prisma": "7.10.0"
+  },
+  "devDependencies": {
+    "@types/autocannon": "^7.12.7",
+    "autocannon": "^8.0.0"
   }
 }
