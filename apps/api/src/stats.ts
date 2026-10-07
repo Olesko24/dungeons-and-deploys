@@ -58,6 +58,15 @@ export async function syncAchievements(db: PrismaClient, characterId: number) {
   return stats;
 }
 
+/** For callers that must not fail because of achievements: a missed sync is caught up on the next action. */
+export async function trySyncAchievements(db: PrismaClient, characterId: number) {
+  try {
+    await syncAchievements(db, characterId);
+  } catch (err) {
+    console.error(`Achievement sync failed for character ${characterId}`, err);
+  }
+}
+
 export function statsRoutes(app: FastifyInstance, db: PrismaClient) {
   app.get("/stats", async (req, reply) => {
     const character = await requireCharacter(db, req, reply);

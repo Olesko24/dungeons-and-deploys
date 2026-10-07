@@ -139,7 +139,10 @@ export function raidRoutes(app: FastifyInstance, { db, now, scheduleRaid }: Requ
       const raid = await db.raid.create({
         data: { guildId: membership.guildId, startsAt, members: { create: { characterId: character.id } } },
       });
-      await scheduleRaid(raid.id, 0, startsAt);
+      await scheduleRaid(raid.id, 0, startsAt).catch(async (err) => {
+        await db.raid.delete({ where: { id: raid.id } });
+        throw err;
+      });
       return reply.code(201).send({ raid: await raidView(db, membership.guildId) });
     },
   );

@@ -3,11 +3,15 @@ import type { PrismaClient } from "./generated/prisma/client.ts";
 import { resolveStage, stageEndsAt } from "./dungeons.ts";
 import { resolveQuest } from "./quests.ts";
 import { advanceRaid, raidTickAt } from "./raids.ts";
-import { syncAchievements } from "./stats.ts";
+import { trySyncAchievements } from "./stats.ts";
 
+/**
+ * Follow-up jobs are planned from the stored state, not from what the resolve call returned. A retried job finds
+ * its step already done and still plans the next one. The singleton key keeps a step from being planned twice.
+ */
 export async function startJobs(boss: PgBoss, db: PrismaClient) {
-  const syncMembers = async (members: Promise<{ characterId: number }[]>) => {
-    for (const m of await members) await syncAchievements(db, m.characterId);
+  const syncMembers = async (members: { characterId: number }[]) => {
+    for (const m of members) await trySyncAchievements(db, m.characterId);
   };
 
   await boss.start();
@@ -20,32 +24,37 @@ export async function startJobs(boss: PgBoss, db: PrismaClient) {
     for (const job of jobs) {
       await resolveQuest(db, job.data.questId);
       const quest = await db.quest.findUnique({ where: { id: job.data.questId } });
-      if (quest) await syncAchievements(db, quest.characterId);
+      if (quest) await trySyncAchievements(db, quest.characterId);
     }
   });
   await boss.work("pair-codes.cleanup", () => db.pairCode.deleteMany({ where: { expiresAt: { lt: new Date() } } }));
   await boss.schedule("pair-codes.cleanup", "0 * * * *");
 
   const scheduleStage = (dungeonId: number, stage: number, at: Date) =>
-    boss.send("dungeon.stage", { dungeonId, stage }, { startAfter: at });
+    boss.upsert("dungeon.stage", { dungeonId, stage }, { startAfter: at, singletonKey: `dungeon-${dungeonId}-${stage}` });
   await boss.work<{ dungeonId: number; stage: number }>("dungeon.stage", async (jobs) => {
     for (const { data } of jobs) {
-      const result = await resolveStage(db, data.dungeonId, data.stage);
-      if (result && !result.next) await syncMembers(db.dungeonMember.findMany({ where: { dungeonId: data.dungeonId } }));
-      if (!result?.next) continue;
-      const dungeon = await db.dungeon.findUniqueOrThrow({ where: { id: data.dungeonId } });
-      await scheduleStage(data.dungeonId, data.stage + 1, stageEndsAt(dungeon.startsAt, data.stage + 1));
+      await resolveStage(db, data.dungeonId, data.stage);
+      const dungeon = await db.dungeon.findUnique({ where: { id: data.dungeonId }, include: { members: true } });
+      if (!dungeon) continue;
+      if (dungeon.endedAt) await syncMembers(dungeon.members);
+      else if (dungeon.stage === data.stage + 1) {
+        await scheduleStage(dungeon.id, dungeon.stage, stageEndsAt(dungeon.startsAt, dungeon.stage));
+      }
     }
   });
 
-  const scheduleRaid = (raidId: number, tick: number, at: Date) => boss.send("raid.tick", { raidId, tick }, { startAfter: at });
+  const scheduleRaid = (raidId: number, tick: number, at: Date) =>
+    boss.upsert("raid.tick", { raidId, tick }, { startAfter: at, singletonKey: `raid-${raidId}-${tick}` });
   await boss.work<{ raidId: number; tick: number }>("raid.tick", async (jobs) => {
     for (const { data } of jobs) {
-      const result = await advanceRaid(db, data.raidId, data.tick);
-      if (result?.state === "won") await syncMembers(db.raidMember.findMany({ where: { raidId: data.raidId } }));
-      if (!result?.next) continue;
-      const raid = await db.raid.findUniqueOrThrow({ where: { id: data.raidId } });
-      await scheduleRaid(data.raidId, data.tick + 1, raidTickAt(raid.startsAt, data.tick + 1));
+      await advanceRaid(db, data.raidId, data.tick);
+      const raid = await db.raid.findUnique({ where: { id: data.raidId }, include: { members: true } });
+      if (!raid) continue;
+      if (raid.state === "won") await syncMembers(raid.members);
+      else if (raid.state === "running" && raid.tick === data.tick) {
+        await scheduleRaid(raid.id, raid.tick + 1, raidTickAt(raid.startsAt, raid.tick + 1));
+      }
     }
   });
 

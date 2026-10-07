@@ -50,7 +50,11 @@ export function questRoutes(app: FastifyInstance, { db, scheduleResolve, now, ra
         throw err;
       });
     if (!quest) return reply.code(409).send({ error: "quest already running" });
-    await scheduleResolve(quest.id, quest.endsAt);
+    // Without its job the quest would never resolve and block every new quest, so undo it if planning fails.
+    await scheduleResolve(quest.id, quest.endsAt).catch(async (err) => {
+      await db.quest.delete({ where: { id: quest.id } });
+      throw err;
+    });
     return reply.code(201).send(questView(quest));
   });
 

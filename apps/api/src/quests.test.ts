@@ -142,6 +142,16 @@ test("equip and unequip", async () => {
   assert.equal((await p.call("GET", "/inventory")).json().items.filter((i: { equippedSlot: string | null }) => i.equippedSlot).length, 0);
 });
 
+test("a quest whose job cannot be planned is undone", async () => {
+  at(0);
+  const p = await player("unplanned");
+  const failing = await buildApp({ db, scheduleResolve: async () => { throw new Error("queue down"); }, now: () => new Date(clock) });
+  const res = await failing.inject({ method: "POST", url: "/quests", headers: { authorization: "Bearer tq_unplanned" } });
+  assert.equal(res.statusCode, 500);
+  assert.equal(await db.quest.count({ where: { character: { name: "unplanned" } } }), 0, "no quest left behind to block the next one");
+  assert.equal((await p.call("POST", "/quests")).statusCode, 201);
+});
+
 test("quest routes need a token", async () => {
   const res = await (await app()).inject({ method: "POST", url: "/quests" });
   assert.equal(res.statusCode, 401);

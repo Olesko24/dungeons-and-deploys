@@ -110,7 +110,10 @@ export function dungeonRoutes(app: FastifyInstance, { db, now, scheduleStage }: 
     const dungeon = await db.dungeon.create({
       data: { code: randomCode(6), startsAt, members: { create: { characterId: character.id } } },
     });
-    await scheduleStage(dungeon.id, 0, stageEndsAt(startsAt, 0));
+    await scheduleStage(dungeon.id, 0, stageEndsAt(startsAt, 0)).catch(async (err) => {
+      await db.dungeon.delete({ where: { id: dungeon.id } });
+      throw err;
+    });
     return reply.code(201).send(await dungeonView(db, character.id, now()));
   });
 

@@ -160,6 +160,9 @@ async function market(action: string | undefined, arg: string | undefined) {
     if (res.status >= 400) throw new Error(res.data.error ?? `Failed (${res.status})`);
     return console.log(action === "list" ? "Listed. You get the price minus 10% when someone draws it." : "Taken off the market.");
   }
+  if (action === "draw" && !["common", "rare", "epic", "legendary"].includes(arg ?? "")) {
+    throw new Error("Usage: quest market draw <common|rare|epic|legendary>");
+  }
   if (action === "draw") {
     const res = await authed("/market/draw", "POST", { rarity: arg });
     if (res.status >= 400) throw new Error(res.data.error ?? res.data.message ?? `Draw failed (${res.status})`);
@@ -176,6 +179,7 @@ async function market(action: string | undefined, arg: string | undefined) {
 }
 
 async function dungeon(action: string | undefined, code: string | undefined) {
+  if (action === "join" && !code) throw new Error("Usage: quest dungeon join <code>");
   if (action === "start" || action === "join") {
     const res = action === "start" ? await authed("/dungeons", "POST") : await authed("/dungeons/join", "POST", { code });
     if (res.status >= 400) throw new Error(res.data.error ?? res.data.message ?? `Failed (${res.status})`);
@@ -213,6 +217,7 @@ async function guild(action: string | undefined, arg: string) {
 }
 
 async function raid(action: string | undefined, minutes: string | undefined) {
+  if (action === "schedule" && !/^\d+$/.test(minutes ?? "")) throw new Error("Usage: quest raid schedule <minutes from now, 5-1440>");
   const res =
     action === "schedule" ? await authed("/raids", "POST", { startsInMinutes: Number(minutes) })
     : action === "join" ? await authed("/raids/join", "POST")
@@ -229,6 +234,7 @@ async function raid(action: string | undefined, minutes: string | undefined) {
 
 async function shop(action: string | undefined, offer: string | undefined) {
   if (action === "buy") {
+    if (!["1", "2", "3"].includes(offer ?? "")) throw new Error("Usage: quest shop buy <1-3>");
     const res = await authed("/shop/buy", "POST", { offer: Number(offer) });
     if (res.status >= 400) throw new Error(res.data.error ?? res.data.message ?? `Failed (${res.status})`);
     const i = res.data.item;
