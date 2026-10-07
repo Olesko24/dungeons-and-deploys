@@ -40,7 +40,8 @@ With this model the database stays small (~10k characters, ~1M items, a few thou
 
 ## Deploy
 
-The API runs as a Coolify application built from this repository.
+The API runs as a Coolify application built from this repository, at `https://tokenquest.meiners-dev.de`.
+The CLI uses this URL by default, `TOKENQUEST_URL` overrides it on login.
 
 | Setting | Value |
 |---|---|

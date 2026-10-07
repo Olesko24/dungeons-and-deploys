@@ -7,7 +7,7 @@ import { createInterface } from "node:readline/promises";
 import { parseArgs } from "node:util";
 import { bar, minutesUntil, type Status, shortStatus } from "./status.ts";
 
-const DEFAULT_SERVER = "http://localhost:3000";
+const DEFAULT_SERVER = "https://tokenquest.meiners-dev.de";
 const HEARTBEAT_INTERVAL_MS = 60_000;
 
 const dir = join(homedir(), ".tokenquest");

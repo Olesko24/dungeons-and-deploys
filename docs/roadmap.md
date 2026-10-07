@@ -122,5 +122,4 @@ No email: the API token on the player's devices is the identity. Losing all devi
 
 ## Open decisions
 
-- Domain and server URL
 - Game content: quest texts, item names, monsters

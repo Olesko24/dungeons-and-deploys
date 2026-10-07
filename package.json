@@ -11,7 +11,7 @@
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "lint": "oxlint --type-aware --deny-warnings",
-    "quest": "node apps/cli/src/quest.ts",
+    "quest": "TOKENQUEST_URL=${TOKENQUEST_URL:-http://localhost:3000} node apps/cli/src/quest.ts",
     "build": "pnpm -r build"
   },
   "devDependencies": {
