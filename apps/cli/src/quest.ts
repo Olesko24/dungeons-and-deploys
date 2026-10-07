@@ -384,17 +384,25 @@ const USAGE = `Usage: quest [command]
   quest login --pair <code>                      log in with a code from quest pair
   quest init zsh|bash                            shell integration: eval "$(quest init zsh)"
   quest heartbeat                                send a heartbeat (called by hooks, spawns monsters)
+  quest help, --help, -h                         this overview
 
 Manual: ${MANUAL}
 Beta: rules can change and progress may be reset.`;
 
-const { positionals, values } = parseArgs({
-  allowPositionals: true,
-  options: { code: { type: "string" }, pair: { type: "string" }, slot: { type: "string" }, short: { type: "boolean" }, send: { type: "boolean" } },
-});
-
 try {
-  switch (positionals[0]) {
+  const { positionals, values } = parseArgs({
+    allowPositionals: true,
+    options: {
+      code: { type: "string" },
+      pair: { type: "string" },
+      slot: { type: "string" },
+      short: { type: "boolean" },
+      send: { type: "boolean" },
+      help: { type: "boolean", short: "h" },
+    },
+  });
+  const command = values.help ? "help" : positionals[0];
+  switch (command) {
     case undefined:
       await startQuest();
       break;
@@ -422,7 +430,7 @@ try {
       break;
     case "manual":
     case "changelog":
-      await doc(positionals[0]);
+      await doc(command);
       break;
     case "top":
       await top(positionals[1]);
@@ -457,6 +465,9 @@ try {
     case "init":
       if (!INIT[positionals[1]]) throw new Error("Usage: quest init zsh|bash");
       console.log(INIT[positionals[1]]);
+      break;
+    case "help":
+      console.log(USAGE);
       break;
     default:
       console.log(USAGE);

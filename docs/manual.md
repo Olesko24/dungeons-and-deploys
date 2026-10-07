@@ -379,3 +379,4 @@ Dungeons & Deploys has no email and no password. Your login token on your device
 | `quest pair` / `quest login --pair <code>` | Another device or the website |
 | `quest init zsh\|bash` | Shell integration |
 | `quest heartbeat` | Send a heartbeat, called by the integrations |
+| `quest help`, `--help`, `-h` | Command overview |
