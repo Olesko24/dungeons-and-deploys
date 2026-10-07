@@ -30,7 +30,7 @@ export const ACHIEVEMENTS: { key: string; name: string; description: string; don
   { key: "firstBlood", name: "First Blood", description: "Defeat a monster", done: (s) => s.monstersSlain >= 1 },
   { key: "bugHunter", name: "Bug Hunter", description: "Defeat 50 monsters", done: (s) => s.monstersSlain >= 50 },
   { key: "dragon", name: "Dependency Resolved", description: "Defeat a Dependency Dragon", done: (s) => s.dragonsSlain >= 1 },
-  { key: "legendary", name: "Lucky Strike", description: "Find a legendary item", done: (s) => s.legendariesFound >= 1 },
+  { key: "legendary", name: "Lucky Strike", description: "Find a legendary item or better", done: (s) => s.legendariesFound >= 1 },
   { key: "fullSet", name: "Fully Equipped", description: "Fill every equipment slot", done: (s) => s.equippedSlots >= 11 },
   { key: "dungeon", name: "Dungeon Crawler", description: "Clear a dungeon", done: (s) => s.dungeonsCleared >= 1 },
   { key: "party", name: "Party of Five", description: "Clear a dungeon with a full party", done: (s) => s.fullPartyClears >= 1 },

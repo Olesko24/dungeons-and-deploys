@@ -36,14 +36,20 @@ export function shortStatus({ quest, readyAt, character, encounter, dungeon }: S
 
 const RARITY_RGB: Record<string, [number, number, number]> = {
   common: [0xb8, 0xbe, 0xc8],
+  uncommon: [0x7c, 0xd4, 0x7c],
   rare: [0x6a, 0xa8, 0xf0],
   epic: [0xb4, 0x8c, 0xff],
   legendary: [0xff, 0xb4, 0x5c],
+  mythic: [0xff, 0x6b, 0x8a],
+  ancient: [0x3f, 0xd0, 0xc0],
+  divine: [0xff, 0xf0, 0x7a],
+  celestial: [0xf0, 0x70, 0xff],
+  eternal: [0xf4, 0xf2, 0xff],
 };
 
 /** Colors text by rarity with 24-bit ANSI, unless NO_COLOR is set or output is not a terminal. */
 export function rarityColor(text: string, rarity: string, enabled = !process.env.NO_COLOR && process.stdout.isTTY) {
-  const [r, g, b] = RARITY_RGB[rarity];
+  const [r, g, b] = RARITY_RGB[rarity] ?? RARITY_RGB.common;
   return enabled ? `\x1b[38;2;${r};${g};${b}m${text}\x1b[0m` : text;
 }
 

@@ -40,9 +40,17 @@ Reference for the feel: [rpg.sola.rip](https://rpg.sola.rip). Take the direction
 | Rarity | Color | Glow |
 |---|---|---|
 | Common | `#b8bec8` | no |
+| Uncommon | `#7cd47c` | no |
 | Rare | `#6aa8f0` | yes |
 | Epic | `#b48cff` | yes |
 | Legendary | `#ffb45c` | yes |
+| Mythic | `#ff6b8a` | yes |
+| Ancient | `#3fd0c0` | yes |
+| Divine | `#fff07a` | yes |
+| Celestial | `#f070ff` | yes |
+| Eternal | `#f4f2ff` | yes |
+
+Every rarity also has its own pixel shape, so it reads without telling the colors apart.
 
 ## Typography
 

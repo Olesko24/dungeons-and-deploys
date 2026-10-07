@@ -71,6 +71,35 @@ function Gold({ amount }: { amount: number }) {
   return <span className="gold"><UiIcon name="gold" />{amount}</span>;
 }
 
+/** 8x8 pixel shapes, one per rarity, so rarity reads without telling the colors apart. */
+const RARITY_SHAPES: Record<string, string[]> = {
+  common: ["........", "........", "..####..", "..####..", "..####..", "..####..", "........", "........"],
+  uncommon: ["........", "..####..", ".######.", ".######.", ".######.", ".######.", "..####..", "........"],
+  rare: ["...##...", "..####..", ".######.", "########", "########", ".######.", "..####..", "...##..."],
+  epic: ["...##...", "...##...", "..####..", "########", "########", "..####..", "...##...", "...##..."],
+  legendary: ["........", "#..##..#", "##.##.##", "########", "########", "########", "########", "........"],
+  mythic: ["...#....", "...##...", "..###.#.", "..#####.", ".######.", ".######.", ".######.", "..####.."],
+  ancient: ["########", ".######.", "..####..", "...##...", "...##...", "..####..", ".######.", "########"],
+  divine: ["...##...", ".#....#.", "..####..", "#.####.#", "#.####.#", "..####..", ".#....#.", "...##..."],
+  celestial: ["..####..", ".###....", "###.....", "###.....", "###.....", "###.....", ".###....", "..####.."],
+  eternal: ["........", "........", ".##..##.", "#..##..#", "#..##..#", ".##..##.", "........", "........"],
+};
+
+/** Rarity shape in the rarity's color, drawn at 16px. */
+function RarityIcon({ rarity }: { rarity: string }) {
+  const rows = RARITY_SHAPES[rarity] ?? [];
+  return (
+    <svg className={`rarity-icon ${rarity}`} viewBox="0 0 8 8" width={16} height={16} shapeRendering="crispEdges" role="img" aria-label={rarity}>
+      <title>{rarity}</title>
+      {rows.flatMap((row, y) => row.split("").map((c, x) => c === "#" && <rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} fill="currentColor" />))}
+    </svg>
+  );
+}
+
+function Rarity({ rarity }: { rarity: string }) {
+  return <span className={`rarity ${rarity}`}><RarityIcon rarity={rarity} />{rarity}</span>;
+}
+
 function ItemIcon({ item }: { item: Item }) {
   return <img className="icon" src={`/items/${item.key}.svg`} alt="" width={48} height={48} />;
 }
@@ -213,7 +242,7 @@ function QuestStatus({ status, onChange }: { status: Status; onChange: () => voi
       {q?.resolved && (
         <p>
           Last quest: {q.name} · {q.success ? `✓ success · +${q.xp} XP · +${q.gold} gold` : `✗ failed · +${q.xp} XP`}
-          {q.loot && <> · found <span className={q.loot.rarity}>{q.loot.name}</span></>}
+          {q.loot && <> · found <span className={q.loot.rarity}><RarityIcon rarity={q.loot.rarity} />{q.loot.name}</span></>}
           {minutesUntil(status.readyAt) ? ` · next quest in ${minutesUntil(status.readyAt)}m` : ""}
         </p>
       )}
@@ -254,14 +283,14 @@ function Inventory({ items, onChange }: { items: Item[]; onChange: () => void })
             if (twoHander) {
               return (
                 <div key={slot} className={`slot blocked ${twoHander.rarity}`} title="Blocked by a two-handed weapon">
-                  <span className="slot-label">2-hand</span>
+                  <span className="slot-label">2-hand <RarityIcon rarity={twoHander.rarity} /></span>
                   <ItemIcon item={twoHander} />
                 </div>
               );
             }
             return (
               <div key={slot} className={`slot ${item?.rarity ?? "empty"}`}>
-                <span className="slot-label">{label}</span>
+                <span className="slot-label">{label} {item && <RarityIcon rarity={item.rarity} />}</span>
                 {item ? (
                   <button type="button" className="slot-item" onClick={() => act(item, "unequip")} title={`${item.name}, click to take off`}>
                     <ItemIcon item={item} />
@@ -281,7 +310,7 @@ function Inventory({ items, onChange }: { items: Item[]; onChange: () => void })
               <ItemIcon item={item} />
               <div className="item-text">
                 <span className="name">{item.name}</span>
-                <span className="dim">{item.rarity} · {statParts(item.stats).join(" · ")}{item.listed ? " · on market" : ""}</span>
+                <span className="dim"><Rarity rarity={item.rarity} /> · {statParts(item.stats).join(" · ")}{item.listed ? " · on market" : ""}</span>
               </div>
               {!item.listed && <button type="button" className="small" onClick={() => act(item, "equip")}>Equip</button>}
             </li>
@@ -307,7 +336,7 @@ function History({ quests }: { quests: Quest[] }) {
                   <td>{q.success ? "✓" : "✗"}</td>
                   <td>{q.xp}</td>
                   <td>{q.gold}</td>
-                  <td>{q.loot ? <span className={q.loot.rarity}>{q.loot.name}</span> : "–"}</td>
+                  <td>{q.loot ? <span className={q.loot.rarity}><RarityIcon rarity={q.loot.rarity} />{q.loot.name}</span> : "–"}</td>
                 </tr>
               ))}
             </tbody>
@@ -468,13 +497,14 @@ function ShopView({ onChange }: { onChange: () => void }) {
     <section className="panel">
       <h2><UiIcon name="shop" />Shop · <Gold amount={shop.gold} /></h2>
       <p className="dim">Three new offers every day, new ones in {Math.ceil(minutesUntil(shop.refreshesAt) / 60)}h. Stats are rolled when you buy.</p>
+      <p className="legend dim">Rarity, common to rarest: {Object.keys(RARITY_SHAPES).map((r) => <Rarity key={r} rarity={r} />)}</p>
       {message && <p role="status">{message}</p>}
       <div className="offers">
         {shop.offers.map((o) => (
           <div key={o.offer} className={`offer ${o.rarity}`}>
             <img className="icon" src={`/items/${o.key}.svg`} alt="" width={64} height={64} />
             <span className="name">{o.name}</span>
-            <span className="dim">{o.rarity} · <Gold amount={o.price} /></span>
+            <span className="dim"><Rarity rarity={o.rarity} /> · <Gold amount={o.price} /></span>
             <button type="button" className="small" disabled={o.bought || o.locked || shop.gold < o.price} onClick={() => buy(o.offer)}>
               {o.bought ? "Bought" : o.locked ? `Lv ${o.unlockLevel}` : "Buy"}
             </button>

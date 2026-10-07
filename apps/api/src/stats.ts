@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { ACHIEVEMENTS, type PlayerStats, type Talents, item, levelFromXp, playerBonus, playerPower } from "@dnd/shared";
+import { ACHIEVEMENTS, type PlayerStats, type Talents, item, levelFromXp, playerBonus, playerPower, rarityIndex } from "@dnd/shared";
 import { requireCharacter } from "./characters.ts";
 import type { Character, PrismaClient } from "./generated/prisma/client.ts";
 
@@ -47,7 +47,7 @@ export async function playerStats(db: PrismaClient, c: Character): Promise<Playe
     fightsLost: encounters.filter((e) => !e.won).length,
     dragonsSlain: encounters.filter((e) => e.won && e.monster === "dependencyDragon").length,
     itemsFound: loot.length,
-    legendariesFound: loot.filter((k) => k.endsWith(".legendary")).length,
+    legendariesFound: loot.filter((k) => rarityIndex(item(k).rarity) >= rarityIndex("legendary")).length,
     // A two-handed weapon fills the off hand too.
     equippedSlots: equipped.length + equipped.filter((i) => item(i.key).type === "twoHanded").length,
     dungeonsCleared: dungeons.filter((d) => d.dungeon.success).length,

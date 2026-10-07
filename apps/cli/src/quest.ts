@@ -175,9 +175,7 @@ async function market(action: string | undefined, arg: string | undefined) {
     if (res.status >= 400) throw new Error(res.data.error ?? `Failed (${res.status})`);
     return console.log(action === "list" ? "Listed. You get the price minus 10% when someone draws it." : "Taken off the market.");
   }
-  if (action === "draw" && !["common", "rare", "epic", "legendary"].includes(arg ?? "")) {
-    throw new Error("Usage: quest market draw <common|rare|epic|legendary>");
-  }
+  if (action === "draw" && !arg) throw new Error("Usage: quest market draw <rarity>, see quest market for the rarities");
   if (action === "draw") {
     const res = await authed("/market/draw", "POST", { rarity: arg });
     if (res.status >= 400) throw new Error(res.data.error ?? res.data.message ?? `Draw failed (${res.status})`);

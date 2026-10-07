@@ -191,12 +191,22 @@ quest talents reset           # all points back, 10 gold each
 
 Every item rolls its stats when it drops, so two items of the same name are rarely equal.
 
-| Rarity | Primary stat | Bonus stats |
-|---|---|---|
-| Common | low | none |
-| Rare | medium | 1 |
-| Epic | high | 2 |
-| Legendary | highest | 3 |
+There are ten rarities. Each one rolls higher stats than the one below.
+
+| Rarity | Attack or defense | Bonus stats | Drops from level |
+|---|---|---|---|
+| Common | 1–3 | none | 1 |
+| Uncommon | 2–4 | 1 | 1 |
+| Rare | 3–6 | 1 | 5 |
+| Epic | 6–10 | 2 | 10 |
+| Legendary | 10–15 | 3 | 20 |
+| Mythic | 15–22 | 3 | 30 |
+| Ancient | 22–32 | 3 | 45 |
+| Divine | 32–45 | 3 | 60 |
+| Celestial | 45–62 | 3 | 75 |
+| Eternal | 62–85 | 3 | 90 |
+
+Luck and fortune grow more slowly, since luck is capped at 95% anyway. On the website every rarity has its own color and symbol.
 
 Bonus stats are always different from the primary stat. The strongest bonus gives the item a name prefix: **Slaughterer's** (attack), **Defender's** (defense), **Gambler's** (luck) or **Merchant's** (fortune).
 
@@ -225,16 +235,19 @@ Two-handed weapons roll double attack but keep the shield slot empty.
 
 Drops roll the slot type evenly, then the rarity by your level:
 
-| Level | Common | Rare | Epic | Legendary |
-|---|---|---|---|---|
-| 1 | 90% | 10% | – | – |
-| 2–4 | 89.4% | 10% | 0.5% | 0.1% |
-| 5–9 | 74.5% | 22% | 3% | 0.5% |
-| 10–14 | 59% | 30% | 9% | 2% |
-| 15–24 | 50% | 33% | 13% | 4% |
-| 25+ | 40% | 35% | 19% | 6% |
+| Level | Com. | Unc. | Rare | Epic | Leg. | Myth. | Anc. | Div. | Cel. | Eter. |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1–4 | 85% | 15% | – | – | – | – | – | – | – | – |
+| 5–9 | 70% | 25% | 5% | – | – | – | – | – | – | – |
+| 10–19 | 55% | 28% | 15% | 2% | – | – | – | – | – | – |
+| 20–29 | 38% | 30% | 22% | 9% | 1% | – | – | – | – | – |
+| 30–44 | 26% | 27% | 25% | 15% | 6% | 1% | – | – | – | – |
+| 45–59 | 17% | 22% | 25% | 20% | 11% | 4% | 1% | – | – | – |
+| 60–74 | 12% | 18% | 23% | 22% | 15% | 7% | 2.5% | 0.5% | – | – |
+| 75–89 | 8% | 14% | 21% | 23% | 18% | 10% | 4% | 1.5% | 0.5% | – |
+| 90+ | 5% | 10% | 18% | 23% | 20% | 13% | 6% | 3% | 1.5% | 0.5% |
 
-Quest loot rolls the rarity twice and keeps the better result, raids three times.
+Quest loot rolls the rarity twice and keeps the better result. Dungeon and raid bosses roll more often.
 
 There is no minimum level to equip anything.
 
@@ -269,15 +282,15 @@ A win gives XP and gold by toughness and a 40% chance for an item. A defeat cost
 
 ## Shop
 
-The shop has three offers per day, the same for every player: one common, one rare and one epic item. They change at midnight UTC.
+The shop has three offers per day, the same for every player: one uncommon, one epic and one mythic item. They change at midnight UTC.
 
 | Offer | Price | Needs |
 |---|---|---|
-| Common | 40 gold | – |
-| Rare | 120 gold | – |
-| Epic | 400 gold | level 5 |
+| Uncommon | 70 gold | – |
+| Epic | 240 gold | level 10 |
+| Mythic | 1000 gold | level 30 |
 
-You can buy each offer once per day. The stats are rolled when you buy. Legendaries are never sold.
+You can buy each offer once per day. The stats are rolled when you buy.
 
 ```sh
 quest shop
@@ -291,9 +304,15 @@ Players trade items on the market, but nobody picks or bids. Prices are fixed by
 | Rarity | Price | Draws unlock |
 |---|---|---|
 | Common | 20 gold | level 1 |
-| Rare | 60 gold | level 1 |
-| Epic | 200 gold | level 5 |
-| Legendary | 800 gold | level 10 |
+| Uncommon | 35 gold | level 1 |
+| Rare | 60 gold | level 5 |
+| Epic | 120 gold | level 10 |
+| Legendary | 250 gold | level 20 |
+| Mythic | 500 gold | level 30 |
+| Ancient | 900 gold | level 45 |
+| Divine | 1600 gold | level 60 |
+| Celestial | 2800 gold | level 75 |
+| Eternal | 5000 gold | level 90 |
 
 You get one draw per day (UTC). When your item is drawn, you receive the price minus a 10% fee. Listed items cannot be equipped, unlist them to take them back.
 
@@ -352,7 +371,7 @@ different buffs can run at once, the same buff once at a time.
 Raids are the only content that needs a guild.
 
 ```sh
-quest raid schedule <minutes> [boss]   # leader only, 5 to 1440 minutes ahead, boss 1-6
+quest raid schedule <minutes> [boss]   # leader only, 5 to 1440 minutes ahead, boss 1-10
 quest raid join                        # members join until it starts
 quest raid                             # the raid, your raid power and the bosses
 ```
@@ -361,7 +380,7 @@ A raid needs at least 5 raiders, otherwise it is cancelled at the start. It last
 
 ### Raid bosses
 
-There are six bosses, each harder than the last. A guild starts with the first and unlocks the next one by
+There are ten bosses, each harder than the last. A guild starts with the first and unlocks the next one by
 beating the strongest it has unlocked. Without a boss number, the leader schedules the strongest unlocked one.
 
 | Boss | Name | Recommended power | Loot | XP and gold |
@@ -369,9 +388,13 @@ beating the strongest it has unlocked. Without a boss number, the leader schedul
 | 1 | The Monolith | 250 | 3 rolls, loot level 5+ | ×1 |
 | 2 | The Legacy Mainframe | 600 | 4 rolls, loot level 10+ | ×1.5 |
 | 3 | The Kubernetes Kraken | 1400 | 5 rolls, loot level 15+ | ×2 |
-| 4 | The Infinite Loop | 3000 | 6 rolls, loot level 25+ | ×3 |
+| 4 | The Infinite Loop | 3000 | 6 rolls, loot level 20+ | ×3 |
 | 5 | The Production Outage | 6000 | 7 rolls, loot level 25+ | ×4 |
-| 6 | The Big Rewrite | 12000 | 8 rolls, loot level 25+ | ×6 |
+| 6 | The Big Rewrite | 12000 | 8 rolls, loot level 30+ | ×6 |
+| 7 | The Debt Collector | 18000 | 9 rolls, loot level 45+ | ×8 |
+| 8 | The Distributed Monolith | 35000 | 10 rolls, loot level 60+ | ×10 |
+| 9 | The Halting Problem | 65000 | 11 rolls, loot level 75+ | ×13 |
+| 10 | The Final Migration | 120000 | 12 rolls, loot level 90+ | ×16 |
 
 Boss HP depends only on the boss and the number of raiders, so it does not grow with your gear. If the raiders'
 average power matches the recommendation, the raid wins about 60% of the time. The odds drop fast below it:

@@ -30,23 +30,23 @@ test("buy each daily offer once", async () => {
   const p = await player("shopper", 200);
   const shop = (await p.call("GET", "/shop")).json();
   assert.deepEqual(shop.offers.map((o: { key: string }) => o.key), shopOffers("2026-10-07").map((o) => o.key));
-  assert.equal(shop.offers[2].locked, true, "epic needs level 5");
+  assert.equal(shop.offers[1].locked, true, "epic needs level 10");
 
-  const bought = await p.call("POST", "/shop/buy", { offer: 2 });
+  const bought = await p.call("POST", "/shop/buy", { offer: 1 });
   assert.equal(bought.statusCode, 200);
-  assert.equal(bought.json().item.key, shopOffers("2026-10-07")[1].key);
-  assert.equal(await p.gold(), 80);
-  assert.equal((await p.call("POST", "/shop/buy", { offer: 2 })).json().error, "already bought today");
-  assert.equal((await p.call("POST", "/shop/buy", { offer: 3 })).json().error, "epic offers unlock at level 5");
-  assert.equal((await p.call("GET", "/shop")).json().offers[1].bought, true);
+  assert.equal(bought.json().item.key, shopOffers("2026-10-07")[0].key);
+  assert.equal(await p.gold(), 130);
+  assert.equal((await p.call("POST", "/shop/buy", { offer: 1 })).json().error, "already bought today");
+  assert.equal((await p.call("POST", "/shop/buy", { offer: 2 })).json().error, "epic offers unlock at level 10");
+  assert.equal((await p.call("GET", "/shop")).json().offers[0].bought, true);
 
   clock += 24 * 60 * 60 * 1000;
   const next = (await p.call("GET", "/shop")).json();
-  assert.equal(next.offers[1].bought, false, "a new day resets purchases");
+  assert.equal(next.offers[0].bought, false, "a new day resets purchases");
 });
 
 test("no gold, no item", async () => {
   const p = await player("broke", 10);
-  assert.equal((await p.call("POST", "/shop/buy", { offer: 1 })).json().error, "not enough gold, this costs 40");
+  assert.equal((await p.call("POST", "/shop/buy", { offer: 1 })).json().error, "not enough gold, this costs 70");
   assert.equal((await p.call("GET", "/shop")).json().offers[0].bought, false, "a failed purchase does not count");
 });

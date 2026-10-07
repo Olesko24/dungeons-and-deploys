@@ -5,9 +5,15 @@ import { ITEM_BASES, RARITIES, type Rarity, TALENTS, type TalentTree } from "@dn
 // Material shades per rarity, derived from the rarity colors in docs/style.md.
 const MATERIAL: Record<Rarity, { l: string; m: string; d: string }> = {
   common: { l: "#e4e8ee", m: "#b8bec8", d: "#7a808a" },
+  uncommon: { l: "#c4f0b8", m: "#7cd47c", d: "#3e8a44" },
   rare: { l: "#b8d8ff", m: "#6aa8f0", d: "#3a6ab0" },
   epic: { l: "#dccbff", m: "#b48cff", d: "#7a52c8" },
   legendary: { l: "#ffe0a8", m: "#ffb45c", d: "#c47a2a" },
+  mythic: { l: "#ffc0cc", m: "#ff6b8a", d: "#b8304e" },
+  ancient: { l: "#a8f4ea", m: "#3fd0c0", d: "#1e8a80" },
+  divine: { l: "#fffad0", m: "#fff07a", d: "#c8b030" },
+  celestial: { l: "#ffd0ff", m: "#f070ff", d: "#a83ab8" },
+  eternal: { l: "#ffffff", m: "#f4f2ff", d: "#a8a0d0" },
 };
 const FIXED: Record<string, string> = { o: "#06050b", h: "#8a5a3a", H: "#5a3a24", e: "#e86a56", w: "#eee7d8" };
 

@@ -7,8 +7,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Breaking
+
+- Ten rarities instead of four: common, uncommon, rare, epic, legendary, mythic, ancient, divine, celestial and
+  eternal. Higher rarities drop from higher levels, up to eternal from level 90, so gear keeps improving up to
+  the level cap. **All items are reset.**
+- Four new raid bosses for the late game, up to The Final Migration at 120000 recommended power.
+- The shop offers an uncommon, an epic and a mythic item. Market draws exist for every rarity.
+
 ### Added
 
+- Every rarity has its own symbol on the website, and the shop shows a rarity legend.
 - Found, join and leave a guild from the guild hall on the website.
 - Talents: one point per level in four trees (offense, defense, luck, general) of 8 talents each, with rows that
   open with points spent and prerequisites. `quest talents` or the talent trees with icons on the website.

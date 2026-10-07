@@ -15,9 +15,15 @@
   --bad: #e86a56;
   --warn: #e8b84c;
   --common: #b8bec8;
+  --uncommon: #7cd47c;
   --rare: #6aa8f0;
   --epic: #b48cff;
   --legendary: #ffb45c;
+  --mythic: #ff6b8a;
+  --ancient: #3fd0c0;
+  --divine: #fff07a;
+  --celestial: #f070ff;
+  --eternal: #f4f2ff;
   --display: "Press Start 2P", monospace;
   --body: "VT323", monospace;
 }
@@ -39,7 +45,11 @@ code { font-family: var(--body); color: var(--gold); }
 .error { color: var(--bad); }
 .alert { color: var(--warn); }
 .icon { image-rendering: pixelated; display: block; }
-.common { color: var(--common); } .rare { color: var(--rare); } .epic { color: var(--epic); } .legendary { color: var(--legendary); }
+.common { color: var(--common); } .uncommon { color: var(--uncommon); } .rare { color: var(--rare); } .epic { color: var(--epic); } .legendary { color: var(--legendary); }
+.mythic { color: var(--mythic); } .ancient { color: var(--ancient); } .divine { color: var(--divine); } .celestial { color: var(--celestial); } .eternal { color: var(--eternal); }
+.rarity-icon { display: inline-block; vertical-align: -2px; margin-right: 4px; }
+.rarity { white-space: nowrap; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; }
 
 .panel {
   background: var(--panel);
@@ -94,7 +104,8 @@ input {
 .slot { background: var(--panel-deep); padding: 8px; display: grid; justify-items: center; gap: 6px; border-bottom: var(--pixel) solid currentColor; }
 .slot.empty { color: var(--panel); }
 .slot.blocked .icon { opacity: .35; }
-.slot-label { font: 8px var(--display); color: var(--ink-dim); text-transform: uppercase; }
+.slot-label { font: 8px var(--display); color: var(--ink-dim); text-transform: uppercase; display: flex; align-items: center; gap: 4px; }
+.slot-label .rarity-icon { margin: 0; }
 .slot-item { background: none; box-shadow: none; padding: 0; }
 .slot-empty { width: 48px; height: 48px; box-shadow: inset 0 0 0 2px var(--edge-dark); }
 

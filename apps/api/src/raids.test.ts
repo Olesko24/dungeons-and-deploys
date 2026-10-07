@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
-import { RAID_TICKS } from "@dnd/shared";
+import { RAID_BOSSES, RAID_TICKS } from "@dnd/shared";
 import { buildApp } from "./app.ts";
 import { hash } from "./auth.ts";
 import type { PrismaClient } from "./generated/prisma/client.ts";
@@ -72,7 +72,7 @@ test("five raiders beat the boss in good phases and all get loot", async () => {
 test("bosses unlock one by one and need more power", async () => {
   const players = await guildWith("ladder", 5);
   const first = (await players[0].call("GET", "/raids/current")).json();
-  assert.deepEqual(first.bosses.map((b: { unlocked: boolean }) => b.unlocked), [true, false, false, false, false, false]);
+  assert.deepEqual(first.bosses.map((b: { unlocked: boolean }) => b.unlocked), RAID_BOSSES.map((_, tier) => tier === 0));
   assert.equal(first.power, 210);
   assert.equal((await players[0].call("POST", "/raids", { startsInMinutes: 10, tier: 2 })).json().error, "beat The Monolith first");
 

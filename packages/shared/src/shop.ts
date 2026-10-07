@@ -1,10 +1,12 @@
-import { type Rarity, randomItemBase } from "./items.ts";
+import { type Rarity, randomItemBase, rarityLevel } from "./items.ts";
+import { MARKET_PRICES } from "./market.ts";
 
-export const SHOP_OFFERS: { rarity: Rarity; price: number; unlockLevel: number }[] = [
-  { rarity: "common", price: 40, unlockLevel: 1 },
-  { rarity: "rare", price: 120, unlockLevel: 1 },
-  { rarity: "epic", price: 400, unlockLevel: 5 },
-];
+/** Three offers spread over the early, middle and late game, at twice the market price. */
+export const SHOP_OFFERS = (["uncommon", "epic", "mythic"] as Rarity[]).map((rarity) => ({
+  rarity,
+  price: 2 * MARKET_PRICES[rarity],
+  unlockLevel: rarityLevel(rarity),
+}));
 
 /** Small seeded generator (mulberry32), so every player sees the same offers on the same day. */
 export function seededRandom(seed: number) {

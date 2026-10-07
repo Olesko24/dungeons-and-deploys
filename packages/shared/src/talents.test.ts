@@ -55,5 +55,5 @@ test("drop chance and extra rarity rolls improve loot", () => {
   assert.equal(rollLoot(5, 1, dice(0.45)), null);
   assert.notEqual(rollLoot(5, 1, dice(0.45), { drop: 10, rarityRoll: 0 }), null, "+10 points drop chance");
   assert.equal(rollLoot(5, 1, dice(0, 0, 0.1)), "helm.common");
-  assert.equal(rollLoot(5, 1, dice(0, 0.1, 0, 0.1, 0.99), { drop: 0, rarityRoll: 20 }), "helm.epic", "the extra roll counts");
+  assert.equal(rollLoot(5, 1, dice(0, 0.1, 0, 0.1, 0.99), { drop: 0, rarityRoll: 20 }), "helm.rare", "the extra roll counts");
 });

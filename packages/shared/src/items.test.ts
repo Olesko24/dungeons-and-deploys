@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { equipPlan, equipmentBonus, item, itemName, questOutcome, rollLoot, rollRarity, rollStats } from "./index.ts";
+import { RARITIES, equipPlan, equipmentBonus, item, itemName, questOutcome, rarityLevel, rollLoot, rollRarity, rollStats } from "./index.ts";
 
 /** Returns the given values in order, like a loaded die. */
 const dice = (...values: number[]) => () => values.shift() ?? 0;
@@ -10,6 +10,9 @@ test("item catalog", () => {
     key: "scythe.legendary", type: "twoHanded", rarity: "legendary", baseName: "Reaper of Zombie Processes", primary: "attack", signature: "luck",
   });
   assert.equal(item("dagger.epic").baseName, "Runed Dagger");
+  assert.equal(item("scythe.eternal").baseName, "Eternal Reaper of Zombie Processes", "from legendary up weapons keep their legendary name");
+  assert.equal(item("helm.eternal").baseName, "Crown of Infinite Uptime");
+  assert.throws(() => item("helm.unique"));
   assert.equal(item("morningStar.common").type, "weapon");
   assert.throws(() => item("twoHanded.common"), "weapons are keyed by kind");
   assert.equal(item("ring.epic").primary, "luck");
@@ -20,11 +23,12 @@ test("rolled stats", () => {
   assert.deepEqual(rollStats("helm.common", () => 0.99), { attack: 0, defense: 3, luck: 0, fortune: 0 }, "common has no bonus");
   assert.deepEqual(rollStats("greatsword.common", () => 0.99), { attack: 6, defense: 0, luck: 0, fortune: 0 }, "two-hander doubles attack");
   assert.deepEqual(rollStats("battleAxe.common", () => 0.99), { attack: 8, defense: 0, luck: 0, fortune: 0 }, "battle axe hits harder");
-  assert.deepEqual(rollStats("dagger.common", () => 0.99), { attack: 2, defense: 0, luck: 2, fortune: 0 }, "dagger trades attack for luck, even when common");
+  assert.deepEqual(rollStats("dagger.common", () => 0.99), { attack: 2, defense: 0, luck: 1, fortune: 0 }, "dagger trades attack for luck, even when common");
   // Primary roll, then pick from [attack, luck, fortune] and roll its value.
   assert.deepEqual(rollStats("helm.rare", dice(0, 0, 0.99)), { attack: 3, defense: 3, luck: 0, fortune: 0 });
   assert.deepEqual(rollStats("sword.legendary", () => 0), { attack: 10, defense: 5, luck: 3, fortune: 8 }, "legendary gets all three other stats");
   assert.deepEqual(rollStats("spear.legendary", () => 0), { attack: 18, defense: 5, luck: 3, fortune: 8 }, "signature takes one bonus spot");
+  assert.deepEqual(rollStats("sword.eternal", () => 0), { attack: 62, defense: 31, luck: 5, fortune: 20 });
 });
 
 test("name prefix follows the strongest bonus stat", () => {
@@ -44,18 +48,20 @@ test("equipment bonus sums all stats", () => {
 });
 
 test("rarity depends on level", () => {
-  assert.equal(rollRarity(1, 1, () => 0.999), "rare", "level 1 never rolls epic or legendary");
-  assert.equal(rollRarity(2, 1, () => 0.9995), "legendary", "level 2 has a 0.1% legendary chance");
-  assert.equal(rollRarity(2, 1, () => 0.998), "epic");
+  assert.equal(rollRarity(1, 1, () => 0.9999), "uncommon", "level 1 rolls only common and uncommon");
+  assert.equal(rollRarity(5, 1, () => 0.9999), "rare");
   assert.equal(rollRarity(10, 1, () => 0.5), "common");
-  assert.equal(rollRarity(10, 1, () => 0.985), "legendary");
-  assert.equal(rollRarity(10, 3, dice(0.1, 0.99, 0.5)), "legendary", "best of several rolls");
+  assert.equal(rollRarity(10, 1, () => 0.985), "epic");
+  assert.equal(rollRarity(89, 1, () => 0.9999), "celestial");
+  assert.equal(rollRarity(90, 1, () => 0.9999), "eternal");
+  assert.equal(rollRarity(10, 3, dice(0.1, 0.99, 0.5)), "epic", "best of several rolls");
+  assert.deepEqual(RARITIES.map(rarityLevel), [1, 1, 5, 10, 20, 30, 45, 60, 75, 90]);
 });
 
 test("loot roll", () => {
   assert.equal(rollLoot(5, 1, dice(0.4)), null, "40% drop chance");
   assert.equal(rollLoot(5, 1, dice(0.39, 0, 0.1)), "helm.common");
-  assert.equal(rollLoot(5, 3, dice(0, 0.999, 0.1, 0.1, 0.99)), "earrings.epic", "the best of several rarity rolls counts");
+  assert.equal(rollLoot(5, 3, dice(0, 0.999, 0.1, 0.1, 0.99)), "earrings.rare", "the best of several rarity rolls counts");
   assert.equal(rollLoot(5, 1, dice(0, 7 / 11, 0.99, 0.1)), "crossbow.common", "two-handed type picks a two-handed kind");
   assert.equal(rollLoot(5, 1, dice(0, 5 / 11, 0, 0.1)), "dagger.common", "weapon type picks a one-handed kind");
 });
@@ -83,9 +89,10 @@ test("equip plan", () => {
 
 test("rarity distribution matches the weights", () => {
   const steps = 100_000;
-  for (const [level, expected] of [[1, [90, 10, 0, 0]], [2, [89.4, 10, 0.5, 0.1]], [10, [59, 30, 9, 2]], [30, [40, 35, 19, 6]]] as const) {
-    const counts = { common: 0, rare: 0, epic: 0, legendary: 0 };
+  for (const [level, weights] of [[1, [85, 15]], [5, [70, 25, 5]], [10, [55, 28, 15, 2]], [100, [5, 10, 18, 23, 20, 13, 6, 3, 1.5, 0.5]]] as const) {
+    const counts = Object.fromEntries(RARITIES.map((r) => [r, 0]));
     for (let i = 0; i < steps; i++) counts[rollRarity(level, 1, () => (i + 0.5) / steps)]++;
-    assert.deepEqual(Object.values(counts).map((c) => (c / steps) * 100), expected, `level ${level}`);
+    const expected = RARITIES.map((_, i) => ((weights[i] ?? 0) * steps) / 100);
+    assert.deepEqual(Object.values(counts), expected, `level ${level}`);
   }
 });

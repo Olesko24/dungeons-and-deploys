@@ -20,5 +20,5 @@ test("stage rewards grow with the party", () => {
 
 test("boss loot", () => {
   assert.equal(bossLoot(10, 1, () => 0), "helm.common");
-  assert.equal(bossLoot(10, 5, (() => { const v = [0, 0.1, 0.1, 0.99]; return () => v.shift() ?? 0; })()), "helm.legendary", "5 members roll rarity 3 times");
+  assert.equal(bossLoot(10, 5, (() => { const v = [0, 0.1, 0.1, 0.99]; return () => v.shift() ?? 0; })()), "helm.epic", "5 members roll rarity 3 times");
 });

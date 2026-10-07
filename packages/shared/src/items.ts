@@ -1,4 +1,4 @@
-export const RARITIES = ["common", "rare", "epic", "legendary"] as const;
+export const RARITIES = ["common", "uncommon", "rare", "epic", "legendary", "mythic", "ancient", "divine", "celestial", "eternal"] as const;
 export type Rarity = (typeof RARITIES)[number];
 
 export const ITEM_TYPES = [
@@ -25,20 +25,21 @@ const PRIMARY: Record<ItemType, Stat> = {
 };
 
 type Range = [min: number, max: number];
-export const PRIMARY_RANGE: Record<Stat, Record<Rarity, Range>> = {
-  attack: { common: [1, 3], rare: [3, 6], epic: [6, 10], legendary: [10, 15] },
-  defense: { common: [1, 3], rare: [3, 6], epic: [6, 10], legendary: [10, 15] },
-  luck: { common: [1, 2], rare: [2, 3], epic: [3, 5], legendary: [5, 8] },
-  fortune: { common: [3, 6], rare: [6, 10], epic: [10, 15], legendary: [15, 25] },
+/** Primary stat range per rarity, lowest rarity first. */
+export const PRIMARY_RANGE: Record<Stat, Range[]> = {
+  attack: [[1, 3], [2, 4], [3, 6], [6, 10], [10, 15], [15, 22], [22, 32], [32, 45], [45, 62], [62, 85]],
+  defense: [[1, 3], [2, 4], [3, 6], [6, 10], [10, 15], [15, 22], [22, 32], [32, 45], [45, 62], [62, 85]],
+  luck: [[1, 2], [1, 3], [2, 3], [3, 5], [5, 8], [6, 9], [7, 10], [8, 12], [9, 13], [10, 15]],
+  fortune: [[3, 6], [4, 8], [6, 10], [10, 15], [15, 25], [20, 30], [25, 35], [30, 42], [35, 48], [40, 55]],
 };
 /** Bonus stats are roughly half a primary stat of the same rarity. Common items have none. */
-export const BONUS_RANGE: Record<Stat, Record<Exclude<Rarity, "common">, Range>> = {
-  attack: { rare: [1, 3], epic: [3, 5], legendary: [5, 8] },
-  defense: { rare: [1, 3], epic: [3, 5], legendary: [5, 8] },
-  luck: { rare: [1, 2], epic: [2, 3], legendary: [3, 4] },
-  fortune: { rare: [3, 5], epic: [5, 8], legendary: [8, 12] },
+export const BONUS_RANGE: Record<Stat, Range[]> = {
+  attack: [[0, 0], [1, 2], [1, 3], [3, 5], [5, 8], [8, 11], [11, 16], [16, 22], [22, 31], [31, 42]],
+  defense: [[0, 0], [1, 2], [1, 3], [3, 5], [5, 8], [8, 11], [11, 16], [16, 22], [22, 31], [31, 42]],
+  luck: [[0, 0], [1, 1], [1, 2], [2, 3], [3, 4], [3, 5], [4, 5], [4, 6], [5, 7], [5, 8]],
+  fortune: [[0, 0], [2, 4], [3, 5], [5, 8], [8, 12], [10, 15], [12, 18], [15, 21], [17, 24], [20, 28]],
 };
-export const BONUS_COUNT: Record<Rarity, number> = { common: 0, rare: 1, epic: 2, legendary: 3 };
+export const BONUS_COUNT = [0, 1, 1, 2, 3, 3, 3, 3, 3, 3];
 export const PREFIX: Record<Stat, string> = {
   attack: "Slaughterer's", defense: "Defender's", luck: "Gambler's", fortune: "Merchant's",
 };
@@ -48,21 +49,22 @@ const rollRange = ([min, max]: Range, random: () => number) => min + Math.floor(
 
 type ArmorType = Exclude<ItemType, "weapon" | "twoHanded">;
 
-const NAMES: Record<ArmorType, [string, string, string, string]> = {
-  helm: ["Leather Cap", "Iron Helm", "Hood of Focus", "Crown of Flow"],
-  chest: ["Padded Vest", "Chainmail", "Cloak of Uptime", "Dragonscale Armor"],
-  legs: ["Linen Trousers", "Chain Leggings", "Runed Legguards", "Legplates of the Long Session"],
-  gloves: ["Work Gloves", "Iron Gauntlets", "Gloves of Swift Typing", "Gauntlets of the Merge"],
-  boots: ["Worn Boots", "Iron Sabatons", "Boots of Hot Reload", "Treads of Zero Downtime"],
-  shield: ["Wooden Buckler", "Iron Shield", "Firewall Shield", "Aegis of Rollback"],
-  ring: ["Copper Ring", "Silver Ring", "Ring of Caching", "Signet of Root"],
-  necklace: ["Bead Necklace", "Coin Pendant", "Token Amulet", "Golden Token"],
-  earrings: ["Bone Earrings", "Silver Studs", "Earrings of Whispered Logs", "Earrings of the Oracle"],
+/** One name per rarity, lowest rarity first. */
+const NAMES: Record<ArmorType, string[]> = {
+  helm: ["Leather Cap", "Padded Coif", "Iron Helm", "Hood of Focus", "Crown of Flow", "Mythril Circlet", "Helm of the First Commit", "Halo of Pure Functions", "Starforged Visor", "Crown of Infinite Uptime"],
+  chest: ["Padded Vest", "Studded Jerkin", "Chainmail", "Cloak of Uptime", "Dragonscale Armor", "Mythril Hauberk", "Breastplate of the Mainframe", "Vestments of the Kernel", "Starweave Robe", "Armor of Five Nines"],
+  legs: ["Linen Trousers", "Leather Breeches", "Chain Leggings", "Runed Legguards", "Legplates of the Long Session", "Mythril Greaves", "Greaves of the Old Codebase", "Tassets of Type Safety", "Starforged Cuisses", "Legguards of the Endless Sprint"],
+  gloves: ["Work Gloves", "Leather Grips", "Iron Gauntlets", "Gloves of Swift Typing", "Gauntlets of the Merge", "Mythril Handguards", "Gauntlets of the Punch Card", "Gloves of Clean Code", "Starforged Grasp", "Gauntlets of the 10x Engineer"],
+  boots: ["Worn Boots", "Traveler's Boots", "Iron Sabatons", "Boots of Hot Reload", "Treads of Zero Downtime", "Mythril Striders", "Boots of the Waterfall", "Sandals of Continuous Delivery", "Starforged Treads", "Boots of the Eternal Deploy"],
+  shield: ["Wooden Buckler", "Hide Shield", "Iron Shield", "Firewall Shield", "Aegis of Rollback", "Mythril Bulwark", "Shield of the Air Gap", "Aegis of Least Privilege", "Starforged Barrier", "Bulwark of Zero Trust"],
+  ring: ["Copper Ring", "Brass Band", "Silver Ring", "Ring of Caching", "Signet of Root", "Mythril Loop", "Ring of the Root Certificate", "Band of Idempotence", "Starforged Signet", "Ring of the Single Source of Truth"],
+  necklace: ["Bead Necklace", "Shell Pendant", "Coin Pendant", "Token Amulet", "Golden Token", "Mythril Torc", "Amulet of the Genesis Block", "Locket of Compound Interest", "Starforged Medallion", "Pendant of the Infinite Budget"],
+  earrings: ["Bone Earrings", "Brass Hoops", "Silver Studs", "Earrings of Whispered Logs", "Earrings of the Oracle", "Mythril Studs", "Earrings of the Ancient Logs", "Earrings of Perfect Observability", "Starforged Hoops", "Earrings of the All-Seeing Trace"],
 };
 
 /**
  * Weapon kinds drop in every rarity. `attack` scales the rolled attack, `signature` is a stat every
- * item of that kind rolls on top of its bonus stats.
+ * item of that kind rolls on top of its bonus stats. From legendary up a weapon carries its `legendary` name.
  */
 export const WEAPONS = {
   dagger: { hands: 1, label: "Dagger", attack: 0.75, signature: "luck", legendary: "Dagger of the Hotfix" },
@@ -80,7 +82,11 @@ export const WEAPONS = {
 } as const satisfies Record<string, { hands: 1 | 2; label: string; attack: number; signature: Stat | null; legendary: string }>;
 export type WeaponKind = keyof typeof WEAPONS;
 const WEAPON_KINDS = Object.keys(WEAPONS) as WeaponKind[];
-const QUALITY: Record<Exclude<Rarity, "legendary">, string> = { common: "Worn", rare: "Fine", epic: "Runed" };
+/** Weapon name prefix per rarity. Up to epic it goes before the kind, from legendary up before the legendary name. */
+const QUALITY = ["Worn", "Sturdy", "Fine", "Runed", "", "Mythril", "Primeval", "Hallowed", "Starforged", "Eternal"];
+const LEGENDARY = RARITIES.indexOf("legendary");
+
+export const rarityIndex = (rarity: Rarity) => RARITIES.indexOf(rarity);
 
 /** Every base an item key can start with: armor types and weapon kinds. */
 export const ITEM_BASES = [...ITEM_TYPES.filter((t) => t !== "weapon" && t !== "twoHanded"), ...WEAPON_KINDS];
@@ -91,13 +97,14 @@ export function item(key: string) {
   if (!RARITIES.includes(rarity)) throw new Error(`Unknown item ${key}`);
   if (base in WEAPONS) {
     const w = WEAPONS[base as WeaponKind];
-    const baseName = rarity === "legendary" ? w.legendary : `${QUALITY[rarity]} ${w.label}`;
+    const tier = rarityIndex(rarity);
+    const baseName = `${QUALITY[tier]} ${tier < LEGENDARY ? w.label : w.legendary}`.trim();
     const type: ItemType = w.hands === 2 ? "twoHanded" : "weapon";
     return { key, type, rarity, baseName, primary: "attack" as Stat, signature: w.signature as Stat | null };
   }
   const type = base as ArmorType;
   if (!(type in NAMES)) throw new Error(`Unknown item ${key}`);
-  return { key, type: type as ItemType, rarity, baseName: NAMES[type][RARITIES.indexOf(rarity)], primary: PRIMARY[type], signature: null };
+  return { key, type: type as ItemType, rarity, baseName: NAMES[type][rarityIndex(rarity)], primary: PRIMARY[type], signature: null };
 }
 
 /** Rolls the primary stat, the signature stat of weapon kinds and the random bonus stats of a new item. */
@@ -105,14 +112,14 @@ export function rollStats(key: string, random: () => number): Stats {
   const { rarity, primary, signature } = item(key);
   const stats = noStats();
   const kind = key.split(".")[0] as WeaponKind;
-  const roll = rollRange(PRIMARY_RANGE[primary][rarity], random);
+  const tier = rarityIndex(rarity);
+  const roll = rollRange(PRIMARY_RANGE[primary][tier], random);
   stats[primary] = kind in WEAPONS ? Math.max(1, Math.round(roll * WEAPONS[kind].hands * WEAPONS[kind].attack)) : roll;
-  if (signature) stats[signature] = rollRange(BONUS_RANGE[signature][rarity === "common" ? "rare" : rarity], random);
-  if (rarity === "common") return stats;
+  if (signature) stats[signature] = rollRange(BONUS_RANGE[signature][Math.max(1, tier)], random);
   const pool = STATS.filter((s) => s !== primary && s !== signature);
-  for (let i = 0; i < BONUS_COUNT[rarity] && pool.length; i++) {
+  for (let i = 0; i < BONUS_COUNT[tier] && pool.length; i++) {
     const [stat] = pool.splice(Math.floor(random() * pool.length), 1);
-    stats[stat] = rollRange(BONUS_RANGE[stat][rarity], random);
+    stats[stat] = rollRange(BONUS_RANGE[stat][tier], random);
   }
   return stats;
 }
@@ -125,7 +132,7 @@ export function itemName(key: string, stats: Stats) {
   let bestScore = 0;
   for (const stat of STATS) {
     if (stat === primary || stat === signature) continue;
-    const score = stats[stat] / BONUS_RANGE[stat][rarity][1];
+    const score = stats[stat] / BONUS_RANGE[stat][rarityIndex(rarity)][1];
     if (score > bestScore) [best, bestScore] = [stat, score];
   }
   return best ? `${PREFIX[best]} ${baseName}` : baseName;
@@ -137,15 +144,21 @@ export function equipmentBonus(items: Stats[]) {
   return total;
 }
 
-/** Rarity weights in percent by minimum level, highest level first. */
-const LOOT_TABLE: [minLevel: number, weights: [number, number, number, number]][] = [
-  [25, [40, 35, 19, 6]],
-  [15, [50, 33, 13, 4]],
-  [10, [59, 30, 9, 2]],
-  [5, [74.5, 22, 3, 0.5]],
-  [2, [89.4, 10, 0.5, 0.1]],
-  [1, [90, 10, 0, 0]],
+/** Rarity weights in percent by minimum level, highest level first. Every bracket opens the next rarity. */
+const LOOT_TABLE: [minLevel: number, weights: number[]][] = [
+  [90, [5, 10, 18, 23, 20, 13, 6, 3, 1.5, 0.5]],
+  [75, [8, 14, 21, 23, 18, 10, 4, 1.5, 0.5]],
+  [60, [12, 18, 23, 22, 15, 7, 2.5, 0.5]],
+  [45, [17, 22, 25, 20, 11, 4, 1]],
+  [30, [26, 27, 25, 15, 6, 1]],
+  [20, [38, 30, 22, 9, 1]],
+  [10, [55, 28, 15, 2]],
+  [5, [70, 25, 5]],
+  [1, [85, 15]],
 ];
+
+/** The level from which a rarity can drop. */
+export const rarityLevel = (rarity: Rarity) => LOOT_TABLE.findLast(([, weights]) => weights.length > rarityIndex(rarity))![0];
 
 export const DROP_CHANCE = 0.4;
 

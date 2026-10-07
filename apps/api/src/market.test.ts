@@ -30,15 +30,15 @@ async function player(name: string, gold: number, xp = 0) {
 
 test("list, draw and payout", async () => {
   const seller = await player("merchant", 0);
-  const buyer = await player("hunter", 100);
+  const buyer = await player("hunter", 100, 1703); // level 5, rare draws unlock there
   const helm = await db.item.create({ data: { characterId: seller.characterId, key: "helm.rare", defense: 4 } });
   const worn = await db.item.create({ data: { characterId: seller.characterId, key: "chest.rare", equippedSlot: "chest" } });
 
   assert.equal((await seller.call("POST", `/market/list/${worn.id}`)).statusCode, 400, "equipped items cannot be listed");
   assert.equal((await seller.call("POST", `/market/list/${helm.id}`)).statusCode, 204);
   assert.equal((await seller.call("POST", `/inventory/${helm.id}/equip`)).statusCode, 404, "listed items cannot be equipped");
-  assert.equal((await seller.call("GET", "/market")).json().offers[1].available, 0, "own listings are not offered");
-  assert.equal((await buyer.call("GET", "/market")).json().offers[1].available, 1);
+  assert.equal((await seller.call("GET", "/market")).json().offers[2].available, 0, "own listings are not offered");
+  assert.equal((await buyer.call("GET", "/market")).json().offers[2].available, 1);
 
   const draw = await buyer.call("POST", "/market/draw", { rarity: "rare" });
   assert.equal(draw.statusCode, 200);
@@ -62,7 +62,7 @@ test("draws need gold, a listing and the right level", async () => {
   await db.item.create({ data: { characterId: seller.characterId, key: "axe.legendary", attack: 15, listedAt: new Date() } });
 
   assert.equal((await poor.call("POST", "/market/draw", { rarity: "common" })).json().error, "not enough gold, a common draw costs 20");
-  assert.equal((await rich.call("POST", "/market/draw", { rarity: "legendary" })).json().error, "legendary draws unlock at level 10");
-  assert.equal((await rich.call("POST", "/market/draw", { rarity: "epic" })).json().error, "epic draws unlock at level 5");
+  assert.equal((await rich.call("POST", "/market/draw", { rarity: "legendary" })).json().error, "legendary draws unlock at level 20");
+  assert.equal((await rich.call("POST", "/market/draw", { rarity: "epic" })).json().error, "epic draws unlock at level 10");
   assert.equal(await rich.gold(), 5000, "failed draws cost nothing");
 });
