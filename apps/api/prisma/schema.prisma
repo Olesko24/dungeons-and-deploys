@@ -58,6 +58,7 @@ model Character {
   xp        Int      @default(0)
   gold      Int      @default(0)
   quests    Quest[]
+  items     Item[]
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("characters")
@@ -75,7 +76,27 @@ model Quest {
   success     Boolean?
   xp          Int       @default(0)
   gold        Int       @default(0)
+  lootItemId  Int?      @unique @map("loot_item_id")
+  lootItem    Item?     @relation(fields: [lootItemId], references: [id], onDelete: SetNull)
 
   @@index([characterId, startedAt])
   @@map("quests")
+}
+
+/// An item owned by a character. `key` refers to the catalog in packages/shared, the stats are rolled on drop.
+model Item {
+  id           Int       @id @default(autoincrement())
+  characterId  Int       @map("character_id")
+  character    Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  key          String
+  attack       Int       @default(0)
+  defense      Int       @default(0)
+  luck         Int       @default(0)
+  fortune      Int       @default(0)
+  equippedSlot String?   @map("equipped_slot")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  foundIn      Quest?
+
+  @@unique([characterId, equippedSlot])
+  @@map("items")
 }

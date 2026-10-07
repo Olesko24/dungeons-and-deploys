@@ -205,7 +205,11 @@ importers:
 
   apps/cli: {}
 
-  apps/web: {}
+  apps/web:
+    devDependencies:
+      '@tokenquest/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
 
   packages/shared: {}
 

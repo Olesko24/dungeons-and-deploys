@@ -17,3 +17,45 @@ export function shortStatus({ quest, readyAt, character }: Status, now = Date.no
   const rest = minutesUntil(readyAt, now);
   return rest > 0 ? `Resting ${rest}m · ${tail}` : `Quest ready · ${tail}`;
 }
+
+const RARITY_RGB: Record<string, [number, number, number]> = {
+  common: [0xb8, 0xbe, 0xc8],
+  rare: [0x6a, 0xa8, 0xf0],
+  epic: [0xb4, 0x8c, 0xff],
+  legendary: [0xff, 0xb4, 0x5c],
+};
+
+/** Colors text by rarity with 24-bit ANSI, unless NO_COLOR is set or output is not a terminal. */
+export function rarityColor(text: string, rarity: string, enabled = !process.env.NO_COLOR && process.stdout.isTTY) {
+  const [r, g, b] = RARITY_RGB[rarity];
+  return enabled ? `\x1b[38;2;${r};${g};${b}m${text}\x1b[0m` : text;
+}
+
+type Stats = { attack: number; defense: number; luck: number; fortune: number };
+
+export type InventoryItem = { id: number; name: string; rarity: string; stats: Stats; equippedSlot: string | null };
+
+/** Non-zero stats in a fixed order, e.g. `ATK 5 · LCK +2`. */
+export const statsText = (s: Stats) =>
+  [
+    s.attack && `ATK ${s.attack}`,
+    s.defense && `DEF ${s.defense}`,
+    s.luck && `LCK +${s.luck}`,
+    s.fortune && `FOR +${s.fortune}%`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+export function inventoryLines(items: InventoryItem[], bonus: Stats, color = rarityColor) {
+  const line = (i: InventoryItem, prefix: string) =>
+    `  ${prefix}${`#${i.id}`.padEnd(6)}${color(i.name.padEnd(40), i.rarity)}${i.rarity.padEnd(11)}${statsText(i.stats)}`;
+  const equipped = items.filter((i) => i.equippedSlot);
+  const bag = items.filter((i) => !i.equippedSlot);
+  return [
+    `Equipped · ${statsText(bonus) || "no stats yet"}`,
+    ...(equipped.length ? equipped.map((i) => line(i, (i.equippedSlot as string).padEnd(10))) : ["  nothing yet"]),
+    "",
+    `Bag (${bag.length})`,
+    ...(bag.length ? bag.map((i) => line(i, "")) : ["  empty, finish quests to find loot"]),
+  ];
+}

@@ -5,7 +5,16 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { parseArgs } from "node:util";
-import { bar, minutesUntil, type Status, shortStatus } from "./status.ts";
+import {
+  bar,
+  type InventoryItem,
+  inventoryLines,
+  minutesUntil,
+  rarityColor,
+  type Status,
+  shortStatus,
+  statsText,
+} from "./status.ts";
 
 const DEFAULT_SERVER = "https://tokenquest.meiners-dev.de";
 const HEARTBEAT_INTERVAL_MS = 60_000;
@@ -35,10 +44,10 @@ async function readConfig(): Promise<Config | null> {
   return raw ? JSON.parse(raw) : null;
 }
 
-async function authed(path: string, method = "GET") {
+async function authed(path: string, method = "GET", body?: unknown) {
   const config = await readConfig();
   if (!config) throw new Error("Not logged in. Run: quest login");
-  const res = await api(config.server, path, { method, token: config.token });
+  const res = await api(config.server, path, { method, token: config.token, body });
   if (res.status === 401) throw new Error("Session invalid. Run: quest login");
   return res;
 }
@@ -50,7 +59,9 @@ async function saveStatus(status: Status) {
 async function refresh() {
   const { data } = await authed("/quests/current");
   await saveStatus(data);
-  return data as Status & { quest: { success: boolean | null; xp: number; gold: number } | null };
+  return data as Status & {
+    quest: { success: boolean | null; xp: number; gold: number; loot: { name: string; rarity: string } | null } | null;
+  };
 }
 
 async function login(code: string | undefined, pair: string | undefined) {
@@ -119,7 +130,8 @@ async function status() {
     const left = minutesUntil(q.endsAt);
     return console.log(left > 0 ? `⚔ Quest ${left}m left · ${slots}` : `⚔ Quest finished, rolling the dice... · ${slots}`);
   }
-  const result = q.success ? `✓ Success · +${q.xp} XP · +${q.gold} gold` : `✗ Failed · +${q.xp} XP`;
+  const loot = q.loot ? ` · Found: ${rarityColor(q.loot.name, q.loot.rarity)} (${q.loot.rarity})` : "";
+  const result = q.success ? `✓ Success · +${q.xp} XP · +${q.gold} gold${loot}` : `✗ Failed · +${q.xp} XP`;
   const ready = minutesUntil(data.readyAt);
   console.log(`Last quest: ${result} · ${slots}`);
   console.log(ready > 0 ? `Next quest in ${ready}m.` : "Ready for a new quest: quest");
@@ -129,6 +141,20 @@ async function character() {
   const { data: c } = await authed("/character");
   console.log(`${c.name} · Lv ${c.level} · ${c.gold}g`);
   console.log(`XP ${bar(Math.floor((c.xpIntoLevel / c.xpForNext) * 10), 10)} ${c.xpIntoLevel}/${c.xpForNext}`);
+  console.log(statsText(c) || "No equipment yet. See: quest inv");
+}
+
+async function inventory() {
+  const { data } = await authed("/inventory");
+  console.log(inventoryLines(data.items as InventoryItem[], data.bonus).join("\n"));
+}
+
+async function equip(id: string | undefined, slot: string | undefined, off = false) {
+  if (!id) throw new Error(`Usage: quest ${off ? "unequip" : "equip"} <#id>${off ? "" : " [--slot ring1|ring2]"}`);
+  const path = `/inventory/${id.replace("#", "")}/${off ? "unequip" : "equip"}`;
+  const res = await authed(path, "POST", off ? undefined : { slot });
+  if (res.status >= 400) throw new Error(res.data.error ?? res.data.message ?? `Failed (${res.status})`);
+  await inventory();
 }
 
 const SHELL_HOOK = `_tokenquest_last=-60
@@ -149,6 +175,9 @@ const USAGE = `Usage: quest [command]
   quest                     start a quest
   quest status [--short]    current quest (--short: one cached line, no network)
   quest char                character sheet
+  quest inv                 inventory
+  quest equip <#id>         equip an item (--slot ring1|ring2 for rings)
+  quest unequip <#id>       take an item off
   quest login --code <C>    new player, needs an access code
   quest pair                log in another device
   quest login --pair <C>    log in with a code from quest pair
@@ -157,7 +186,7 @@ const USAGE = `Usage: quest [command]
 
 const { positionals, values } = parseArgs({
   allowPositionals: true,
-  options: { code: { type: "string" }, pair: { type: "string" }, short: { type: "boolean" }, send: { type: "boolean" } },
+  options: { code: { type: "string" }, pair: { type: "string" }, slot: { type: "string" }, short: { type: "boolean" }, send: { type: "boolean" } },
 });
 
 try {
@@ -171,6 +200,15 @@ try {
       break;
     case "char":
       await character();
+      break;
+    case "inv":
+      await inventory();
+      break;
+    case "equip":
+      await equip(positionals[1], values.slot);
+      break;
+    case "unequip":
+      await equip(positionals[1], undefined, true);
       break;
     case "login":
       await login(values.code, values.pair);

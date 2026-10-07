@@ -58,11 +58,13 @@ No email: the API token on the player's devices is the identity. Losing all devi
 
 ## Phase 4 – Items and loot
 
-- [ ] Tables: `items` (templates), `inventory`
-- [ ] Rarities: common, rare, epic, legendary
-- [ ] Loot tables in `packages/shared`, extra present slots improve rolls
-- [ ] Equipment slots, item stats affect quest success chance
-- [ ] CLI: `quest inv`, `quest equip <item>`
+- [x] Item catalog in `packages/shared`: 9 armor and jewelry types plus 12 weapon kinds (dagger to crossbow), each in 4 rarities. Weapon kinds have their own attack weight and signature stat. Table `items` stores owned items by catalog key
+- [x] Rarities: common, rare, epic, legendary
+- [x] Slots: head, chest, legs, hands, feet, weapon + shield or two-handed, 2 rings, necklace, earrings
+- [x] Stats rolled on drop: primary stat by type (ATK weapons, DEF armor and shield, LCK rings, FOR necklace and earrings), random bonus stats from rare upward, name prefix from the strongest bonus. LCK raises success chance, FOR raises gold, ATK and DEF take effect in phase 5
+- [x] Loot table by character level, 40% drop chance on success, extra present slots add rarity rolls. No minimum level to equip
+- [x] CLI: `quest inv`, `quest equip <#id>`, `quest unequip <#id>`, rarity colors
+- [x] 16×16 pixel icons for all 84 items (`apps/web/scripts/item-icons.ts`)
 
 **Done when:** Tests show loot distribution matches rarity weights. Equipped items change quest odds.
 
@@ -74,6 +76,18 @@ No email: the API token on the player's devices is the identity. Losing all devi
 - [ ] Statusline shows active encounter
 
 **Done when:** An encounter appears, can be fought within 5 min and is gone afterwards.
+
+## Phase 5b – Market
+
+Fair by chance, not by bidding. More gold must not mean better equipment.
+
+- [ ] Players list items, the price is fixed by rarity
+- [ ] Buyers pay the fixed price for a draw from one rarity and get a random listed item of that rarity
+- [ ] Daily draw limit per player
+- [ ] Epic draws from level 5, legendary draws from level 10
+- [ ] 10% fee on sales as a gold sink
+
+**Done when:** A listed item reaches a random buyer, the seller gets the price minus the fee, the daily limit holds.
 
 ## Phase 6 – Website
 

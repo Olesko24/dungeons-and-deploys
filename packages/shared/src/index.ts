@@ -16,10 +16,16 @@ export function levelFromXp(totalXp: number) {
 
 export const countSlots = (slots: number) => slots.toString(2).replaceAll("0", "").length;
 
-/** `random` returns values in [0, 1), like Math.random. */
-export function questOutcome(presentSlots: number, random: () => number) {
+export * from "./items.ts";
+
+/**
+ * `random` returns values in [0, 1), like Math.random.
+ * `luck` adds percentage points to the success chance, `fortune` adds percent to the gold reward.
+ */
+export function questOutcome(presentSlots: number, random: () => number, luck = 0, fortune = 0) {
   if (presentSlots < MIN_SLOTS_FOR_SUCCESS) return { success: false, xp: 2 * presentSlots, gold: 0 };
-  const chance = Math.min(0.6 + 0.1 * (presentSlots - MIN_SLOTS_FOR_SUCCESS), 0.95);
+  const chance = Math.min(0.6 + 0.1 * (presentSlots - MIN_SLOTS_FOR_SUCCESS) + luck / 100, 0.95);
   if (random() >= chance) return { success: false, xp: 2 * presentSlots, gold: 0 };
-  return { success: true, xp: 10 * presentSlots, gold: 2 * presentSlots + Math.floor(random() * 6) };
+  const gold = 2 * presentSlots + Math.floor(random() * 6);
+  return { success: true, xp: 10 * presentSlots, gold: Math.floor(gold * (1 + fortune / 100)) };
 }

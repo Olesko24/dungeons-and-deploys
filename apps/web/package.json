@@ -1,5 +1,12 @@
 {
   "name": "@tokenquest/web",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "@tokenquest/shared": "workspace:*"
+  },
+  "scripts": {
+    "typecheck": "tsc",
+    "icons": "node scripts/item-icons.ts"
+  }
 }

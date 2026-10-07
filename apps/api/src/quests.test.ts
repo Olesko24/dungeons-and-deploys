@@ -53,10 +53,11 @@ test("quest succeeds with enough presence and grants rewards once", async () => 
   assert.deepEqual(late.character, { name: "hero", gold: 0, level: 1 });
 
   const id = await lastQuestId();
-  assert.deepEqual(await resolveQuest(db, id, () => 0), { success: true, xp: 50, gold: 10 });
+  const result = await resolveQuest(db, id, () => 0);
+  assert.deepEqual({ ...result, loot: result?.loot?.name }, { success: true, xp: 50, gold: 10, loot: "Leather Cap" });
   assert.equal(await resolveQuest(db, id, () => 0), null, "second run changes nothing");
   assert.deepEqual((await p.call("GET", "/character")).json(), {
-    name: "hero", xp: 50, gold: 10, level: 1, xpIntoLevel: 50, xpForNext: 100,
+    name: "hero", xp: 50, gold: 10, level: 1, xpIntoLevel: 50, xpForNext: 100, attack: 0, defense: 0, luck: 0, fortune: 0,
   });
 });
 
@@ -64,7 +65,7 @@ test("quest fails without enough presence", async () => {
   at(0);
   const p = await player("idle");
   await p.call("POST", "/quests");
-  assert.deepEqual(await resolveQuest(db, await lastQuestId(), () => 0), { success: false, xp: 2, gold: 0 });
+  assert.deepEqual(await resolveQuest(db, await lastQuestId(), () => 0), { success: false, xp: 2, gold: 0, loot: null });
   assert.equal((await p.character()).xp, 2);
 });
 
@@ -92,6 +93,53 @@ test("database allows only one running quest per character", async () => {
     db.quest.create({ data: { characterId, startedAt: new Date(), endsAt: new Date() } }),
     (err: { code?: string }) => err.code === "P2002",
   );
+});
+
+test("loot lands in the inventory and equipment raises the odds", async () => {
+  at(0);
+  const p = await player("looter");
+  await p.call("POST", "/quests");
+  const first = await lastQuestId();
+  await db.quest.update({ where: { id: first }, data: { slots: 0b11111 } });
+  await resolveQuest(db, first, () => 0);
+  const inv = (await p.call("GET", "/inventory")).json();
+  assert.equal(inv.items.length, 1);
+  assert.deepEqual(inv.items[0].stats, { attack: 0, defense: 1, luck: 0, fortune: 0 }, "stats are rolled on drop");
+  assert.equal((await p.call("GET", "/quests/current")).json().quest.loot.name, "Leather Cap");
+
+  const { id: characterId } = await p.character();
+  await db.item.create({ data: { characterId, key: "ring.legendary", luck: 8, defense: 5, attack: 5, fortune: 12 } });
+  await db.item.create({ data: { characterId, key: "ring.epic", luck: 5, attack: 3, fortune: 8 } });
+  await db.item.create({ data: { characterId, key: "chest.rare", defense: 6, luck: 2 } });
+  for (const i of (await p.call("GET", "/inventory")).json().items) {
+    assert.equal((await p.call("POST", `/inventory/${i.id}/equip`)).statusCode, 200);
+  }
+  const sheet = (await p.call("GET", "/character")).json();
+  assert.deepEqual([sheet.attack, sheet.defense, sheet.luck, sheet.fortune], [8, 12, 15, 20]);
+  const names = (await p.call("GET", "/inventory")).json().items.map((i: { name: string }) => i.name);
+  assert.deepEqual(names, ["Leather Cap", "Merchant's Signet of Root", "Merchant's Ring of Caching", "Gambler's Chainmail"]);
+
+  // A quest with 5 present slots: 60% base + 15 luck = 75%.
+  at(QUEST_MS + COOLDOWN_MS);
+  await p.call("POST", "/quests");
+  const id = await lastQuestId();
+  await db.quest.update({ where: { id }, data: { slots: 0b11111 } });
+  assert.equal((await resolveQuest(db, id, () => 0.7))!.success, true);
+});
+
+test("equip and unequip", async () => {
+  const p = await player("knight");
+  const { id: characterId } = await p.character();
+  const axe = await db.item.create({ data: { characterId, key: "battleAxe.common" } });
+  const shield = await db.item.create({ data: { characterId, key: "shield.common" } });
+  const other = await player("thief");
+
+  await p.call("POST", `/inventory/${axe.id}/equip`);
+  const res = await p.call("POST", `/inventory/${shield.id}/equip`);
+  assert.deepEqual(res.json(), { slot: "offHand", unequipped: [axe.id] }, "shield replaces the two-hander");
+  assert.equal((await other.call("POST", `/inventory/${shield.id}/equip`)).statusCode, 404, "only own items");
+  assert.equal((await p.call("POST", `/inventory/${shield.id}/unequip`)).statusCode, 204);
+  assert.equal((await p.call("GET", "/inventory")).json().items.filter((i: { equippedSlot: string | null }) => i.equippedSlot).length, 0);
 });
 
 test("quest routes need a token", async () => {

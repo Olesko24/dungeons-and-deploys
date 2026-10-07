@@ -1,10 +1,23 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { COOLDOWN_MS, QUEST_MS, QUEST_SLOTS, SLOT_MS, countSlots, levelFromXp, questOutcome } from "@tokenquest/shared";
+import {
+  COOLDOWN_MS,
+  MIN_SLOTS_FOR_SUCCESS,
+  QUEST_MS,
+  QUEST_SLOTS,
+  SLOT_MS,
+  countSlots,
+  equipmentBonus,
+  itemName,
+  levelFromXp,
+  questOutcome,
+  rollLoot,
+  rollStats,
+} from "@tokenquest/shared";
 import type { Deps } from "./app.ts";
 import { requireUser } from "./auth.ts";
-import { type Character, Prisma, type PrismaClient, type Quest } from "./generated/prisma/client.ts";
+import { type Character, type Item, Prisma, type PrismaClient, type Quest } from "./generated/prisma/client.ts";
 
-async function requireCharacter(db: PrismaClient, req: FastifyRequest, reply: FastifyReply) {
+export async function requireCharacter(db: PrismaClient, req: FastifyRequest, reply: FastifyReply) {
   const user = await requireUser(db, req);
   if (!user) {
     reply.code(401).send({ error: "unauthorized" });
@@ -13,7 +26,16 @@ async function requireCharacter(db: PrismaClient, req: FastifyRequest, reply: Fa
   return db.character.findUniqueOrThrow({ where: { userId: user.id } });
 }
 
-const questView = (q: Quest) => ({
+export const itemView = (i: Item) => ({
+  id: i.id,
+  key: i.key,
+  name: itemName(i.key, i),
+  rarity: i.key.split(".")[1],
+  stats: { attack: i.attack, defense: i.defense, luck: i.luck, fortune: i.fortune },
+  equippedSlot: i.equippedSlot,
+});
+
+const questView = (q: Quest & { lootItem?: Item | null }) => ({
   startedAt: q.startedAt,
   endsAt: q.endsAt,
   presentSlots: countSlots(q.slots),
@@ -22,6 +44,7 @@ const questView = (q: Quest) => ({
   success: q.success,
   xp: q.xp,
   gold: q.gold,
+  loot: q.lootItem ? itemView(q.lootItem) : null,
 });
 
 export function questRoutes(app: FastifyInstance, { db, scheduleResolve, now }: Required<Deps>) {
@@ -49,9 +72,9 @@ export function questRoutes(app: FastifyInstance, { db, scheduleResolve, now }: 
 
   // The running quest is always the latest one, so one query serves both status and heartbeat.
   const latestQuest = (characterId: number) =>
-    db.quest.findFirst({ where: { characterId }, orderBy: { startedAt: "desc" } });
+    db.quest.findFirst({ where: { characterId }, orderBy: { startedAt: "desc" }, include: { lootItem: true } });
 
-  const status = (character: Character, last: Quest | null) => ({
+  const status = (character: Character, last: (Quest & { lootItem: Item | null }) | null) => ({
     quest: last ? questView(last) : null,
     readyAt: last ? new Date(last.endsAt.getTime() + COOLDOWN_MS) : now(),
     character: { name: character.name, gold: character.gold, level: levelFromXp(character.xp).level },
@@ -83,22 +106,35 @@ export function questRoutes(app: FastifyInstance, { db, scheduleResolve, now }: 
   app.get("/character", async (req, reply) => {
     const character = await requireCharacter(db, req, reply);
     if (!character) return;
-    return { name: character.name, xp: character.xp, gold: character.gold, ...levelFromXp(character.xp) };
+    const equipped = await db.item.findMany({ where: { characterId: character.id, equippedSlot: { not: null } } });
+    return { name: character.name, xp: character.xp, gold: character.gold, ...levelFromXp(character.xp), ...equipmentBonus(equipped) };
   });
 }
 
 /** Grants the rewards of a finished quest. Safe to run twice: the second run changes nothing. */
 export function resolveQuest(db: PrismaClient, questId: number, random = Math.random, t = new Date()) {
   return db.$transaction(async (tx) => {
-    const quest = await tx.quest.findUnique({ where: { id: questId } });
+    const quest = await tx.quest.findUnique({
+      where: { id: questId },
+      include: { character: { include: { items: { where: { equippedSlot: { not: null } } } } } },
+    });
     if (!quest || quest.resolvedAt) return null;
-    const outcome = questOutcome(countSlots(quest.slots), random);
+
+    const { character } = quest;
+    const present = countSlots(quest.slots);
+    const { luck, fortune } = equipmentBonus(character.items);
+    const outcome = questOutcome(present, random, luck, fortune);
+    const loot = outcome.success ? rollLoot(levelFromXp(character.xp).level, present, MIN_SLOTS_FOR_SUCCESS, random) : null;
+
     const updated = await tx.quest.updateMany({ where: { id: questId, resolvedAt: null }, data: { ...outcome, resolvedAt: t } });
     if (updated.count === 0) return null;
     await tx.character.update({
-      where: { id: quest.characterId },
+      where: { id: character.id },
       data: { xp: { increment: outcome.xp }, gold: { increment: outcome.gold } },
     });
-    return outcome;
+    if (!loot) return { ...outcome, loot: null };
+    const lootItem = await tx.item.create({ data: { characterId: character.id, key: loot, ...rollStats(loot, random) } });
+    await tx.quest.update({ where: { id: questId }, data: { lootItemId: lootItem.id } });
+    return { ...outcome, loot: itemView(lootItem) };
   });
 }
