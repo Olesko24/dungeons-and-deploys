@@ -56,7 +56,7 @@ quest fight                        # random encounter
 quest market                       # draw a random item of a rarity, list your own
 quest dungeon start|join <code>
 quest guild create <name>|join <code>|leave
-quest raid join
+quest raid schedule <minutes>|join
 ```
 
 ## Install

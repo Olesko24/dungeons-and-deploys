@@ -1,5 +1,5 @@
 import { type FormEvent, useCallback, useEffect, useState } from "react";
-import { type Character, type Guild, type Item, type Quest, type Stats, type Status, Unauthorized, api } from "./api.ts";
+import { type Character, type Guild, type Item, type Quest, type Raid, type Stats, type Status, Unauthorized, api } from "./api.ts";
 
 const SLOTS = [
   ["head", "Head"], ["chest", "Chest"], ["legs", "Legs"], ["hands", "Hands"], ["feet", "Feet"], ["mainHand", "Main hand"],
@@ -190,7 +190,39 @@ function GuildHall({ guild }: { guild: Guild | null }) {
   );
 }
 
-type Data = { character: Character; status: Status; items: Item[]; history: Quest[]; guild: Guild | null };
+function RaidView({ raid }: { raid: Raid }) {
+  const label = {
+    scheduled: `starts in ${minutesUntil(raid.startsAt)}m · needs ${raid.minPlayers} raiders · join with quest raid join`,
+    running: `tick ${raid.tick}/${raid.ticks} · ends in ${minutesUntil(raid.endsAt)}m · stay present to deal damage`,
+    won: "defeated · loot for every raider",
+    failed: "the boss survived",
+    cancelled: `cancelled, fewer than ${raid.minPlayers} raiders`,
+  }[raid.state];
+  const top = Math.max(1, ...raid.members.map((m) => m.damage));
+  return (
+    <section className={`panel raid ${raid.state}`}>
+      <h2>Raid · {raid.boss}</h2>
+      <p>{label}</p>
+      {raid.bossMaxHp > 0 && (
+        <>
+          <Bar filled={Math.ceil((raid.bossHp / raid.bossMaxHp) * 20)} total={20} label={`Boss HP ${raid.bossHp} of ${raid.bossMaxHp}`} />
+          <p className="dim">HP {raid.bossHp}/{raid.bossMaxHp}</p>
+        </>
+      )}
+      <ul className="members">
+        {raid.members.map((m) => (
+          <li key={m.name}>
+            <span>{m.name}</span>
+            <span className="damage"><span style={{ width: `${(m.damage / top) * 100}%` }} /></span>
+            <span className="dim">{m.damage}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+type Data = { character: Character; status: Status; items: Item[]; history: Quest[]; guild: Guild | null; raid: Raid | null };
 
 export function App() {
   const [data, setData] = useState<Data | null>(null);
@@ -198,25 +230,28 @@ export function App() {
 
   const load = useCallback(async () => {
     try {
-      const [character, status, inventory, history, guild] = await Promise.all([
+      const [character, status, inventory, history, guild, raid] = await Promise.all([
         api<Character>("/character"),
         api<Status>("/quests/current"),
         api<{ items: Item[] }>("/inventory"),
         api<Quest[]>("/quests/history"),
         api<{ guild: Guild | null }>("/guild"),
+        api<{ raid: Raid | null }>("/raids/current"),
       ]);
-      setData({ character, status, items: inventory.items, history, guild: guild.guild });
+      setData({ character, status, items: inventory.items, history, guild: guild.guild, raid: raid.raid });
       setLoggedOut(false);
     } catch (err) {
       if (err instanceof Unauthorized) setLoggedOut(true);
     }
   }, []);
 
+  // A running raid refreshes every 5 seconds, everything else every 30.
+  const live = data?.raid?.state === "running";
   useEffect(() => {
     void load();
-    const timer = setInterval(() => void load(), 30_000);
+    const timer = setInterval(() => void load(), live ? 5_000 : 30_000);
     return () => clearInterval(timer);
-  }, [load]);
+  }, [load, live]);
 
   if (loggedOut) return <Login onDone={() => void load()} />;
   if (!data) return <main className="loading">Loading…</main>;
@@ -236,6 +271,7 @@ export function App() {
       </header>
       <QuestStatus status={data.status} />
       <Inventory items={data.items} onChange={() => void load()} />
+      {data.raid && <RaidView raid={data.raid} />}
       <GuildHall guild={data.guild} />
       <History quests={data.history} />
     </main>

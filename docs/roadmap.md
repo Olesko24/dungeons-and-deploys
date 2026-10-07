@@ -124,11 +124,12 @@ Fair by chance, not by bidding. More gold must not mean better equipment.
 
 ## Phase 9 – Raids
 
-- [ ] Leader schedules a raid, `raid.start` job
-- [ ] Minimum player count, raid cancelled if not reached
-- [ ] Shared boss HP, `raid.tick` jobs apply damage from present members
-- [ ] Loot for all participants
-- [ ] Live raid view on the website (WebSockets)
+- [x] Guild leader schedules a raid 5 min to 24 h ahead, members join until it starts
+- [x] At least 5 raiders, otherwise the raid is cancelled
+- [x] Shared boss HP sized at 85% of the raid's full-presence damage, `raid.tick` jobs every 5 min for 30 min apply damage from present members
+- [x] Loot for every raider who dealt damage, raid XP also feeds the guild
+- [x] Raid view on the website, refreshed every 5 seconds while running (polling instead of WebSockets: 5-minute ticks need nothing faster)
+- [x] CLI: `quest raid schedule <minutes>`, `quest raid join`, `quest raid`
 
 **Done when:** A raid with 5 players runs from schedule to loot. A raid below the minimum is cancelled.
 

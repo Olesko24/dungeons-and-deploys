@@ -212,6 +212,21 @@ async function guild(action: string | undefined, arg: string) {
   for (const m of g.members) console.log(`  ${m.role === "leader" ? "♛" : " "} ${m.name.padEnd(20)} Lv ${m.level}`);
 }
 
+async function raid(action: string | undefined, minutes: string | undefined) {
+  const res =
+    action === "schedule" ? await authed("/raids", "POST", { startsInMinutes: Number(minutes) })
+    : action === "join" ? await authed("/raids/join", "POST")
+    : await authed("/raids/current");
+  if (res.status >= 400) throw new Error(res.data.error ?? res.data.message ?? `Failed (${res.status})`);
+  const r = res.data.raid;
+  if (!r) return console.log("No raid yet. Guild leaders plan one: quest raid schedule <minutes>");
+  const when = r.state === "scheduled" ? `starts in ${minutesUntil(r.startsAt)}m, needs ${r.minPlayers}` : r.state;
+  console.log(`Raid on ${r.boss} · ${when} · ${r.members.length} raiders`);
+  if (r.bossMaxHp) console.log(`HP ${bar(Math.ceil((r.bossHp / r.bossMaxHp) * 20), 20)} ${r.bossHp}/${r.bossMaxHp} · tick ${r.tick}/${r.ticks}`);
+  for (const m of r.members) console.log(`  ${m.name.padEnd(20)} ${m.damage} damage`);
+  if (r.state === "scheduled") console.log("Join with: quest raid join. Presence during the raid deals damage.");
+}
+
 async function character() {
   const { data: c } = await authed("/character");
   console.log(`${c.name} · Lv ${c.level} · ${c.gold}g`);
@@ -254,6 +269,7 @@ const USAGE = `Usage: quest [command]
   quest market              market: draw a random item of a rarity, list your own
   quest dungeon [start|join <code>]  dungeon with up to 5 players
   quest guild [create <name>|join <code>|leave]  your guild
+  quest raid [schedule <min>|join]  guild raid, at least 5 raiders
   quest inv                 inventory
   quest equip <#id>         equip an item (--slot ring1|ring2 for rings)
   quest unequip <#id>       take an item off
@@ -282,6 +298,9 @@ try {
       break;
     case "fight":
       await fightMonster();
+      break;
+    case "raid":
+      await raid(positionals[1], positionals[2]);
       break;
     case "guild":
       await guild(positionals[1], positionals.slice(2).join(" "));

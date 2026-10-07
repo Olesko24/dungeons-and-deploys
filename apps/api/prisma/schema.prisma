@@ -63,6 +63,7 @@ model Character {
   draws      MarketDraw[]
   dungeons   DungeonMember[]
   guild      GuildMember?
+  raids      RaidMember[]
   createdAt  DateTime        @default(now()) @map("created_at")
 
   @@map("characters")
@@ -104,6 +105,7 @@ model Item {
   foundIn      Quest?
   wonIn        Encounter?
   dungeonLoot  DungeonMember?
+  raidLoot     RaidMember?
 
   @@unique([characterId, equippedSlot])
   @@map("items")
@@ -183,6 +185,7 @@ model Guild {
   code      String        @unique
   xp        Int           @default(0)
   members   GuildMember[]
+  raids     Raid[]
   createdAt DateTime      @default(now()) @map("created_at")
 
   @@map("guilds")
@@ -199,4 +202,36 @@ model GuildMember {
 
   @@index([guildId])
   @@map("guild_members")
+}
+
+/// A scheduled guild raid. `state`: scheduled, running, won, failed or cancelled.
+model Raid {
+  id        Int          @id @default(autoincrement())
+  guildId   Int          @map("guild_id")
+  guild     Guild        @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  startsAt  DateTime     @map("starts_at")
+  state     String       @default("scheduled")
+  bossHp    Int          @default(0) @map("boss_hp")
+  bossMaxHp Int          @default(0) @map("boss_max_hp")
+  tick      Int          @default(0)
+  members   RaidMember[]
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  @@index([guildId, startsAt])
+  @@map("raids")
+}
+
+/// `slots` marks presence per 5-minute tick of the raid.
+model RaidMember {
+  raidId      Int       @map("raid_id")
+  raid        Raid      @relation(fields: [raidId], references: [id], onDelete: Cascade)
+  characterId Int       @map("character_id")
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  slots       Int       @default(0)
+  damage      Int       @default(0)
+  lootItemId  Int?      @unique @map("loot_item_id")
+  lootItem    Item?     @relation(fields: [lootItemId], references: [id], onDelete: SetNull)
+
+  @@id([raidId, characterId])
+  @@map("raid_members")
 }

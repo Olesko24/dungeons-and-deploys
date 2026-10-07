@@ -16,6 +16,7 @@ import type { Deps } from "./app.ts";
 import { equippedItems, itemView, requireCharacter } from "./characters.ts";
 import { dungeonHeartbeat, dungeonView } from "./dungeons.ts";
 import { encounterView, maybeSpawnEncounter } from "./encounters.ts";
+import { raidHeartbeat } from "./raids.ts";
 import { type Character, type Item, Prisma, type PrismaClient, type Quest } from "./generated/prisma/client.ts";
 
 const questView = (q: Quest & { lootItem?: Item | null }) => ({
@@ -86,6 +87,7 @@ export function questRoutes(app: FastifyInstance, { db, scheduleResolve, now, ra
       }
       await maybeSpawnEncounter(db, character, t, random);
       await dungeonHeartbeat(db, character, t);
+      await raidHeartbeat(db, character, t);
       return status(character, last);
     },
   );

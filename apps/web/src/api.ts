@@ -27,6 +27,19 @@ export type Guild = {
   members: { name: string; role: string; level: number }[];
 };
 
+export type Raid = {
+  boss: string;
+  state: "scheduled" | "running" | "won" | "failed" | "cancelled";
+  startsAt: string;
+  endsAt: string;
+  tick: number;
+  ticks: number;
+  bossHp: number;
+  bossMaxHp: number;
+  minPlayers: number;
+  members: { name: string; damage: number }[];
+};
+
 export class Unauthorized extends Error {}
 
 /** Same-origin calls, the session lives in an httpOnly cookie. */

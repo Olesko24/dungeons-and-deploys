@@ -1,5 +1,5 @@
 import { type MonsterKey, fightRewards, winChance } from "./combat.ts";
-import { ITEM_TYPES, type Stats, WEAPONS, rollRarity } from "./items.ts";
+import { type Stats, randomItemKey } from "./items.ts";
 
 export const DUNGEON_LOBBY_MS = 5 * 60 * 1000;
 export const DUNGEON_STAGE_MS = 15 * 60 * 1000;
@@ -46,12 +46,5 @@ export function stageRewards(stage: number, level: number, size: number, fortune
 }
 
 /** Guaranteed loot for every member when the boss falls. Bigger parties roll rarity more often. */
-export function bossLoot(level: number, size: number, random: () => number) {
-  const type = ITEM_TYPES[Math.floor(random() * ITEM_TYPES.length)];
-  let base: string = type;
-  if (type === "weapon" || type === "twoHanded") {
-    const kinds = (Object.keys(WEAPONS) as (keyof typeof WEAPONS)[]).filter((k) => WEAPONS[k].hands === (type === "weapon" ? 1 : 2));
-    base = kinds[Math.floor(random() * kinds.length)];
-  }
-  return `${base}.${rollRarity(level, 1 + Math.floor(size / 2), random)}`;
-}
+export const bossLoot = (level: number, size: number, random: () => number) =>
+  randomItemKey(level, 1 + Math.floor(size / 2), random);

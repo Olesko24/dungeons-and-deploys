@@ -20,6 +20,7 @@ export * from "./combat.ts";
 export * from "./dungeons.ts";
 export * from "./items.ts";
 export * from "./market.ts";
+export * from "./raids.ts";
 
 /**
  * `random` returns values in [0, 1), like Math.random.

@@ -164,14 +164,18 @@ export function rollRarity(level: number, rolls: number, random: () => number): 
 /** Loot for a successful quest, or null. Every 2 present slots above the minimum add one rarity roll. */
 export function rollLoot(level: number, presentSlots: number, minSlots: number, random: () => number) {
   if (random() >= DROP_CHANCE) return null;
+  return randomItemKey(level, 1 + Math.floor(Math.max(0, presentSlots - minSlots) / 2), random);
+}
+
+/** A random item: the slot type evenly, a weapon kind with the same number of hands, then the rarity. */
+export function randomItemKey(level: number, rarityRolls: number, random: () => number) {
   const type = ITEM_TYPES[Math.floor(random() * ITEM_TYPES.length)];
   let base: string = type;
   if (type === "weapon" || type === "twoHanded") {
     const kinds = WEAPON_KINDS.filter((k) => WEAPONS[k].hands === (type === "weapon" ? 1 : 2));
     base = kinds[Math.floor(random() * kinds.length)];
   }
-  const rolls = 1 + Math.floor(Math.max(0, presentSlots - minSlots) / 2);
-  return `${base}.${rollRarity(level, rolls, random)}`;
+  return `${base}.${rollRarity(level, rarityRolls, random)}`;
 }
 
 /**

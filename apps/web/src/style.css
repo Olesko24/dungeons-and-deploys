@@ -99,6 +99,12 @@ input {
 .members { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 .members li { display: flex; justify-content: space-between; gap: 12px; background: var(--panel-deep); padding: 4px 8px; }
 
+.raid .members li > span:first-child { min-width: 9rem; }
+.members .damage { flex: 1; align-self: center; height: 8px; background: var(--panel); }
+.members .damage span { display: block; height: 100%; background: var(--bad); }
+.raid .bar span.on { background: var(--bad); }
+.raid .bar { flex-wrap: wrap; }
+
 .scroll { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
 th, td { padding: 4px 8px; text-align: left; white-space: nowrap; }
