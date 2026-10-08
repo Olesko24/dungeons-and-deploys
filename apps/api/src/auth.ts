@@ -4,6 +4,7 @@ import { playerPower } from "@dnd/shared";
 import { Prisma, type PrismaClient } from "./generated/prisma/client.ts";
 
 const PAIR_TTL_MS = 10 * 60 * 1000;
+export const SESSION_TTL_MS = 365 * 24 * 60 * 60 * 1000;
 const NO_GEAR = { attack: 0, defense: 0, luck: 0, fortune: 0 };
 export const SESSION_COOKIE = "tq_session";
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -33,11 +34,15 @@ function redeemPairCode(db: PrismaClient, code: string) {
   });
 }
 
+/** The token a request logs in with: the CLI's bearer token, else the website's cookie. Rate limits key on it too. */
+export const sessionToken = (req: FastifyRequest) => req.headers.authorization?.match(/^Bearer (.+)$/)?.[1] ?? req.cookies[SESSION_COOKIE];
+
 export async function requireUser(db: PrismaClient, req: FastifyRequest) {
-  const token = req.headers.authorization?.match(/^Bearer (.+)$/)?.[1] ?? req.cookies[SESSION_COOKIE];
+  const token = sessionToken(req);
   if (!token) return null;
   const session = await db.session.findUnique({ where: { tokenHash: hash(token) }, include: { user: true } });
-  return session && !session.user.bannedAt ? session.user : null;
+  if (!session || session.createdAt.getTime() < Date.now() - SESSION_TTL_MS) return null;
+  return session.user.bannedAt ? null : session.user;
 }
 
 /** Uses up one access code and creates the player. A taken name keeps the code's use. */
@@ -45,7 +50,7 @@ function register(db: PrismaClient, code: string, name: string) {
   return db
     .$transaction(async (tx) => {
       const consumed = await tx.accessCode.updateMany({
-        where: { code: normalizeCode(code), uses: { lt: tx.accessCode.fields.maxUses }, expiresAt: { gt: new Date() } },
+        where: { codeHash: hash(normalizeCode(code)), uses: { lt: tx.accessCode.fields.maxUses }, expiresAt: { gt: new Date() } },
         data: { uses: { increment: 1 } },
       });
       if (consumed.count === 0) return { error: "invalid or used-up access code" };
@@ -76,7 +81,7 @@ function setSessionCookie(reply: FastifyReply, token: string) {
     httpOnly: true,
     sameSite: "strict",
     secure: process.env.NODE_ENV === "production",
-    maxAge: 60 * 60 * 24 * 365,
+    maxAge: SESSION_TTL_MS / 1000,
   });
 }
 
@@ -94,7 +99,7 @@ export function authRoutes(app: FastifyInstance, db: PrismaClient) {
     return reply.code(204).send();
   });
 
-  app.post("/auth/pair", async (req, reply) => {
+  app.post("/auth/pair", { config: { rateLimit: { max: 5, timeWindow: "1 minute" } } }, async (req, reply) => {
     const user = await requireUser(db, req);
     if (!user) return reply.code(401).send({ error: "unauthorized" });
     const code = `${randomCode(4)}-${randomCode(4)}`;
@@ -131,10 +136,18 @@ export function authRoutes(app: FastifyInstance, db: PrismaClient) {
     },
   );
 
-  app.post("/auth/logout", async (req, reply) => {
-    const token = req.cookies[SESSION_COOKIE];
-    if (token) await db.session.deleteMany({ where: { tokenHash: hash(token) } });
-    reply.clearCookie(SESSION_COOKIE, { path: "/" });
-    return reply.code(204).send();
-  });
+  /** Ends this session, or with `all` every session of the player, e.g. after losing a device. */
+  app.post<{ Body: { all?: boolean } | undefined }>(
+    "/auth/logout",
+    { schema: { body: { type: ["object", "null"], properties: { all: { type: "boolean" } } } } },
+    async (req, reply) => {
+      const token = sessionToken(req);
+      if (token && req.body?.all) {
+        const user = await requireUser(db, req);
+        if (user) await db.session.deleteMany({ where: { userId: user.id } });
+      } else if (token) await db.session.deleteMany({ where: { tokenHash: hash(token) } });
+      reply.clearCookie(SESSION_COOKIE, { path: "/" });
+      return reply.code(204).send();
+    },
+  );
 }

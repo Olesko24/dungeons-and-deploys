@@ -76,7 +76,7 @@ RPROMPT='$(dnd_prompt)'
 
 Heartbeats are optional. Quests, dungeons and raids work without them.
 
-A heartbeat comes from Claude Code (your prompts), the shell integration (your commands) or an open website tab (once a minute). Each source sends at most one per minute, in the background. Heartbeats refresh your status line and can spawn [random monsters](#random-encounters).
+A heartbeat comes from Claude Code (your prompts), the shell integration (your commands) or an open website tab (once a minute). Each source sends at most one per minute, in the background, and the server accepts three per minute per player. Heartbeats refresh your status line and can spawn [random monsters](#random-encounters).
 
 ## Quests
 
@@ -508,6 +508,7 @@ Dungeons & Deploys has no email and no password. Your login token on your device
 | `quest top [xp\|power\|achievements\|guilds]` | Leaderboards |
 | `quest login --code <code>` | New player |
 | `quest pair` / `quest login --pair <code>` | Another device or the website |
+| `quest logout [--all]` | Log out here, `--all` ends every session |
 | `quest init zsh\|bash` | Shell integration |
 | `quest heartbeat` | Send a heartbeat, called by the integrations |
 | `quest help`, `--help`, `-h` | Command overview |

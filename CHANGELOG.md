@@ -80,6 +80,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). New
 - **Breaking:** Quests resolve at once. `quest` and the website show the quest name, XP, gold and any loot right away,
   then a 45-minute rest follows (was: 45-minute quest plus 15-minute rest).
 
+### Security
+
+- `quest logout` ends the session on this device, `quest logout --all` ends every session, for example after losing
+  a laptop. Sessions expire after a year, log in again with `quest pair`.
+- The server accepts three heartbeats per minute per player, however many devices are logged in.
+- A player is in one dungeon and one raid at a time. Leaving a guild also leaves its planned raid.
+- Fixed a market bug where a listing taken back while a buyer joined the line kept the buyer's gold.
+
 ## [0.1.0] – Beta
 
 First public beta.

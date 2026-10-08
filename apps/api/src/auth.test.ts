@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { buildApp } from "./app.ts";
+import { hash } from "./auth.ts";
 import type { PrismaClient } from "./generated/prisma/client.ts";
 import { testDb } from "./testing.ts";
 
@@ -15,7 +16,7 @@ const characterName = async (token: string) =>
   (await (await app()).inject({ url: "/character", headers: { authorization: `Bearer ${token}` } })).json().name;
 
 test("register with access code", async () => {
-  await db.accessCode.create({ data: { code: "TEST-0001", maxUses: 2, expiresAt: new Date(Date.now() + 60_000) } });
+  await db.accessCode.create({ data: { codeHash: hash("TEST-0001"), maxUses: 2, expiresAt: new Date(Date.now() + 60_000) } });
 
   assert.equal((await post("/auth/register", { code: "WRONG", name: "hero" })).statusCode, 400);
   assert.equal((await post("/auth/register", { code: "TEST-0001", name: "x" })).statusCode, 400, "name too short");
@@ -25,18 +26,18 @@ test("register with access code", async () => {
   assert.equal(await characterName(res.json().token), "hero");
 
   assert.equal((await post("/auth/register", { code: "TEST-0001", name: "hero" })).statusCode, 409, "name taken");
-  assert.equal((await db.accessCode.findUniqueOrThrow({ where: { code: "TEST-0001" } })).uses, 1, "taken name keeps the use");
+  assert.equal((await db.accessCode.findUniqueOrThrow({ where: { codeHash: hash("TEST-0001") } })).uses, 1, "taken name keeps the use");
   assert.equal((await post("/auth/register", { code: "TEST-0001", name: "mage" })).statusCode, 200);
   assert.equal((await post("/auth/register", { code: "TEST-0001", name: "rogue" })).statusCode, 400, "code used up");
 });
 
 test("expired access code is rejected", async () => {
-  await db.accessCode.create({ data: { code: "TEST-0002", maxUses: 5, expiresAt: new Date(Date.now() - 1) } });
+  await db.accessCode.create({ data: { codeHash: hash("TEST-0002"), maxUses: 5, expiresAt: new Date(Date.now() - 1) } });
   assert.equal((await post("/auth/register", { code: "TEST-0002", name: "late" })).statusCode, 400);
 });
 
 test("pair a second device", async () => {
-  await db.accessCode.create({ data: { code: "TEST-0003", maxUses: 1, expiresAt: new Date(Date.now() + 60_000) } });
+  await db.accessCode.create({ data: { codeHash: hash("TEST-0003"), maxUses: 1, expiresAt: new Date(Date.now() + 60_000) } });
   const { token } = (await post("/auth/register", { code: "TEST-0003", name: "paladin" })).json();
 
   assert.equal((await post("/auth/pair")).statusCode, 401);
@@ -62,7 +63,7 @@ test("register is rate limited", async () => {
 });
 
 test("website logs in with a pair code and a cookie", async () => {
-  await db.accessCode.create({ data: { code: "TEST-0004", maxUses: 1, expiresAt: new Date(Date.now() + 60_000) } });
+  await db.accessCode.create({ data: { codeHash: hash("TEST-0004"), maxUses: 1, expiresAt: new Date(Date.now() + 60_000) } });
   const { token } = (await post("/auth/register", { code: "TEST-0004", name: "druid" })).json();
   const { code } = (await post("/auth/pair", undefined, token)).json();
 
@@ -80,7 +81,7 @@ test("website logs in with a pair code and a cookie", async () => {
 });
 
 test("banned players are rejected", async () => {
-  await db.accessCode.create({ data: { code: "TEST-0005", maxUses: 1, expiresAt: new Date(Date.now() + 60_000) } });
+  await db.accessCode.create({ data: { codeHash: hash("TEST-0005"), maxUses: 1, expiresAt: new Date(Date.now() + 60_000) } });
   const { token } = (await post("/auth/register", { code: "TEST-0005", name: "cheater" })).json();
   const sheet = async () => (await (await app()).inject({ url: "/character", headers: { authorization: `Bearer ${token}` } })).statusCode;
   assert.equal(await sheet(), 200);
@@ -89,7 +90,7 @@ test("banned players are rejected", async () => {
 });
 
 test("website registers with an access code and pairs the terminal", async () => {
-  await db.accessCode.create({ data: { code: "TEST-0006", maxUses: 1, expiresAt: new Date(Date.now() + 60_000) } });
+  await db.accessCode.create({ data: { codeHash: hash("TEST-0006"), maxUses: 1, expiresAt: new Date(Date.now() + 60_000) } });
   assert.equal((await post("/auth/web/register", { code: "WRONG", name: "bard" })).statusCode, 400);
 
   const res = await post("/auth/web/register", { code: "TEST-0006", name: "bard" });
@@ -101,4 +102,36 @@ test("website registers with an access code and pairs the terminal", async () =>
   const pair = await (await app()).inject({ method: "POST", url: "/auth/pair", cookies: { tq_session: cookie.value } });
   const terminal = await post("/auth/pair/redeem", { code: pair.json().code });
   assert.equal(await characterName(terminal.json().token), "bard");
+});
+
+test("heartbeats are limited per player, whatever the headers or sessions", async () => {
+  const user = await db.user.create({
+    data: { character: { create: { name: "spammer" } }, sessions: { create: [{ tokenHash: hash("tq_spam1") }, { tokenHash: hash("tq_spam2") }] } },
+  });
+  const instance = await app();
+  const beat = (headers: Record<string, string>) => instance.inject({ method: "POST", url: "/heartbeat", headers });
+  const codes = [];
+  for (let i = 0; i < 3; i++) codes.push((await beat({ authorization: `Basic ${i}`, cookie: "tq_session=tq_spam1" })).statusCode);
+  codes.push((await beat({ authorization: "Bearer tq_spam2" })).statusCode);
+  assert.deepEqual(codes, [200, 200, 200, 429]);
+  await db.user.delete({ where: { id: user.id } });
+});
+
+test("sessions expire after a year and can all be ended at once", async () => {
+  const user = await db.user.create({
+    data: {
+      character: { create: { name: "traveler" } },
+      sessions: {
+        create: [
+          { tokenHash: hash("tq_old"), createdAt: new Date(Date.now() - 366 * 24 * 60 * 60 * 1000) },
+          { tokenHash: hash("tq_laptop") },
+          { tokenHash: hash("tq_phone") },
+        ],
+      },
+    },
+  });
+  assert.equal((await (await app()).inject({ url: "/character", headers: { authorization: "Bearer tq_old" } })).statusCode, 401);
+  assert.equal(await characterName("tq_phone"), "traveler");
+  assert.equal((await post("/auth/logout", { all: true }, "tq_laptop")).statusCode, 204);
+  assert.equal(await db.session.count({ where: { userId: user.id } }), 0);
 });

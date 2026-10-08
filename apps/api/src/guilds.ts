@@ -102,7 +102,7 @@ export function guildRoutes(app: FastifyInstance, { db, now }: Required<Deps>) {
 
   app.post<{ Body: { amount: number } }>(
     "/guild/donate",
-    { schema: { body: { type: "object", required: ["amount"], properties: { amount: { type: "integer", minimum: 1 } } } } },
+    { schema: { body: { type: "object", required: ["amount"], properties: { amount: { type: "integer", minimum: 1, maximum: 2_147_483_647 } } } } },
     async (req, reply) => {
       const character = await requireCharacter(db, req, reply);
       if (!character) return;
@@ -160,6 +160,8 @@ export function guildRoutes(app: FastifyInstance, { db, now }: Required<Deps>) {
     if (!membership) return reply.code(400).send({ error: "not in a guild" });
     await db.$transaction(async (tx) => {
       await tx.guildMember.delete({ where: { characterId: character.id } });
+      // A raid that has not started yet is the guild's, so leaving also leaves its line-up.
+      await tx.raidMember.deleteMany({ where: { characterId: character.id, raid: { guildId: membership.guildId, state: "scheduled" } } });
       const next = await tx.guildMember.findFirst({ where: { guildId: membership.guildId }, orderBy: { joinedAt: "asc" } });
       if (!next) return tx.guild.delete({ where: { id: membership.guildId } });
       await notify(tx, await guildMates(tx, membership.guildId, character.id), "guild", `${character.name} left the guild.`);

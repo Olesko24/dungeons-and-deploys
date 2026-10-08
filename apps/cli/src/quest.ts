@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline/promises";
@@ -84,9 +84,19 @@ async function login(code: string | undefined, pair: string | undefined) {
 
   await mkdir(dir, { recursive: true, mode: 0o700 });
   await writeFile(configFile, JSON.stringify({ server, token: res.data.token }, null, 2), { mode: 0o600 });
+  // The modes above only apply to new files, an older config keeps its permissions otherwise.
+  await chmod(dir, 0o700);
+  await chmod(configFile, 0o600);
   const status = await refresh();
   console.log(`✓ Logged in as ${status.character.name}`);
   console.log(`Dungeons & Deploys is in beta: rules can change and progress may be reset.\nManual: ${MANUAL}`);
+}
+
+/** Ends this device's session, or with --all every session, e.g. after losing a device. */
+async function logout(all: boolean) {
+  fail(await authed("/auth/logout", "POST", all ? { all } : {}));
+  await rm(configFile, { force: true });
+  console.log(all ? "Logged out everywhere." : "Logged out.");
 }
 
 async function pair() {
@@ -523,6 +533,7 @@ const USAGE = `Usage: quest [command]
   quest raid [schedule <min> [boss]|join]        guild raid, at least 5 raiders
   quest login --code <code>                      new player, needs an access code
   quest pair                                     log in another device or the website
+  quest logout [--all]                           log out here, --all ends every session
   quest login --pair <code>                      log in with a code from quest pair
   quest init zsh|bash                            shell integration: eval "$(quest init zsh)"
   quest heartbeat                                send a heartbeat (called by hooks, spawns monsters)
@@ -543,6 +554,7 @@ try {
       sort: { type: "string" },
       short: { type: "boolean" },
       send: { type: "boolean" },
+      all: { type: "boolean" },
       help: { type: "boolean", short: "h" },
     },
   });
@@ -618,6 +630,9 @@ try {
       break;
     case "pair":
       await pair();
+      break;
+    case "logout":
+      await logout(!!values.all);
       break;
     case "heartbeat":
       await heartbeat(!!values.send).catch(() => {});

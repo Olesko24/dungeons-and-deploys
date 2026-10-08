@@ -3,7 +3,7 @@ import cookie from "@fastify/cookie";
 import rateLimit from "@fastify/rate-limit";
 import fastifyStatic from "@fastify/static";
 import Fastify, { type FastifyServerOptions } from "fastify";
-import { authRoutes } from "./auth.ts";
+import { authRoutes, sessionToken } from "./auth.ts";
 import type { PrismaClient } from "./generated/prisma/client.ts";
 import { dungeonRoutes } from "./dungeons.ts";
 import { encounterRoutes } from "./encounters.ts";
@@ -28,13 +28,28 @@ export type Deps = {
   random?: () => number;
 };
 
+const SECURITY_HEADERS = {
+  "content-security-policy":
+    "default-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+  "strict-transport-security": "max-age=31536000",
+  "x-content-type-options": "nosniff",
+  "referrer-policy": "no-referrer",
+};
+
 export async function buildApp(deps: Deps, opts: FastifyServerOptions = {}) {
   const { db } = deps;
   const app = Fastify(opts);
 
-  // ponytail: in-memory rate limit store, switch to a shared store when running multiple API instances
-  await app.register(rateLimit, { global: false });
   await app.register(cookie);
+  app.addHook("onSend", async (_req, reply) => {
+    reply.headers(SECURITY_HEADERS);
+  });
+  // Internal errors are logged, not sent: Prisma messages name tables and queries.
+  app.setErrorHandler((err: { statusCode?: number }, req, reply) => {
+    if (err.statusCode && err.statusCode < 500) return reply.send(err);
+    req.log.error(err);
+    return reply.code(500).send({ error: "internal server error" });
+  });
 
   // The website is a static SPA built into apps/web/dist. Unknown GET routes fall back to its index.html.
   const web = new URL("../../web/dist/", import.meta.url);
@@ -56,27 +71,32 @@ export async function buildApp(deps: Deps, opts: FastifyServerOptions = {}) {
     }
   });
 
-  authRoutes(app, db);
-  const full = { now: () => new Date(), random: Math.random, scheduleStage: async () => {}, scheduleRaid: async () => {}, scheduleDraw: async () => {}, ...deps };
-  questRoutes(app, full);
-  inventoryRoutes(app, db, full.random);
-  encounterRoutes(app, full);
-  marketRoutes(app, full);
-  dungeonRoutes(app, full);
-  guildRoutes(app, full);
-  raidRoutes(app, full);
-  shopRoutes(app, full);
-  statsRoutes(app, db);
-  leaderboardRoutes(app, db);
-  talentRoutes(app, db);
-  ideaRoutes(app, full);
-  inboxRoutes(app, full);
-
   // Every successful player action may unlock achievements. Heartbeats are skipped: they are frequent and change little.
   app.addHook("onResponse", async (req, reply) => {
     if (req.method === "POST" && reply.statusCode < 400 && req.characterId && req.routeOptions.url !== "/heartbeat") {
       await trySyncProgress(db, req.characterId);
     }
+  });
+
+  // Every API route is limited per session, routes with tighter limits set their own. Static files stay outside.
+  await app.register(async (api) => {
+    // ponytail: in-memory rate limit store, switch to a shared store when running multiple API instances
+    await api.register(rateLimit, { max: 300, timeWindow: "1 minute", keyGenerator: (req) => sessionToken(req) ?? req.ip });
+    authRoutes(api, db);
+    const full = { now: () => new Date(), random: Math.random, scheduleStage: async () => {}, scheduleRaid: async () => {}, scheduleDraw: async () => {}, ...deps };
+    questRoutes(api, full);
+    inventoryRoutes(api, db, full.random);
+    encounterRoutes(api, full);
+    marketRoutes(api, full);
+    dungeonRoutes(api, full);
+    guildRoutes(api, full);
+    raidRoutes(api, full);
+    shopRoutes(api, full);
+    statsRoutes(api, db);
+    leaderboardRoutes(api, db);
+    talentRoutes(api, db);
+    ideaRoutes(api, full);
+    inboxRoutes(api, full);
   });
 
   return app;

@@ -1,6 +1,6 @@
 import { parseArgs } from "node:util";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { randomCode } from "../auth.ts";
+import { hash, randomCode } from "../auth.ts";
 import { PrismaClient } from "../generated/prisma/client.ts";
 
 const { values } = parseArgs({ options: { uses: { type: "string", default: "1" }, days: { type: "string", default: "30" } } });
@@ -14,7 +14,7 @@ if (!Number.isInteger(maxUses) || maxUses < 1 || !Number.isInteger(days) || days
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 const code = `${randomCode(4)}-${randomCode(4)}`;
 const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
-await db.accessCode.create({ data: { code, maxUses, expiresAt } });
+await db.accessCode.create({ data: { codeHash: hash(code), maxUses, expiresAt } });
 await db.$disconnect();
 
 console.log(`${code}  (${maxUses} uses, expires ${expiresAt.toISOString().slice(0, 10)})`);

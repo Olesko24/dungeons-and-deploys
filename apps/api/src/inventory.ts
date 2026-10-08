@@ -53,7 +53,7 @@ export function inventoryRoutes(app: FastifyInstance, db: PrismaClient, random: 
     async (req, reply) => {
       const character = await requireCharacter(db, req, reply);
       if (!character) return;
-      const target = await db.item.findFirst({ where: { id: Number(req.params.id), characterId: character.id, listedAt: null, scrappedAt: null } });
+      const target = await db.item.findFirst({ where: { id: Number(req.params.id) || 0, characterId: character.id, listedAt: null, scrappedAt: null } });
       if (!target) return reply.code(404).send({ error: "item not found" });
 
       const equipped = await db.item.findMany({
@@ -156,7 +156,7 @@ export function inventoryRoutes(app: FastifyInstance, db: PrismaClient, random: 
     const character = await requireCharacter(db, req, reply);
     if (!character) return;
     const updated = await db.item.updateMany({
-      where: { id: Number(req.params.id), characterId: character.id },
+      where: { id: Number(req.params.id) || 0, characterId: character.id },
       data: { equippedSlot: null },
     });
     if (updated.count === 0) return reply.code(404).send({ error: "item not found" });

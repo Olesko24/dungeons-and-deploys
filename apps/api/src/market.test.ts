@@ -146,3 +146,33 @@ test("average sale prices per rarity over the last 7 days", async () => {
   await db.marketDraw.createMany({ data: [sale("epic", 100, 1), sale("epic", 151, 2), sale("rare", 60, 0), sale("epic", 999, 8)] });
   assert.deepEqual((await p.call("GET", "/market/prices")).json(), { epic: { price: 126, sales: 2 }, rare: { price: 60, sales: 1 } });
 });
+
+test("a listing cannot be taken back while a buyer joins the line", async () => {
+  clock = T0;
+  await clearMarket();
+  const seller = await player("racer", 0);
+  const buyer = await player("chaser", 1_000_000);
+  const gem = await db.item.create({ data: { characterId: seller.characterId, key: "ring.epic", luck: 3 } });
+  for (let i = 0; i < 20; i++) {
+    await seller.call("POST", `/market/list/${gem.id}`, { price: 1 });
+    await Promise.all([buyer.call("POST", `/market/buy/${gem.id}`), seller.call("POST", `/market/unlist/${gem.id}`)]);
+    const listing = await db.item.findUniqueOrThrow({ where: { id: gem.id }, include: { bids: true } });
+    assert.ok(listing.listedAt || listing.bids.length === 0, "an unlisted item keeps no buyers in line");
+    await buyer.call("POST", `/market/leave/${gem.id}`);
+    await seller.call("POST", `/market/unlist/${gem.id}`);
+  }
+});
+
+test("the seller gets paid from what the winner reserved", async () => {
+  clock = T0;
+  await clearMarket();
+  const seller = await player("relister", 0);
+  const buyer = await player("lowballer", 10);
+  const gem = await db.item.create({ data: { characterId: seller.characterId, key: "ring.epic", luck: 3 } });
+  await seller.call("POST", `/market/list/${gem.id}`, { price: 10 });
+  await buyer.call("POST", `/market/buy/${gem.id}`);
+  // A listing price that changed after joining must not be what the seller is paid.
+  await db.item.update({ where: { id: gem.id }, data: { price: 1_000_000 } });
+  await resolveMarketDraw(db, gem.id, () => 0, new Date(T0 + MARKET_DRAW_MS));
+  assert.equal(await seller.gold(), 9);
+});

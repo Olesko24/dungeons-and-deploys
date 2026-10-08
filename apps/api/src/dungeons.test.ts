@@ -36,6 +36,13 @@ async function player(name: string) {
   return { call, characterId: user.character!.id };
 }
 
+test("parallel starts open one dungeon", async () => {
+  clock = T0;
+  const p = await player("hasty");
+  await Promise.all(Array.from({ length: 20 }, () => p.call("POST", "/dungeons")));
+  assert.equal(await db.dungeonMember.count({ where: { characterId: p.characterId } }), 1);
+});
+
 test("start, join and lobby rules", async () => {
   clock = T0;
   const leader = await player("leader");

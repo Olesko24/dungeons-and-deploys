@@ -76,7 +76,7 @@ test("finishing the tour unlocks Hello, World, skipping never undoes it", async 
 });
 
 test("every action keeps the stored combat power current", async () => {
-  await db.accessCode.create({ data: { code: "POWER-1", maxUses: 1, expiresAt: new Date(Date.now() + 60_000) } });
+  await db.accessCode.create({ data: { codeHash: hash("POWER-1"), maxUses: 1, expiresAt: new Date(Date.now() + 60_000) } });
   const app = () => buildApp({ db, random: () => 0 });
   const { token } = (await (await app()).inject({ method: "POST", url: "/auth/register", payload: { code: "POWER-1", name: "climber" } })).json();
   const call = async (url: string, payload?: object) =>

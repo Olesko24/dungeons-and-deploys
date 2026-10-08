@@ -22,14 +22,17 @@ import { randomCode } from "./auth.ts";
 import { equippedItems, giveLoot, giveShard, requireCharacter, scrappedNote, shardNote } from "./characters.ts";
 import { guildBuffs } from "./guilds.ts";
 import { levelUpNote, notify } from "./inbox.ts";
-import type { PrismaClient } from "./generated/prisma/client.ts";
+import type { Prisma, PrismaClient } from "./generated/prisma/client.ts";
 
 const STAGES = DUNGEON_STAGES.length;
 
 export const stageEndsAt = (startsAt: Date, stage: number) => new Date(startsAt.getTime() + (stage + 1) * DUNGEON_STAGE_MS);
 
-const activeMembership = (db: PrismaClient, characterId: number) =>
-  db.dungeonMember.findFirst({ where: { characterId, dungeon: { endedAt: null } }, include: { dungeon: true } });
+/** Locks the character first, so parallel starts and joins cannot put one player into two dungeons. */
+async function inDungeon(tx: Prisma.TransactionClient, characterId: number) {
+  await tx.$queryRaw`SELECT id FROM characters WHERE id = ${characterId} FOR UPDATE`;
+  return !!(await tx.dungeonMember.findFirst({ where: { characterId, dungeon: { endedAt: null } } }));
+}
 
 export async function dungeonView(db: PrismaClient, characterId: number, t: Date, onlyActive = true) {
   const membership = await db.dungeonMember.findFirst({
@@ -123,11 +126,13 @@ export function dungeonRoutes(app: FastifyInstance, { db, now, scheduleStage }: 
   app.post("/dungeons", async (req, reply) => {
     const character = await requireCharacter(db, req, reply);
     if (!character) return;
-    if (await activeMembership(db, character.id)) return reply.code(409).send({ error: "already in a dungeon" });
     const startsAt = new Date(now().getTime() + DUNGEON_LOBBY_MS);
-    const dungeon = await db.dungeon.create({
-      data: { code: randomCode(6), startsAt, members: { create: { characterId: character.id } } },
-    });
+    const dungeon = await db.$transaction(async (tx) =>
+      (await inDungeon(tx, character.id))
+        ? null
+        : tx.dungeon.create({ data: { code: randomCode(6), startsAt, members: { create: { characterId: character.id } } } }),
+    );
+    if (!dungeon) return reply.code(409).send({ error: "already in a dungeon" });
     await scheduleStage(dungeon.id, 0, stageEndsAt(startsAt, 0)).catch(async (err) => {
       await db.dungeon.delete({ where: { id: dungeon.id } });
       throw err;
@@ -141,8 +146,8 @@ export function dungeonRoutes(app: FastifyInstance, { db, now, scheduleStage }: 
     async (req, reply) => {
       const character = await requireCharacter(db, req, reply);
       if (!character) return;
-      if (await activeMembership(db, character.id)) return reply.code(409).send({ error: "already in a dungeon" });
       const error = await db.$transaction(async (tx) => {
+        if (await inDungeon(tx, character.id)) return "already in a dungeon";
         const dungeon = await tx.dungeon.findUnique({ where: { code: req.body.code.trim().toUpperCase() } });
         if (!dungeon || dungeon.endedAt || now() >= dungeon.startsAt) return "no open dungeon with that code";
         // Locking the dungeon row serializes parallel joins, so the party cannot grow past the limit.
@@ -151,7 +156,7 @@ export function dungeonRoutes(app: FastifyInstance, { db, now, scheduleStage }: 
         await tx.dungeonMember.create({ data: { dungeonId: dungeon.id, characterId: character.id } });
         return null;
       });
-      if (error) return reply.code(400).send({ error });
+      if (error) return reply.code(error === "already in a dungeon" ? 409 : 400).send({ error });
       return dungeonView(db, character.id, now());
     },
   );

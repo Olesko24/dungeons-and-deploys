@@ -1,6 +1,7 @@
 import { PgBoss } from "pg-boss";
 import type { PrismaClient } from "./generated/prisma/client.ts";
 import { resolveStage, stageEndsAt } from "./dungeons.ts";
+import { SESSION_TTL_MS } from "./auth.ts";
 import { INBOX_KEEP_MS } from "./inbox.ts";
 import { resolveMarketDraw } from "./market.ts";
 import { resolveQuest } from "./quests.ts";
@@ -32,7 +33,10 @@ export async function startJobs(boss: PgBoss, db: PrismaClient) {
       if (quest) await trySyncProgress(db, quest.characterId);
     }
   });
-  await boss.work("pair-codes.cleanup", () => db.pairCode.deleteMany({ where: { expiresAt: { lt: new Date() } } }));
+  await boss.work("pair-codes.cleanup", async () => {
+    await db.pairCode.deleteMany({ where: { expiresAt: { lt: new Date() } } });
+    await db.session.deleteMany({ where: { createdAt: { lt: new Date(Date.now() - SESSION_TTL_MS) } } });
+  });
   await boss.schedule("pair-codes.cleanup", "0 * * * *");
   await boss.work("inbox.cleanup", () => db.notification.deleteMany({ where: { createdAt: { lt: new Date(Date.now() - INBOX_KEEP_MS) } } }));
   await boss.schedule("inbox.cleanup", "30 3 * * *");

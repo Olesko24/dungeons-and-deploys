@@ -57,9 +57,15 @@ export function ideaRoutes(app: FastifyInstance, { db, now }: Required<Deps>) {
       const title = req.body.title.trim();
       if (title.length < 3) return reply.code(400).send({ error: "the title needs at least 3 characters" });
       const t = now();
-      const submitted = await db.idea.count({ where: { authorId: character.id, createdAt: { gte: startOfDay(t) } } });
-      if (submitted >= IDEAS_PER_DAY) return reply.code(429).send({ error: `${IDEAS_PER_DAY} ideas a day, come back tomorrow` });
-      await db.idea.create({ data: { authorId: character.id, title, text: req.body.text?.trim() ?? "", createdAt: t } });
+      const created = await db.$transaction(async (tx) => {
+        // Locks the character, so parallel submissions cannot pass the daily limit together.
+        await tx.$queryRaw`SELECT id FROM characters WHERE id = ${character.id} FOR UPDATE`;
+        const submitted = await tx.idea.count({ where: { authorId: character.id, createdAt: { gte: startOfDay(t) } } });
+        if (submitted >= IDEAS_PER_DAY) return false;
+        await tx.idea.create({ data: { authorId: character.id, title, text: req.body.text?.trim() ?? "", createdAt: t } });
+        return true;
+      });
+      if (!created) return reply.code(429).send({ error: `${IDEAS_PER_DAY} ideas a day, come back tomorrow` });
       return reply.code(201).send(await ideaList(db, character.id, t));
     },
   );

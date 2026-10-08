@@ -50,7 +50,7 @@ Heartbeats refresh the status line and can spawn random monsters.
 | Shell (zsh, bash) | `precmd` hook, every command | Prompt segment or tmux status |
 | Website | Every minute while a tab is open | The website itself |
 
-The server limits heartbeats to one per minute per player and source.
+The server limits heartbeats to three per minute per player, one for each source.
 
 ### Access
 
@@ -60,6 +60,7 @@ In Claude Code, prefix commands with `!`.
 ```
 quest login --code <ACCESS_CODE>   # register, pick a character name
 quest pair                         # log in another device: quest login --pair <CODE>
+quest logout [--all]               # end this session, or every session
 quest                              # start quest
 quest status
 quest char                         # character sheet

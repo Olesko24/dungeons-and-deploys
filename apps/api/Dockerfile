@@ -33,6 +33,7 @@ COPY apps/api apps/api
 COPY --from=web /app/apps/web/dist apps/web/dist
 
 WORKDIR /app/apps/api
+USER node
 ENV NODE_ENV=production PORT=3000
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s CMD node -e "fetch('http://localhost:3000/health').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"

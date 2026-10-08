@@ -21,7 +21,7 @@ import {
 } from "@dnd/shared";
 import type { Deps } from "./app.ts";
 import { equippedItems, giveLoot, itemView, requireCharacter } from "./characters.ts";
-import { SESSION_COOKIE } from "./auth.ts";
+import { requireUser } from "./auth.ts";
 import { dungeonView } from "./dungeons.ts";
 import { encounterView, maybeSpawnEncounter } from "./encounters.ts";
 import { unreadCount } from "./inbox.ts";
@@ -100,7 +100,8 @@ export function questRoutes(app: FastifyInstance, { db, now, random }: Required<
     "/heartbeat",
     {
       config: {
-        rateLimit: { max: 1, timeWindow: "1 minute", keyGenerator: (req) => req.headers.authorization ?? req.cookies[SESSION_COOKIE] ?? req.ip },
+        // Keyed on the player, not the session: more sessions must not mean more monsters. Three covers terminal, Claude Code and website.
+        rateLimit: { max: 3, timeWindow: "1 minute", keyGenerator: async (req) => (await requireUser(db, req))?.id.toString() ?? req.ip },
       },
     },
     async (req, reply) => {

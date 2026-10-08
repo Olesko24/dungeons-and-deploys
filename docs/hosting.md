@@ -25,8 +25,10 @@ Start small. Scale the VPS vertically when needed.
 The API runs as a Coolify application built from this repository, at `https://dnd.meiners-dev.de`.
 The CLI uses this URL by default, `DND_URL` overrides it on login.
 
-Every push to `main` deploys automatically: a GitHub webhook triggers the Coolify build. Run tests,
-typecheck and lint before pushing, a push is a release.
+Every push to `main` deploys once CI is green: the `deploy` job in `.github/workflows/ci.yml` calls the Coolify
+deploy webhook. Turn off Coolify's own auto deploy, otherwise a red build still goes live. The job needs two
+repository secrets: `COOLIFY_DEPLOY_URL` (the application's deploy webhook URL) and `COOLIFY_TOKEN` (a Coolify
+API token with deploy permission). A push is a release.
 
 | Setting | Value |
 |---|---|
@@ -36,7 +38,8 @@ typecheck and lint before pushing, a push is a release.
 | Port | 3000 |
 | Health check | `GET /health` (also defined in the Dockerfile) |
 
-Migrations run on container start (`prisma migrate deploy`). The image also contains the website, built in its own stage and served by the API.
+Migrations run on container start (`prisma migrate deploy`). The container runs as the unprivileged `node` user.
+Do not publish port 3000 on the host: client IPs for rate limits are only taken from proxies on the private network. The image also contains the website, built in its own stage and served by the API.
 
 Environment variables:
 

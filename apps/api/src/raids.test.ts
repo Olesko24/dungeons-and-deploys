@@ -104,3 +104,27 @@ test("a raid below the minimum is cancelled", async () => {
   assert.equal(view.state, "cancelled");
   assert.match((await inbox(players[0].characterId, "raid")).at(-1)!, /cancelled: 3 of 5 raiders showed up/);
 });
+
+test("switching guilds cannot put a raider into two raids", async () => {
+  clock = T0;
+  const [lead1, lead2, hopper] = [await player("lead_one"), await player("lead_two"), await player("hopper")];
+  await lead1.call("POST", "/guild", { name: "First Guild" });
+  const code2 = (await lead2.call("POST", "/guild", { name: "Second Guild" })).json().guild.code;
+  const code1 = (await lead1.call("GET", "/guild")).json().guild.code;
+  await hopper.call("POST", "/guild/join", { code: code1 });
+  await lead1.call("POST", "/raids", { startsInMinutes: 10 });
+  await lead2.call("POST", "/raids", { startsInMinutes: 10 });
+  await hopper.call("POST", "/raids/join");
+
+  await hopper.call("POST", "/guild/leave");
+  assert.equal(await db.raidMember.count({ where: { characterId: hopper.characterId } }), 0, "leaving the guild leaves its planned raid");
+
+  await hopper.call("POST", "/guild/join", { code: code1 });
+  await hopper.call("POST", "/raids/join");
+  const raid1 = await db.raidMember.findFirstOrThrow({ where: { characterId: hopper.characterId } });
+  await db.raid.update({ where: { id: raid1.raidId }, data: { state: "running" } });
+  await hopper.call("POST", "/guild/leave");
+  await hopper.call("POST", "/guild/join", { code: code2 });
+  const joined = await hopper.call("POST", "/raids/join");
+  assert.deepEqual([joined.statusCode, joined.json().error], [409, "you are already in another raid"]);
+});

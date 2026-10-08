@@ -208,11 +208,21 @@ export function raidRoutes(app: FastifyInstance, { db, now, scheduleRaid }: Requ
     if (!membership) return reply.code(400).send({ error: "raids need a guild" });
     const raid = await openRaid(db, membership.guildId);
     if (!raid || raid.state !== "scheduled" || now() >= raid.startsAt) return reply.code(400).send({ error: "no raid open to join" });
-    await db.raidMember.upsert({
-      where: { raidId_characterId: { raidId: raid.id, characterId: character.id } },
-      create: { raidId: raid.id, characterId: character.id },
-      update: {},
+    const error = await db.$transaction(async (tx) => {
+      // Locks the character, so switching guilds cannot put one player into two open raids.
+      await tx.$queryRaw`SELECT id FROM characters WHERE id = ${character.id} FOR UPDATE`;
+      const other = await tx.raidMember.findFirst({
+        where: { characterId: character.id, raidId: { not: raid.id }, raid: { state: { in: ["scheduled", "running"] } } },
+      });
+      if (other) return "you are already in another raid";
+      await tx.raidMember.upsert({
+        where: { raidId_characterId: { raidId: raid.id, characterId: character.id } },
+        create: { raidId: raid.id, characterId: character.id },
+        update: {},
+      });
+      return null;
     });
+    if (error) return reply.code(409).send({ error });
     return { raid: await raidView(db, membership.guildId) };
   });
 }

@@ -21,8 +21,9 @@ model User {
   @@map("users")
 }
 
+/// Stored as a SHA-256 hash like pair codes, the plain code is only shown once by the admin script.
 model AccessCode {
-  code      String   @id
+  codeHash  String   @id @map("code_hash")
   maxUses   Int      @map("max_uses")
   uses      Int      @default(0)
   expiresAt DateTime @map("expires_at")

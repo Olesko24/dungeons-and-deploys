@@ -128,9 +128,13 @@ export function marketRoutes(app: FastifyInstance, { db, now, scheduleDraw }: Re
   app.post<{ Params: { id: string } }>("/market/unlist/:id", async (req, reply) => {
     const character = await requireCharacter(db, req, reply);
     if (!character) return;
-    const unlisted = await db.item.updateMany({
-      where: { id: Number(req.params.id) || 0, characterId: character.id, listedAt: { not: null }, bids: { none: {} } },
-      data: { listedAt: null, price: null },
+    const itemId = Number(req.params.id) || 0;
+    const unlisted = await db.$transaction(async (tx) => {
+      await lock(tx, itemId);
+      return tx.item.updateMany({
+        where: { id: itemId, characterId: character.id, listedAt: { not: null }, bids: { none: {} } },
+        data: { listedAt: null, price: null },
+      });
     });
     if (unlisted.count === 0) return reply.code(400).send({ error: "not listed, or buyers are already in line" });
     return reply.code(204).send();
@@ -206,8 +210,9 @@ export function resolveMarketDraw(db: PrismaClient, itemId: number, random = Mat
       include: { bids: { include: { character: true }, orderBy: { createdAt: "asc" } } },
     });
     if (!listing?.listedAt || listing.price === null || t < drawAt(listing.listedAt) || !listing.bids.length) return null;
-    const { bids, price } = listing;
+    const { bids } = listing;
     const winner = bids[Math.floor(random() * bids.length)];
+    const { price } = winner;
     const losers = bids.filter((b) => b !== winner);
     const name = itemName(listing.key, listing);
 

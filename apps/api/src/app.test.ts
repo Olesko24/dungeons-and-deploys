@@ -22,3 +22,11 @@ test("GET /health returns 503 when the database is down", async () => {
   const res = await app.inject("/health");
   assert.equal(res.statusCode, 503);
 });
+
+test("internal errors are not sent to the client, security headers are", async () => {
+  const down = new PrismaClient({ adapter: new PrismaPg({ connectionString: "postgresql://x:x@localhost:1/x" }) });
+  const res = await (await buildApp({ db: down })).inject({ url: "/character", headers: { authorization: "Bearer tq_x" } });
+  assert.deepEqual([res.statusCode, res.json()], [500, { error: "internal server error" }]);
+  assert.match(String(res.headers["content-security-policy"]), /frame-ancestors 'none'/);
+  assert.equal(res.headers["x-content-type-options"], "nosniff");
+});

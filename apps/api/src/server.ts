@@ -17,8 +17,8 @@ const app = await buildApp(
   { db, ...jobs },
   {
     // Runs behind the Coolify proxy, client IPs for rate limiting come from X-Forwarded-For.
-    // Trusting only that one hop takes the address the proxy saw, not one the client wrote into the header.
-    trustProxy: (_address, hop) => hop === 0,
+    // Only proxies on the private Docker network are trusted, so a client reaching the port directly cannot fake its IP.
+    trustProxy: "loopback, uniquelocal",
     logger: true,
   },
 );
