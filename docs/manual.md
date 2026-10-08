@@ -411,7 +411,7 @@ least their loot level, so their average loot is better.
 
 ## Website
 
-The website shows your character, equipment, bag, quest history, guild, talents, shop, statistics and leaderboards. New players can create their character there with an access code. Players who started in the terminal run `quest pair` and enter the code it shows. **Terminal** at the top does the opposite: it shows a pair code to log in the terminal, or another browser such as your phone.
+The website shows your character, equipment, bag, quest history, guild, talents, shop, market, statistics and leaderboards. Everything the terminal can do in the game works there too: start or join a dungeon in the status panel, sell items from your bag and draw them under **market**, schedule a raid in the guild hall (leader) and join it in the raid panel. New players can create their character there with an access code. Players who started in the terminal run `quest pair` and enter the code it shows. **Terminal** at the top does the opposite: it shows a pair code to log in the terminal, or another browser such as your phone.
 
 On your first visit a short tour walks you through the page. It highlights the real buttons and moves on when you click them. You can skip it and restart it any time with **Tour** at the top. Finishing it unlocks the achievement Hello, World.
 

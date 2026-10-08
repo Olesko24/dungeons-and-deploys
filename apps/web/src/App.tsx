@@ -5,6 +5,7 @@ import {
   type Guild,
   type Item,
   type Leaderboard,
+  type Market,
   type RankRow,
   type PlayerStats,
   type Quest,
@@ -201,11 +202,12 @@ function QuestStatus({ status, onChange }: { status: Status; onChange: () => voi
   const q = status.quest;
   const e = status.encounter;
   const [message, setMessage] = useState("");
+  const [code, setCode] = useState("");
   const ready = !q || (q.resolved && !minutesUntil(status.readyAt));
 
-  async function act(path: string, describe: (data: never) => string) {
+  async function act(path: string, describe: (data: never) => string, body: object = {}) {
     try {
-      setMessage(describe(await api<never>(path, {})));
+      setMessage(describe(await api<never>(path, body)));
     } catch (err) {
       setMessage((err as Error).message);
     }
@@ -215,6 +217,7 @@ function QuestStatus({ status, onChange }: { status: Status; onChange: () => voi
     `${r.name}: ${r.success ? `✓ success · +${r.xp} XP · +${r.gold} gold${r.loot ? ` · found ${r.loot.name}` : ""}` : `✗ failed · +${r.xp} XP`}`;
   const fightResult = (f: { won: boolean; story: string; xp: number; gold: number; loot: Item | null }) =>
     `${f.won ? `Victory · +${f.xp} XP · +${f.gold} gold${f.loot ? ` · found ${f.loot.name}` : ""}` : "Defeated. It got away, nothing lost."} ${f.story}`;
+  const dungeonResult = (d: { code: string }) => `In dungeon ${d.code}. Share the code, others can join until it starts.`;
 
   return (
     <section className="panel" data-tour="status">
@@ -235,6 +238,16 @@ function QuestStatus({ status, onChange }: { status: Status; onChange: () => voi
         </p>
       )}
       {status.dungeon && <p className="dim">{status.dungeon.story}</p>}
+      {!status.dungeon && (
+        <div className="row">
+          <p>No dungeon. Open a lobby for up to 5 players, or join one with a code.</p>
+          <form className="donate" onSubmit={(e) => { e.preventDefault(); void act("/dungeons/join", dungeonResult, { code }); }}>
+            <button type="button" className="small" onClick={() => act("/dungeons", dungeonResult)}>Start dungeon</button>
+            <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Dungeon code" aria-label="Dungeon code" required />
+            <button type="submit" className="small">Join</button>
+          </form>
+        </div>
+      )}
       {q && !q.resolved && (
         <>
           <p>⚔ Quest running · {minutesUntil(q.endsAt) ? `${minutesUntil(q.endsAt)}m left` : "rolling the dice"}</p>
@@ -269,8 +282,7 @@ function questProgress(q: Quest) {
 
 function Inventory({ items, onChange }: { items: Item[]; onChange: () => void }) {
   const [error, setError] = useState("");
-  const act = (item: Item, action: "equip" | "unequip") =>
-    api(`/inventory/${item.id}/${action}`, {}).then(onChange, (err: Error) => setError(err.message));
+  const act = (path: string) => api(path, {}).then(onChange, (err: Error) => setError(err.message));
   const bySlot = new Map(items.filter((i) => i.equippedSlot).map((i) => [i.equippedSlot, i]));
   const bag = items.filter((i) => !i.equippedSlot);
   return (
@@ -294,7 +306,7 @@ function Inventory({ items, onChange }: { items: Item[]; onChange: () => void })
               <div key={slot} className={`slot ${item?.rarity ?? "empty"}`}>
                 <span className="slot-label">{label} {item && <RarityIcon rarity={item.rarity} />}</span>
                 {item ? (
-                  <button type="button" className="slot-item" onClick={() => act(item, "unequip")} title={`${item.name}, click to take off`}>
+                  <button type="button" className="slot-item" onClick={() => act(`/inventory/${item.id}/unequip`)} title={`${item.name}, click to take off`}>
                     <ItemIcon item={item} />
                   </button>
                 ) : <span className="slot-empty" />}
@@ -314,7 +326,12 @@ function Inventory({ items, onChange }: { items: Item[]; onChange: () => void })
                 <span className="name">{item.name}</span>
                 <span className="dim"><Rarity rarity={item.rarity} /> · {statParts(item.stats).join(" · ")}{item.listed ? " · on market" : ""}</span>
               </div>
-              {!item.listed && <button type="button" className="small" onClick={() => act(item, "equip")}>Equip</button>}
+              <span className="item-actions">
+                {!item.listed && <button type="button" className="small" onClick={() => act(`/inventory/${item.id}/equip`)}>Equip</button>}
+                <button type="button" className="small ghost" onClick={() => act(`/market/${item.listed ? "unlist" : "list"}/${item.id}`)}>
+                  {item.listed ? "Unlist" : "Sell"}
+                </button>
+              </span>
             </li>
           ))}
         </ul>
@@ -375,6 +392,7 @@ function GuildHall({ guild, raids, me, onChange }: { guild: Guild | null; raids:
   const [amount, setAmount] = useState("");
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
+  const [minutes, setMinutes] = useState("30");
   const [message, setMessage] = useState("");
   async function act(path: string, body: object) {
     try {
@@ -389,6 +407,7 @@ function GuildHall({ guild, raids, me, onChange }: { guild: Guild | null; raids:
     }
   }
   const leader = guild?.members.some((m) => m.name === me && m.role === "leader");
+  const canSchedule = leader && !["scheduled", "running"].includes(raids.raid?.state ?? "");
   return (
     <section className="panel">
       <h2><UiIcon name="guild" />Guild hall</h2>
@@ -454,12 +473,26 @@ function GuildHall({ guild, raids, me, onChange }: { guild: Guild | null; raids:
               </li>
             ))}
           </ul>
-          <h3 className="sub">Raid bosses · {leader ? "schedule with quest raid schedule <minutes> <boss>" : "the leader schedules raids"}</h3>
+          <h3 className="sub">Raid bosses · {leader ? "schedule a raid, members join until it starts" : "the leader schedules raids"}</h3>
+          {canSchedule && (
+            <div className="donate">
+              <label htmlFor="raid-minutes">Starts in</label>
+              <input id="raid-minutes" type="number" min={5} max={1440} step={1} value={minutes} onChange={(e) => setMinutes(e.target.value)} />
+              <span className="dim">minutes</span>
+            </div>
+          )}
           <ul className="buffs">
             {raids.bosses.map((b) => (
               <li key={b.tier} className={b.unlocked ? "" : "locked"}>
                 <span><strong>{b.tier + 1}. {b.name}</strong><br /><em className="dim">{b.flavor}</em></span>
-                {b.unlocked ? <Power yours={raids.power} recommended={b.recommended} warn={0.9} /> : <span className="dim">beat the boss before · ⚔ {b.recommended}</span>}
+                {b.unlocked ? (
+                  <span className="item-actions">
+                    <Power yours={raids.power} recommended={b.recommended} warn={0.9} />
+                    {canSchedule && (
+                      <button type="button" className="small" onClick={() => act("/raids", { startsInMinutes: Number(minutes), tier: b.tier })}>Schedule</button>
+                    )}
+                  </span>
+                ) : <span className="dim">beat the boss before · ⚔ {b.recommended}</span>}
               </li>
             ))}
           </ul>
@@ -469,9 +502,12 @@ function GuildHall({ guild, raids, me, onChange }: { guild: Guild | null; raids:
   );
 }
 
-function RaidView({ raid, power }: { raid: Raid; power: number }) {
+function RaidView({ raid, power, me, onChange }: { raid: Raid; power: number; me: string; onChange: () => void }) {
+  const [error, setError] = useState("");
+  const join = () => api("/raids/join", {}).then(onChange, (err: Error) => setError(err.message));
+  const joined = raid.members.some((m) => m.name === me);
   const label = {
-    scheduled: `starts in ${minutesUntil(raid.startsAt)}m · needs ${raid.minPlayers} raiders · join with quest raid join`,
+    scheduled: `starts in ${minutesUntil(raid.startsAt)}m · ${raid.members.length}/${raid.minPlayers} raiders needed`,
     running: `tick ${raid.tick}/${raid.ticks} · ends in ${minutesUntil(raid.endsAt)}m · stay present to deal damage`,
     won: "defeated · loot for every raider",
     failed: "the boss survived",
@@ -481,7 +517,11 @@ function RaidView({ raid, power }: { raid: Raid; power: number }) {
   return (
     <section className={`panel raid ${raid.state}`}>
       <h2><UiIcon name="raid" />Raid · {raid.boss}</h2>
-      <p>{label} · <Power yours={power} recommended={raid.recommended} warn={0.9} /></p>
+      <div className="row">
+        <p>{label} · <Power yours={power} recommended={raid.recommended} warn={0.9} /></p>
+        {raid.state === "scheduled" && !joined && <button type="button" className="small" onClick={join}>Join raid</button>}
+      </div>
+      {error && <p className="error" role="alert">{error}</p>}
       <p className="dim">{raid.story}</p>
       {raid.bossMaxHp > 0 && (
         <>
@@ -537,6 +577,44 @@ function ShopView({ onChange }: { onChange: () => void }) {
           </div>
         ))}
       </div>
+    </section>
+  );
+}
+
+function MarketView({ onChange }: { onChange: () => void }) {
+  const [market, setMarket] = useState<Market | null>(null);
+  const [message, setMessage] = useState("");
+  const load = useCallback(() => api<Market>("/market").then(setMarket), []);
+  useEffect(() => void load(), [load]);
+  async function draw(rarity: string) {
+    try {
+      const { item, price } = await api<{ item: Item; price: number }>("/market/draw", { rarity });
+      setMessage(`You paid ${price} gold and drew ${item.name} · ${statParts(item.stats).join(" · ")}`);
+      onChange();
+      await load();
+    } catch (err) {
+      setMessage((err as Error).message);
+    }
+  }
+  if (!market) return <section className="panel"><p>Loading…</p></section>;
+  return (
+    <section className="panel">
+      <h2><UiIcon name="bag" />Market · <Gold amount={market.gold} /></h2>
+      <p className="dim">
+        Draw a random item of a rarity from what other players listed, {market.drawsLeft ? "1 draw left today" : "daily draw used"}.
+        Sell items from your bag, you get the price minus 10% when someone draws it.
+      </p>
+      {message && <p role="status">{message}</p>}
+      <ul className="buffs">
+        {market.offers.map((o) => (
+          <li key={o.rarity} className={o.unlocked ? "" : "locked"}>
+            <span><Rarity rarity={o.rarity} /> · <Gold amount={o.price} /> · {o.available} listed</span>
+            <button type="button" className="small" disabled={!o.unlocked || !o.available || !market.drawsLeft || market.gold < o.price} onClick={() => draw(o.rarity)}>
+              {o.unlocked ? "Draw" : `Lv ${o.unlockLevel}`}
+            </button>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
@@ -701,7 +779,7 @@ function RanksView() {
   );
 }
 
-type View = "character" | "talents" | "shop" | "stats" | "ranks" | "ideas" | DocName;
+type View = "character" | "talents" | "shop" | "market" | "stats" | "ranks" | "ideas" | DocName;
 
 type Data = { character: Character; status: Status; items: Item[]; history: Quest[]; guild: Guild | null; raids: Raids };
 
@@ -789,7 +867,7 @@ export function App() {
       {pairing && <TerminalPair onClose={() => setPairing(false)} onOpen={setView} />}
       <BetaNote onOpen={setView} />
       <nav className="tabs" aria-label="Sections">
-        {(["character", "talents", "shop", "stats", "ranks", "manual", "changelog"] as const).map((v) => (
+        {(["character", "talents", "shop", "market", "stats", "ranks", "manual", "changelog"] as const).map((v) => (
           <button key={v} type="button" className={`small ${view === v ? "" : "ghost"}`} aria-current={view === v ? "page" : undefined} data-tour={`nav-${v}`} onClick={() => setView(v)}>
             {v}
           </button>
@@ -799,13 +877,14 @@ export function App() {
         <>
           <QuestStatus status={data.status} onChange={() => void load()} />
           <Inventory items={data.items} onChange={() => void load()} />
-          {data.raids.raid && <RaidView raid={data.raids.raid} power={data.raids.power} />}
+          {data.raids.raid && <RaidView raid={data.raids.raid} power={data.raids.power} me={c.name} onChange={() => void load()} />}
           <GuildHall guild={data.guild} raids={data.raids} me={c.name} onChange={() => void load()} />
           <History quests={data.history} />
         </>
       )}
       {view === "talents" && <TalentsView onChange={() => void load()} />}
       {view === "shop" && <ShopView onChange={() => void load()} />}
+      {view === "market" && <MarketView onChange={() => void load()} />}
       {view === "stats" && <StatsView />}
       {view === "ranks" && <RanksView />}
       {(view === "manual" || view === "changelog") && <Doc name={view} onOpen={setView} />}

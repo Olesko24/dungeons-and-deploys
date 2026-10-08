@@ -51,6 +51,7 @@ export type Raids = { raid: Raid | null; bosses: RaidBoss[]; power: number };
 
 export type ShopOffer = { offer: number; key: string; name: string; rarity: string; stats: Stats; price: number; unlockLevel: number; locked: boolean; bought: boolean };
 export type Shop = { gold: number; refreshesAt: string; offers: ShopOffer[] };
+export type Market = { gold: number; drawsLeft: number; offers: { rarity: string; price: number; available: number; unlockLevel: number; unlocked: boolean }[] };
 export type Talent = {
   key: string;
   name: string;
