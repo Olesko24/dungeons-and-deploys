@@ -67,6 +67,9 @@ model Character {
   tour         String          @default("new")
   /// Notifications created after this are unread.
   inboxSeenAt  DateTime        @default(now()) @map("inbox_seen_at")
+  /// Successful quests in a row right now and the best run ever, kept by every resolved quest for the statistics.
+  questStreak     Int          @default(0) @map("quest_streak")
+  bestQuestStreak Int          @default(0) @map("best_quest_streak")
   quests       Quest[]
   items        Item[]
   encounters   Encounter[]

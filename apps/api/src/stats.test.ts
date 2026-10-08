@@ -11,7 +11,8 @@ after(() => db.$disconnect());
 
 test("stats and achievements come from what a player did", async () => {
   const user = await db.user.create({
-    data: { character: { create: { name: "stat", xp: 0 } }, sessions: { create: { tokenHash: hash("tq_stat") } } },
+    // The streak is kept by resolving quests, see quests.test.ts. Quests created here directly come with it set.
+    data: { character: { create: { name: "stat", xp: 0, bestQuestStreak: 1 } }, sessions: { create: { tokenHash: hash("tq_stat") } } },
     include: { character: true },
   });
   const id = user.character!.id;

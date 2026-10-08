@@ -1,59 +1,55 @@
 import type { FastifyInstance } from "fastify";
-import { ACHIEVEMENTS, type PlayerStats, type Talents, item, levelFromXp, playerBonus, playerPower, rarityIndex } from "@dnd/shared";
+import { ACHIEVEMENTS, type PlayerStats, RARITIES, type Talents, item, levelFromXp, playerBonus, playerPower, rarityIndex } from "@dnd/shared";
 import { requireCharacter } from "./characters.ts";
 import { notify } from "./inbox.ts";
 import type { Character, PrismaClient } from "./generated/prisma/client.ts";
 
-/** Most successful quests in a row. */
-function longestStreak(quests: { success: boolean | null }[]) {
-  let best = 0;
-  let run = 0;
-  for (const q of quests) {
-    run = q.success ? run + 1 : 0;
-    best = Math.max(best, run);
-  }
-  return best;
-}
+const LEGENDARY_UP = RARITIES.slice(rarityIndex("legendary"));
 
-/** Everything is counted from existing tables, nothing is tracked twice. */
+/**
+ * Counted from existing tables, nothing is tracked twice, except the quest streak kept on the character.
+ * Counts and sums run in the database, so the cost stays flat however long a player's history gets.
+ */
 export async function playerStats(db: PrismaClient, c: Character): Promise<PlayerStats> {
   const id = c.id;
-  const [quests, encounters, dungeons, raids, equipped, marketSold, marketBought, shopBought, guild] = await Promise.all([
-    db.quest.findMany({
-      where: { characterId: id, resolvedAt: { not: null } },
-      orderBy: { startedAt: "asc" },
-      select: { success: true, gold: true, lootItem: true },
-    }),
-    db.encounter.findMany({ where: { characterId: id, foughtAt: { not: null } }, select: { won: true, monster: true, gold: true, lootItem: true } }),
-    db.dungeonMember.findMany({
-      where: { characterId: id },
-      select: { gold: true, lootItem: true, dungeon: { select: { success: true, _count: { select: { members: true } } } } },
-    }),
-    db.raidMember.findMany({ where: { characterId: id, raid: { state: "won" }, damage: { gt: 0 } }, select: { lootItem: true } }),
-    db.item.findMany({ where: { characterId: id, equippedSlot: { not: null } }, select: { key: true } }),
-    db.marketDraw.count({ where: { sellerId: id } }),
-    db.marketDraw.count({ where: { buyerId: id } }),
-    db.shopPurchase.count({ where: { characterId: id } }),
-    db.guildMember.findUnique({ where: { characterId: id } }),
-  ]);
-  const loot = [...quests, ...encounters, ...dungeons, ...raids].flatMap((r) => (r.lootItem ? [r.lootItem.key] : []));
-  const sum = (rows: { gold: number }[]) => rows.reduce((s, r) => s + r.gold, 0);
+  // Loot a character found, wherever the item is now.
+  const looted = { OR: [{ foundIn: { characterId: id } }, { wonIn: { characterId: id } }, { dungeonLoot: { characterId: id } }, { raidLoot: { characterId: id } }] };
+  const [quests, encounters, dungeonGold, cleared, raidsWon, itemsFound, legendariesFound, equipped, marketSold, marketBought, shopBought, guild] =
+    await Promise.all([
+      db.quest.groupBy({ by: ["success"], where: { characterId: id, resolvedAt: { not: null } }, _count: true, _sum: { gold: true } }),
+      db.encounter.groupBy({ by: ["won", "monster"], where: { characterId: id, foughtAt: { not: null } }, _count: true, _sum: { gold: true } }),
+      db.dungeonMember.aggregate({ where: { characterId: id }, _sum: { gold: true } }),
+      db.dungeonMember.findMany({
+        where: { characterId: id, dungeon: { success: true } },
+        select: { dungeon: { select: { _count: { select: { members: true } } } } },
+      }),
+      db.raidMember.count({ where: { characterId: id, raid: { state: "won" }, damage: { gt: 0 } } }),
+      db.item.count({ where: looted }),
+      db.item.count({ where: { AND: [looted, { OR: LEGENDARY_UP.map((r) => ({ key: { endsWith: `.${r}` } })) }] } }),
+      db.item.findMany({ where: { characterId: id, equippedSlot: { not: null } }, select: { key: true } }),
+      db.marketDraw.count({ where: { sellerId: id } }),
+      db.marketDraw.count({ where: { buyerId: id } }),
+      db.shopPurchase.count({ where: { characterId: id } }),
+      db.guildMember.findUnique({ where: { characterId: id } }),
+    ]);
+  const count = <T extends { _count: number }>(rows: T[], keep: (r: T) => boolean) => rows.filter(keep).reduce((s, r) => s + r._count, 0);
+  const gold = (rows: { _sum: { gold: number | null } }[]) => rows.reduce((s, r) => s + (r._sum.gold ?? 0), 0);
   return {
     level: levelFromXp(c.xp).level,
-    questsWon: quests.filter((q) => q.success).length,
-    questsFailed: quests.filter((q) => !q.success).length,
-    longestStreak: longestStreak(quests),
-    goldEarned: sum(quests) + sum(encounters) + sum(dungeons),
-    monstersSlain: encounters.filter((e) => e.won).length,
-    fightsLost: encounters.filter((e) => !e.won).length,
-    dragonsSlain: encounters.filter((e) => e.won && e.monster === "dependencyDragon").length,
-    itemsFound: loot.length,
-    legendariesFound: loot.filter((k) => rarityIndex(item(k).rarity) >= rarityIndex("legendary")).length,
+    questsWon: count(quests, (q) => q.success === true),
+    questsFailed: count(quests, (q) => q.success === false),
+    longestStreak: c.bestQuestStreak,
+    goldEarned: gold(quests) + gold(encounters) + (dungeonGold._sum.gold ?? 0),
+    monstersSlain: count(encounters, (e) => e.won === true),
+    fightsLost: count(encounters, (e) => e.won === false),
+    dragonsSlain: count(encounters, (e) => e.won === true && e.monster === "dependencyDragon"),
+    itemsFound,
+    legendariesFound,
     // A two-handed weapon fills the off hand too.
     equippedSlots: equipped.length + equipped.filter((i) => item(i.key).type === "twoHanded").length,
-    dungeonsCleared: dungeons.filter((d) => d.dungeon.success).length,
-    fullPartyClears: dungeons.filter((d) => d.dungeon.success && d.dungeon._count.members >= 5).length,
-    raidsWon: raids.length,
+    dungeonsCleared: cleared.length,
+    fullPartyClears: cleared.filter((d) => d.dungeon._count.members >= 5).length,
+    raidsWon,
     marketSold,
     marketBought,
     shopBought,

@@ -118,6 +118,17 @@ test("after three successful quests without loot the next one drops an item", as
   assert.deepEqual(loot, [false, false, false, true, false]);
 });
 
+test("resolved quests keep the current and the best win streak", async () => {
+  const p = await player("streaker");
+  for (const [i, roll] of [0.5, 0.5, 0.99, 0.5].entries()) {
+    at(i * COOLDOWN_MS);
+    dice = roll;
+    await p.call("POST", "/quests");
+  }
+  const { questStreak, bestQuestStreak } = await p.character();
+  assert.deepEqual([questStreak, bestQuestStreak], [1, 2]);
+});
+
 test("equip and unequip", async () => {
   const p = await player("knight");
   const { id: characterId } = await p.character();

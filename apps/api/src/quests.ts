@@ -157,9 +157,16 @@ async function grantQuest(tx: Prisma.TransactionClient, questId: number, random:
 
   const updated = await tx.quest.updateMany({ where: { id: questId, resolvedAt: null }, data: { ...outcome, resolvedAt: t } });
   if (updated.count === 0) return null;
+  // One quest at a time per character, so the streak read with the quest is current.
+  const questStreak = outcome.success ? character.questStreak + 1 : 0;
   await tx.character.update({
     where: { id: character.id },
-    data: { xp: { increment: outcome.xp }, gold: { increment: outcome.gold } },
+    data: {
+      xp: { increment: outcome.xp },
+      gold: { increment: outcome.gold },
+      questStreak,
+      bestQuestStreak: Math.max(character.bestQuestStreak, questStreak),
+    },
   });
   const membership = await tx.guildMember.findUnique({ where: { characterId: character.id } });
   if (membership) {
