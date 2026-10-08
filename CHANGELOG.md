@@ -3,7 +3,7 @@
 All notable changes for players. Dungeons & Deploys is in **beta**: rules, numbers and basic mechanics can change between
 versions, and progress may be reset. Entries marked **Breaking** change how the game plays or affect existing characters.
 
-The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Newest versions and entries come first.
 
 ## [Unreleased]
 
@@ -17,20 +17,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- The shop shows the stats of its offers before you buy. Every buyer gets the same item.
-- The guild leaderboard lists every guild with its member count and average combat power, and the guild hall
-  shows the same list to players without a guild.
-- Every rarity has its own symbol on the website, and the shop shows a rarity legend.
-- Ideas: suggest features for the game and upvote the ones you want, linked at the bottom of the website.
-- Found, join and leave a guild from the guild hall on the website.
 - Bad luck protection: after three successful quests without loot, the next successful quest always drops an
   item.
 - Dungeons, market and raids on the website: start or join a dungeon, sell and draw items on the market, and
   schedule or join a raid, without the terminal.
-- Talents: one point per level in four trees (offense, defense, luck, general) of 8 talents each, with rows that
-  open with points spent and prerequisites. `quest talents` or the talent trees with icons on the website.
-  A reset costs 10 gold per spent point.
-- Level cap 100.
+- The guild leaderboard lists every guild with its member count and average combat power, and the guild hall
+  shows the same list to players without a guild.
+- The shop shows the stats of its offers before you buy. Every buyer gets the same item.
+- Every rarity has its own symbol on the website, and the shop shows a rarity legend.
+- Ideas: suggest features for the game and upvote the ones you want, linked at the bottom of the website.
+- Found, join and leave a guild from the guild hall on the website.
 - Combat power, shown on the character and as a recommendation for every monster and dungeon stage, with its own
   leaderboard (`quest top power`).
 - Six raid bosses from The Monolith to The Big Rewrite, each needing more combat power and paying more XP, gold
@@ -41,6 +37,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   shows how to install the CLI and a pair code to connect it. The start page explains how to get the CLI.
 - Interactive website tour on the first visit, restartable with the Tour button. Finishing it unlocks the
   achievement Hello, World.
+- Talents: one point per level in four trees (offense, defense, luck, general) of 8 talents each, with rows that
+  open with points spent and prerequisites. `quest talents` or the talent trees with icons on the website.
+  A reset costs 10 gold per spent point.
+- Level cap 100.
 - Short stories for every quest, monster fight, dungeon stage and raid tick: what happened, in the CLI and on the
   website.
 
