@@ -1163,29 +1163,31 @@ export function App() {
           <p className="dim">XP {c.xpIntoLevel}/{c.xpForNext}</p>
         </div>
         <div className="hero-actions">
-          <button
-            type="button"
-            className="small ghost"
-            aria-pressed={!muted}
-            title="Short sounds when a quest is ready, a monster shows up or a dungeon or raid starts and ends"
-            onClick={() => {
-              setMuted(!muted);
-              setMutedState(!muted);
-              if (muted) play("questReady");
-            }}
-          >
-            {muted ? "Sound off" : "Sound on"}
-          </button>
-          <button type="button" className={`small ${c.unread ? "" : "ghost"}`} popoverTarget="inbox-popover">
-            Inbox{c.unread ? ` · ${c.unread}` : ""}
+          <button type="button" className={`inbox-button ${c.unread ? "" : "ghost"}`} popoverTarget="inbox-popover">
+            <UiIcon name="mail" />Inbox{c.unread > 0 && <span className="badge" aria-label={`${c.unread} unread`}>{c.unread}</span>}
           </button>
           {/* Mounted only while open: loading the inbox marks it read. */}
           <div id="inbox-popover" popover="auto" onToggle={(e) => setInboxOpen((e.nativeEvent as ToggleEvent).newState === "open")}>
             {inboxOpen && <InboxView onChange={reload} />}
           </div>
-          <button type="button" className="small ghost" onClick={() => setTouring(true)}>Tour</button>
-          <button type="button" className="small ghost" data-tour="terminal" onClick={() => setPairing(true)}>Terminal</button>
-          <button type="button" className="small ghost" onClick={() => api("/auth/logout", {}).then(() => setLoggedOut(true))}>Log out</button>
+          <div className="hero-tools">
+            <button
+              type="button"
+              className="small ghost"
+              aria-pressed={!muted}
+              title="Short sounds when a quest is ready, a monster shows up or a dungeon or raid starts and ends"
+              onClick={() => {
+                setMuted(!muted);
+                setMutedState(!muted);
+                if (muted) play("questReady");
+              }}
+            >
+              <UiIcon name={muted ? "soundOff" : "soundOn"} />{muted ? "Sound off" : "Sound on"}
+            </button>
+            <button type="button" className="small ghost" onClick={() => setTouring(true)}><UiIcon name="help" />Tour</button>
+            <button type="button" className="small ghost" data-tour="terminal" onClick={() => setPairing(true)}><UiIcon name="terminal" />Terminal</button>
+            <button type="button" className="small ghost" onClick={() => api("/auth/logout", {}).then(() => setLoggedOut(true))}><UiIcon name="logout" />Log out</button>
+          </div>
         </div>
       </header>
       {pairing && <TerminalPair onClose={() => setPairing(false)} onOpen={setView} />}
