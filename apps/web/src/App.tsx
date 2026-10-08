@@ -1025,7 +1025,7 @@ function RanksView() {
   );
 }
 
-type View = "character" | "talents" | "shop" | "market" | "stats" | "ranks" | "ideas" | "inbox" | DocName;
+type View = "character" | "talents" | "shop" | "market" | "stats" | "ranks" | "ideas" | DocName;
 
 type Data = { character: Character; status: Status; items: Item[]; shards: Record<string, number>; history: Quest[]; guild: Guild | null; raids: Raids };
 
@@ -1057,6 +1057,7 @@ export function App() {
   const [data, setData] = useState<Data | null>(null);
   const [loggedOut, setLoggedOut] = useState(false);
   const [view, setView] = useState<View>("character");
+  const [inboxOpen, setInboxOpen] = useState(false);
   const [touring, setTouring] = useState(false);
   const [pairing, setPairing] = useState(false);
   const [muted, setMutedState] = useState(isMuted);
@@ -1175,9 +1176,13 @@ export function App() {
           >
             {muted ? "Sound off" : "Sound on"}
           </button>
-          <button type="button" className={`small ${c.unread ? "" : "ghost"}`} onClick={() => setView("inbox")}>
+          <button type="button" className={`small ${c.unread ? "" : "ghost"}`} popoverTarget="inbox-popover">
             Inbox{c.unread ? ` · ${c.unread}` : ""}
           </button>
+          {/* Mounted only while open: loading the inbox marks it read. */}
+          <div id="inbox-popover" popover="auto" onToggle={(e) => setInboxOpen((e.nativeEvent as ToggleEvent).newState === "open")}>
+            {inboxOpen && <InboxView onChange={reload} />}
+          </div>
           <button type="button" className="small ghost" onClick={() => setTouring(true)}>Tour</button>
           <button type="button" className="small ghost" data-tour="terminal" onClick={() => setPairing(true)}>Terminal</button>
           <button type="button" className="small ghost" onClick={() => api("/auth/logout", {}).then(() => setLoggedOut(true))}>Log out</button>
@@ -1204,7 +1209,6 @@ export function App() {
       {view === "talents" && <TalentsView onChange={() => void load()} />}
       {view === "shop" && <ShopView onChange={() => void load()} />}
       {view === "market" && <MarketView onChange={() => void load()} />}
-      {view === "inbox" && <InboxView onChange={reload} />}
       {view === "stats" && <StatsView />}
       {view === "ranks" && <RanksView />}
       {(view === "manual" || view === "changelog") && <Doc name={view} onOpen={setView} />}
