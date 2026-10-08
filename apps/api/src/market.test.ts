@@ -136,3 +136,13 @@ test("the inbox counts unread entries and can be cleaned up", async () => {
   assert.equal((await p.call("POST", "/inbox/clear")).statusCode, 204);
   assert.deepEqual(await p.inbox(), []);
 });
+
+test("average sale prices per rarity over the last 7 days", async () => {
+  clock = T0;
+  const p = await player("appraiser", 0);
+  await db.marketDraw.deleteMany();
+  const sale = (rarity: string, price: number, daysAgo: number) =>
+    ({ buyerId: p.characterId, sellerId: p.characterId, itemId: 0, rarity, price, createdAt: new Date(T0 - daysAgo * 86_400_000) });
+  await db.marketDraw.createMany({ data: [sale("epic", 100, 1), sale("epic", 151, 2), sale("rare", 60, 0), sale("epic", 999, 8)] });
+  assert.deepEqual((await p.call("GET", "/market/prices")).json(), { epic: { price: 126, sales: 2 }, rare: { price: 60, sales: 1 } });
+});

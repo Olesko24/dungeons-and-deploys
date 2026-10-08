@@ -68,6 +68,7 @@ quest equip <#id> / quest unequip <#id>
 quest scrap <#id>                  # destroy a bag item for gold
 quest upgrade <#id> <#id> <#id>    # fuse 3 items of one rarity into one of the next
 quest forge <rarity>               # turn a shard into an item
+quest autoscrap <rarity>|off       # scrap loot below a rarity on arrival
 quest fight                        # random encounter
 quest market                       # every listing, buy <#id>, sell <#id> [price]
 quest inbox                        # what happened while you were away

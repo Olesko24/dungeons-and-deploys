@@ -18,6 +18,7 @@ import { trySyncProgress } from "./stats.ts";
 import type { Prisma, PrismaClient } from "./generated/prisma/client.ts";
 
 export const drawAt = (listedAt: Date) => new Date(listedAt.getTime() + MARKET_DRAW_MS);
+const PRICES_MS = 7 * 24 * 60 * 60 * 1000;
 
 /** Locks the item row, so buying, joining, leaving and the draw of one listing run one after another. */
 const lock = (tx: Prisma.TransactionClient, itemId: number) => tx.$queryRaw`SELECT id FROM items WHERE id = ${itemId} FOR UPDATE`;
@@ -88,6 +89,19 @@ export function marketRoutes(app: FastifyInstance, { db, now, scheduleDraw }: Re
       };
     },
   );
+
+  /** Average sale price and number of sales per rarity over the last 7 days. */
+  app.get("/market/prices", async (req, reply) => {
+    const character = await requireCharacter(db, req, reply);
+    if (!character) return;
+    const rows = await db.marketDraw.groupBy({
+      by: ["rarity"],
+      where: { createdAt: { gt: new Date(now().getTime() - PRICES_MS) } },
+      _avg: { price: true },
+      _count: true,
+    });
+    return Object.fromEntries(rows.map((r) => [r.rarity, { price: Math.round(r._avg.price ?? 0), sales: r._count }]));
+  });
 
   /** Lists a bag item. Without a price it goes up at the suggested value. */
   app.post<{ Params: { id: string }; Body: { price?: number } | undefined }>(

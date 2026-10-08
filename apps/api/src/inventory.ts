@@ -31,8 +31,21 @@ export function inventoryRoutes(app: FastifyInstance, db: PrismaClient, random: 
       bonus: equipmentBonus(items.filter((i) => i.equippedSlot)),
       limit: BAG_LIMIT,
       shards: Object.fromEntries(shards.map((s) => [s.rarity, s.count])),
+      autoScrap: character.autoScrap,
     };
   });
+
+  /** Loot below this rarity is scrapped on arrival, null turns it off. */
+  app.post<{ Body: { rarity: Rarity | null } }>(
+    "/inventory/auto-scrap",
+    { schema: { body: { type: "object", required: ["rarity"], properties: { rarity: { type: ["string", "null"], enum: [...RARITIES.slice(1), null] } } } } },
+    async (req, reply) => {
+      const character = await requireCharacter(db, req, reply);
+      if (!character) return;
+      await db.character.update({ where: { id: character.id }, data: { autoScrap: req.body.rarity } });
+      return { autoScrap: req.body.rarity };
+    },
+  );
 
   app.post<{ Params: { id: string }; Body: { slot?: Slot } | undefined }>(
     "/inventory/:id/equip",

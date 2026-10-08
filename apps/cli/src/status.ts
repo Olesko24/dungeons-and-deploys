@@ -18,7 +18,7 @@ export function progress(quest: { startedAt: string; endsAt: string }, now = Dat
 }
 
 /** One line for status lines and prompts, e.g. `⚔ Quest 23m · ■■■■□□□□□ · Lv 7 · 312g`. */
-export function shortStatus({ quest, readyAt, character, encounter, dungeon }: Status, now = Date.now()) {
+export function shortStatus({ quest, readyAt, rested, character, encounter, dungeon }: Status, now = Date.now()) {
   const tail = `Lv ${character.level} · ${character.gold}g`;
   if (encounter && minutesUntil(encounter.expiresAt, now) > 0) {
     return `⚠ ${encounter.name}! quest fight · ${minutesUntil(encounter.expiresAt, now)}m · ${tail}`;
@@ -32,7 +32,8 @@ export function shortStatus({ quest, readyAt, character, encounter, dungeon }: S
     return `⚔ Quest ${left > 0 ? `${left}m` : "done"} · ${progress(quest, now)} · ${tail}`;
   }
   const rest = minutesUntil(readyAt, now);
-  return rest > 0 ? `Resting ${rest}m · ${tail}` : `Quest ready · ${tail}`;
+  const bonus = rested ? ` · ${rested} rested` : "";
+  return rest > 0 ? `Resting ${rest}m${bonus} · ${tail}` : `Quest ready${bonus} · ${tail}`;
 }
 
 const RARITY_RGB: Record<string, [number, number, number]> = {

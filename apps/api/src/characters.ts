@@ -1,5 +1,5 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { BAG_LIMIT, SHARD_CHANCE, type Stats, item, itemName, marketValue, scrapValue } from "@dnd/shared";
+import { BAG_LIMIT, type Rarity, SHARD_CHANCE, type Stats, item, itemName, marketValue, rarityIndex, scrapValue } from "@dnd/shared";
 import { requireUser } from "./auth.ts";
 import type { Item, Prisma, PrismaClient } from "./generated/prisma/client.ts";
 
@@ -51,16 +51,21 @@ export async function bagFull(tx: Prisma.TransactionClient, characterId: number)
   return (await itemCount(tx, characterId)) >= BAG_LIMIT;
 }
 
-/** Creates loot for a character. With a full bag it is scrapped at once and paid out in gold, so nothing is lost. */
+/**
+ * Creates loot for a character. With a full bag, or below the character's auto-scrap rarity, it is scrapped at once
+ * and paid out in gold, so nothing is lost.
+ */
 export async function giveLoot(tx: Prisma.TransactionClient, characterId: number, key: string, stats: Stats) {
   const full = await bagFull(tx, characterId);
-  const loot = await tx.item.create({ data: { characterId, key, ...stats, scrappedAt: full ? new Date() : null } });
-  if (full) await tx.character.update({ where: { id: characterId }, data: { gold: { increment: scrapValue(key, stats) } } });
+  const { autoScrap } = await tx.character.findUniqueOrThrow({ where: { id: characterId }, select: { autoScrap: true } });
+  const scrap = full || (!!autoScrap && rarityIndex(item(key).rarity) < rarityIndex(autoScrap as Rarity));
+  const loot = await tx.item.create({ data: { characterId, key, ...stats, scrappedAt: scrap ? new Date() : null } });
+  if (scrap) await tx.character.update({ where: { id: characterId }, data: { gold: { increment: scrapValue(key, stats) } } });
   return loot;
 }
 
-/** " Your bag was full, so it was scrapped for 12 gold." for loot scrapped on arrival. */
-export const scrappedNote = (loot: Item) => (loot.scrappedAt ? ` Your bag was full, so it was scrapped for ${scrapValue(loot.key, loot)} gold.` : "");
+/** " It was scrapped for 12 gold." for loot scrapped on arrival. */
+export const scrappedNote = (loot: Item) => (loot.scrappedAt ? ` It was scrapped for ${scrapValue(loot.key, loot)} gold.` : "");
 
 /** Rolls the boss shard for one player: SHARD_CHANCE to get one, its rarity from `rollKey` like the boss loot. Returns the rarity or null. */
 export async function giveShard(tx: Prisma.TransactionClient, characterId: number, rollKey: () => string, random: () => number) {

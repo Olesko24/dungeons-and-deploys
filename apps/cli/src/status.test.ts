@@ -12,6 +12,8 @@ test("short status", () => {
   assert.equal(shortStatus({ quest: { ...quest, endsAt: at(-1) }, readyAt: at(14), character }, now), "⚔ Quest done · ■■■■■■■■■ · Lv 7 · 312g");
   assert.equal(shortStatus({ quest: { ...quest, resolved: true }, readyAt: at(7), character }, now), "Resting 7m · Lv 7 · 312g");
   assert.equal(shortStatus({ quest: null, readyAt: at(0), character }, now), "Quest ready · Lv 7 · 312g");
+  assert.equal(shortStatus({ quest: null, readyAt: at(0), rested: 3, character }, now), "Quest ready · 3 rested · Lv 7 · 312g");
+  assert.equal(shortStatus({ quest: { ...quest, resolved: true }, readyAt: at(7), rested: 1, character }, now), "Resting 7m · 1 rested · Lv 7 · 312g");
   const dungeon = { code: "K7Q2PA", state: "running", startsAt: at(-20), cleared: 1, stageEndsAt: at(10) };
   assert.equal(shortStatus({ quest, readyAt: at(38), character, dungeon }, now), "Dungeon 2/4 · 10m · Lv 7 · 312g");
   const encounter = { name: "Bug Swarm", expiresAt: at(4), winChance: 0.6 };

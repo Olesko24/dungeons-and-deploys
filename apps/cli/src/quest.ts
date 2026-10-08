@@ -114,7 +114,7 @@ async function heartbeat(send: boolean) {
 type Loot = { name: string; rarity: string; scrapped?: boolean; scrap?: number };
 type QuestResult = { name: string; story: string | null; success: boolean | null; xp: number; gold: number; loot: Loot | null; rested?: boolean };
 
-const lootText = (l: Loot) => `${rarityColor(l.name, l.rarity)} (${l.rarity})${l.scrapped ? `, bag full, scrapped for ${l.scrap}g` : ""}`;
+const lootText = (l: Loot) => `${rarityColor(l.name, l.rarity)} (${l.rarity})${l.scrapped ? `, scrapped for ${l.scrap}g` : ""}`;
 
 function questResult(q: QuestResult) {
   const loot = q.loot ? ` · Found: ${lootText(q.loot)}` : "";
@@ -227,7 +227,7 @@ async function market([action, arg, price]: string[], filter: { rarity?: string;
     ...(filter.slot && { type: filter.slot }),
     ...(filter.show && SHOW[filter.show]),
   });
-  const res = await authed(`/market?${query}`);
+  const [res, prices] = await Promise.all([authed(`/market?${query}`), authed("/market/prices")]);
   fail(res);
   const listings = res.data.listings as Listing[];
   console.log(`Market · ${res.data.gold}g · ${listings.length} listing${listings.length === 1 ? "" : "s"}`);
@@ -238,6 +238,10 @@ async function market([action, arg, price]: string[], filter: { rarity?: string;
       `  ${`#${l.item.id}`.padEnd(7)}${rarityColor(l.item.name.padEnd(40), l.item.rarity)}${statsText(l.item.stats).padEnd(28)}` +
         `${String(l.price).padStart(6)}g ${TAGS[l.tag].padEnd(10)} ${phase}${who}`,
     );
+  }
+  const averages = Object.entries(prices.data as Record<string, { price: number; sales: number }>);
+  if (averages.length) {
+    console.log(`\nSold in 7 days · ${averages.map(([rarity, a]) => `${rarityColor(rarity, rarity)} ~${a.price}g (${a.sales})`).join(" · ")}`);
   }
   console.log("\nquest market buy|leave <#id> · quest market sell <#id> [price] · quest market unlist <#id>");
   console.log("Filters: --rarity epic · --slot ring · --show line|buy|mine · --sort price");
@@ -437,7 +441,15 @@ async function inventory() {
   console.log(inventoryLines(data.items as InventoryItem[], data.bonus, rarityColor, data.limit).join("\n"));
   const shards = Object.entries(data.shards as Record<string, number>);
   if (shards.length) console.log(`\nShards · ${shards.map(([rarity, count]) => `${count}× ${rarityColor(rarity, rarity)}`).join(" · ")}`);
+  if (data.autoScrap) console.log(`\nAuto-scrap · loot below ${rarityColor(data.autoScrap, data.autoScrap)} is scrapped on arrival`);
   console.log("\nquest equip <#id> · quest scrap <#id> · quest upgrade <#id> <#id> <#id> · quest forge <rarity> · quest market sell <#id> [price]");
+}
+
+async function autoScrap(rarity: string | undefined) {
+  if (!rarity) throw new Error("Usage: quest autoscrap <rarity>|off");
+  const res = await authed("/inventory/auto-scrap", "POST", { rarity: rarity === "off" ? null : rarity });
+  fail(res);
+  console.log(res.data.autoScrap ? `Loot below ${rarityColor(res.data.autoScrap, res.data.autoScrap)} is scrapped on arrival.` : "Auto-scrap is off, all loot goes to your bag.");
 }
 
 async function upgrade(ids: string[]) {
@@ -493,6 +505,7 @@ const USAGE = `Usage: quest [command]
   quest scrap <#id>                              destroy a bag item for a quarter of its value
   quest upgrade <#id> <#id> <#id>                fuse 3 items of one rarity into a random one of the next
   quest forge <rarity>                           turn a shard into a random item of its rarity
+  quest autoscrap <rarity>|off                   scrap loot below a rarity on arrival
   quest fight                                    fight a monster that showed up
   quest market [--rarity r] [--slot s]           every listing, --show line|buy|mine, --sort price
   quest market buy|leave <#id>                   join a line or buy at once, leave a line
@@ -590,6 +603,9 @@ try {
       break;
     case "upgrade":
       await upgrade(positionals.slice(1));
+      break;
+    case "autoscrap":
+      await autoScrap(positionals[1]);
       break;
     case "forge":
       await forge(positionals[1]);

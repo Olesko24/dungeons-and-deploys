@@ -24,6 +24,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). New
 
 ### Added
 
+- Auto-scrap: loot below a rarity you pick is scrapped on arrival and paid out in gold. Set it above your bag on
+  the website or with `quest autoscrap <rarity>|off`.
+- The market shows the average sale price per rarity over the last 7 days, in `quest market` and when you sell
+  on the website.
+- The status line shows your rested quests while you rest or your quest is ready.
 - Rested quests: every 45 minutes without a quest earn one, up to 6. A rested quest gives 50% more XP and gold,
   so a night's sleep catches up a little. Status and the website show how many you have.
 - Upgrade items: fuse 3 bag items of one rarity into a random item of the next rarity with the **Upgrade**

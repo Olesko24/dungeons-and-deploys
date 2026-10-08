@@ -72,6 +72,8 @@ model Character {
   bestQuestStreak Int          @default(0) @map("best_quest_streak")
   /// Quests with extra XP and gold, earned by idle time. Unspent idle time since the last quest is added when it is read.
   restedQuests Int             @default(0) @map("rested_quests")
+  /// Loot below this rarity is scrapped on arrival. Null keeps everything.
+  autoScrap    String?         @map("auto_scrap")
   quests       Quest[]
   items        Item[]
   shards       Shard[]
@@ -184,6 +186,7 @@ model MarketDraw {
 
   @@index([buyerId, createdAt])
   @@index([sellerId])
+  @@index([createdAt])
   @@map("market_draws")
 }
 

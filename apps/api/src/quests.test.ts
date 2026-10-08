@@ -166,6 +166,20 @@ test("scrapping pays gold, a full bag scraps new loot and refuses purchases", as
   assert.equal((await p.call("POST", `/market/buy/${offer.id}`)).json().error, "your bag is full (50 items), scrap something first");
 });
 
+test("loot below the auto-scrap rarity is scrapped on arrival", async () => {
+  at(0);
+  dice = 0;
+  const p = await player("tidy");
+  assert.equal((await p.call("POST", "/inventory/auto-scrap", { rarity: "common" })).statusCode, 400, "nothing is below common");
+  assert.deepEqual((await p.call("POST", "/inventory/auto-scrap", { rarity: "uncommon" })).json(), { autoScrap: "uncommon" });
+  const quest = (await p.call("POST", "/quests")).json();
+  assert.deepEqual([quest.loot.name, quest.loot.scrapped], ["Leather Cap", true]);
+  assert.equal((await p.character()).gold, 14 + 3, "quest gold and the scrapped cap");
+  assert.equal((await p.call("GET", "/inventory")).json().items.length, 0);
+  assert.equal((await p.call("POST", "/inventory/auto-scrap", { rarity: null })).statusCode, 200);
+  assert.equal((await p.call("GET", "/inventory")).json().autoScrap, null);
+});
+
 test("three items of a rarity fuse into one of the next, shards forge items", async () => {
   dice = 0;
   const p = await player("smith");

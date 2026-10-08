@@ -249,7 +249,7 @@ function TabTitle({ status }: { status: Status | null }) {
   return null;
 }
 
-const lootText = (i: Item) => (i.scrapped ? `${i.name} (bag full, scrapped for ${i.scrap} gold)` : i.name);
+const lootText = (i: Item) => (i.scrapped ? `${i.name} (scrapped for ${i.scrap} gold)` : i.name);
 
 function QuestStatus({ status, onChange }: { status: Status; onChange: () => void }) {
   const q = status.quest;
@@ -351,6 +351,8 @@ function questProgress(q: Quest) {
 function SellForm({ item, onDone, onCancel }: { item: Item; onDone: () => void; onCancel: () => void }) {
   const [price, setPrice] = useState(String(item.value));
   const [error, setError] = useState("");
+  const [recent, setRecent] = useState<{ price: number; sales: number }>();
+  useEffect(() => void api<Record<string, { price: number; sales: number }>>("/market/prices").then((p) => setRecent(p[item.rarity])), [item.rarity]);
   const amount = Number(price);
   const tag = amount > 0 ? priceTag(amount, item.value) : null;
   return (
@@ -366,7 +368,9 @@ function SellForm({ item, onDone, onCancel }: { item: Item; onDone: () => void; 
       {tag && <span className="dim">you get <Gold amount={sellerPayout(amount)} /> · <PriceTagLabel tag={tag} /></span>}
       <button type="submit" className="small">List</button>
       <button type="button" className="small ghost" onClick={onCancel}>Cancel</button>
-      <span className="dim">Suggested {item.value}g. Buyers line up for 30 minutes, then one is drawn.</span>
+      <span className="dim">
+        Suggested {item.value}g.{recent && ` ${item.rarity} sold for ${recent.price}g on average in 7 days (${recent.sales}×).`} Buyers line up for 30 minutes, then one is drawn.
+      </span>
       {error && <p className="error" role="alert">{error}</p>}
     </form>
   );
@@ -376,7 +380,7 @@ function PriceTagLabel({ tag }: { tag: PriceTag }) {
   return <span className={`tag ${tag}`}>{PRICE_TAGS[tag]}</span>;
 }
 
-function Inventory({ items, shards, onChange }: { items: Item[]; shards: Record<string, number>; onChange: () => void }) {
+function Inventory({ items, shards, autoScrap, onChange }: { items: Item[]; shards: Record<string, number>; autoScrap: string | null; onChange: () => void }) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [selling, setSelling] = useState<number | null>(null);
@@ -427,6 +431,13 @@ function Inventory({ items, shards, onChange }: { items: Item[]; shards: Record<
       <section className="panel">
         <h2><UiIcon name="bag" />Bag · {bag.length} <span className="dim">· {items.length} of {BAG_LIMIT} items</span></h2>
         {items.length >= BAG_LIMIT && <p className="alert">Your bag is full. New loot is scrapped for gold until you scrap or sell something.</p>}
+        <label className="dim">
+          Auto-scrap loot below{" "}
+          <select value={autoScrap ?? ""} onChange={(e) => api("/inventory/auto-scrap", { rarity: e.target.value || null }).then(onChange, (err: Error) => setError(err.message))}>
+            <option value="">off</option>
+            {RARITIES.slice(1).map((r) => <option key={r} value={r}>{r}</option>)}
+          </select>
+        </label>
         {bag.length === 0 && <p className="dim">Empty. Successful quests and won fights drop items.</p>}
         {message && <p role="status">{message}</p>}
         {Object.keys(shards).length > 0 && (
@@ -1032,7 +1043,7 @@ function RanksView() {
 
 type View = "character" | "talents" | "shop" | "market" | "stats" | "ranks" | "ideas" | DocName;
 
-type Data = { character: Character; status: Status; items: Item[]; shards: Record<string, number>; history: Quest[]; guild: Guild | null; raids: Raids };
+type Data = { character: Character; status: Status; items: Item[]; shards: Record<string, number>; autoScrap: string | null; history: Quest[]; guild: Guild | null; raids: Raids };
 
 const questReady = (s: Status) => !s.quest || (s.quest.resolved && !minutesUntil(s.readyAt));
 
@@ -1088,10 +1099,10 @@ export function App() {
         full || !prev || Date.now() - lastFull.current > 5 * 60_000 ||
         prev.character.xp !== character.xp || prev.character.gold !== character.gold || prev.character.unread !== character.unread ||
         prev.status.quest?.startedAt !== status.quest?.startedAt;
-      let rest = prev && { items: prev.items, shards: prev.shards, history: prev.history };
+      let rest = prev && { items: prev.items, shards: prev.shards, autoScrap: prev.autoScrap, history: prev.history };
       if (changed || !rest) {
-        const [inventory, history] = await Promise.all([api<{ items: Item[]; shards: Record<string, number> }>("/inventory"), api<Quest[]>("/quests/history")]);
-        rest = { items: inventory.items, shards: inventory.shards, history };
+        const [inventory, history] = await Promise.all([api<{ items: Item[]; shards: Record<string, number>; autoScrap: string | null }>("/inventory"), api<Quest[]>("/quests/history")]);
+        rest = { items: inventory.items, shards: inventory.shards, autoScrap: inventory.autoScrap, history };
         lastFull.current = Date.now();
       }
       const next = { character, status, raids: raid, guild: guild.guild, ...rest };
@@ -1211,7 +1222,7 @@ export function App() {
       {view === "character" && (
         <>
           <QuestStatus status={data.status} onChange={() => void load()} />
-          <Inventory items={data.items} shards={data.shards} onChange={() => void load()} />
+          <Inventory items={data.items} shards={data.shards} autoScrap={data.autoScrap} onChange={() => void load()} />
           {data.raids.raid && <RaidView raid={data.raids.raid} power={data.raids.power} me={c.name} onChange={() => void load()} />}
           <GuildHall guild={data.guild} raids={data.raids} me={c.name} onChange={() => void load()} />
           <History quests={data.history} />

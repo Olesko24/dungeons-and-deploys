@@ -92,8 +92,8 @@ After a quest there is a 45-minute rest before the next one.
 
 **Rested quests.** Every full 45 minutes after your quest is ready without starting the next one earns a rested
 quest, up to **6**. A rested quest gives **50% more XP and gold**, loot stays the same. After a night's sleep the
-next six quests are rested, which makes up for some of the quests you missed. `quest status` and the website show
-how many you have.
+next six quests are rested, which makes up for some of the quests you missed. `quest status`, the status line and
+the website show how many you have.
 
 ```sh
 quest status            # last result and when the next quest is ready
@@ -262,11 +262,14 @@ There is no minimum level to equip anything.
 
 You can own **50 items**, equipped and listed ones included. Scrap items you do not need: an item is gone for good and pays a quarter of its value in gold. With a full bag, new loot from quests, fights, dungeons and raids is scrapped right away and paid out, so nothing is lost, and the shop and market refuse purchases until you make room. A market draw you already joined still delivers its item. On the website **Scrap** next to a bag item shows its gold and asks before it destroys the item.
 
+**Auto-scrap.** Pick a rarity and loot below it is scrapped on arrival and paid out the same way, for example everything below rare. Shop purchases, market buys, upgrades and forged items are never auto-scrapped. On the website pick the rarity above your bag.
+
 ```sh
 quest inv                         # equipped items and your bag
 quest equip <#id>                 # rings: --slot ring1 or ring2
 quest unequip <#id>
 quest scrap <#id>                 # destroy a bag item for a quarter of its value
+quest autoscrap rare              # scrap loot below rare on arrival, quest autoscrap off to stop
 ```
 
 ### Upgrading and shards
@@ -340,6 +343,8 @@ Players sell items to each other on the market. The seller picks the price, buye
 | Eternal | 5000 gold |
 
 **Price tags.** Every listing compares its price with the item's value: **Loot** below 85%, **Fair trade** up to 115%, **Rip-off** above.
+
+**Recent prices.** `quest market` and the sell form on the website show the average sale price per rarity over the last 7 days, with the number of sales.
 
 **Buying.** A new listing collects buyers for **30 minutes**. Joining the line takes the price from your gold right away, leaving the line before the draw gives it back. When the 30 minutes are over, one buyer is drawn at random and gets the item, everyone else gets their gold back. If nobody joined, the item stays on the market and the first player to buy it gets it at once. Your inbox tells you how a draw went.
 
@@ -485,6 +490,7 @@ Dungeons & Deploys has no email and no password. Your login token on your device
 | `quest equip <#id> [--slot ring1\|ring2]` | Equip an item |
 | `quest unequip <#id>` | Take an item off |
 | `quest scrap <#id>` | Destroy a bag item for gold |
+| `quest autoscrap <rarity>\|off` | Scrap loot below a rarity on arrival |
 | `quest upgrade <#id> <#id> <#id>` | Fuse 3 items of one rarity into one of the next |
 | `quest forge <rarity>` | Turn a shard into an item |
 | `quest fight` | Fight a monster that showed up |
