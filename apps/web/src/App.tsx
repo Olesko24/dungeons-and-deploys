@@ -48,6 +48,24 @@ function statParts(s: Stats) {
   ].filter(Boolean) as string[];
 }
 
+const STAT_NAMES = { attack: "Attack", defense: "Defense", luck: "Luck", fortune: "Fortune" } as const;
+const STAT_KEYS = Object.keys(STAT_NAMES) as (keyof Stats)[];
+const statValue = (s: Stats, key: keyof Stats) => (key === "luck" ? `+${s.luck}` : key === "fortune" ? `+${s.fortune}%` : String(s[key]));
+
+/** The non-zero stats of an item, each with its icon. */
+function StatList({ stats }: { stats: Stats }) {
+  return (
+    <span className="stat-list">
+      {STAT_KEYS.filter((k) => stats[k]).map((k) => (
+        <span key={k} className="stat" title={STAT_NAMES[k]}>
+          <img className="icon" src={`/ui/${k}.svg`} alt={STAT_NAMES[k]} width={16} height={16} />
+          {statValue(stats, k)}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 /**
  * Your shown power against a recommendation: green at 100%, yellow from `warn`, red below.
  * Raids pass a higher `warn`, because their odds fall much faster below the recommendation.
@@ -310,6 +328,7 @@ function Inventory({ items, onChange }: { items: Item[]; onChange: () => void })
                     <ItemIcon item={item} />
                   </button>
                 ) : <span className="slot-empty" />}
+                {item && <StatList stats={item.stats} />}
               </div>
             );
           })}
@@ -324,7 +343,7 @@ function Inventory({ items, onChange }: { items: Item[]; onChange: () => void })
               <ItemIcon item={item} />
               <div className="item-text">
                 <span className="name">{item.name}</span>
-                <span className="dim"><Rarity rarity={item.rarity} /> · {statParts(item.stats).join(" · ")}{item.listed ? " · on market" : ""}</span>
+                <span className="dim"><Rarity rarity={item.rarity} /> · <StatList stats={item.stats} />{item.listed ? " · on market" : ""}</span>
               </div>
               <span className="item-actions">
                 {!item.listed && <button type="button" className="small" onClick={() => act(`/inventory/${item.id}/equip`)}>Equip</button>}
@@ -570,7 +589,7 @@ function ShopView({ onChange }: { onChange: () => void }) {
             <img className="icon" src={`/items/${o.key}.svg`} alt="" width={64} height={64} />
             <span className="name">{o.name}</span>
             <span className="dim"><Rarity rarity={o.rarity} /> · <Gold amount={o.price} /></span>
-            <span className="dim">{statParts(o.stats).join(" · ")}</span>
+            <StatList stats={o.stats} />
             <button type="button" className="small" disabled={o.bought || o.locked || shop.gold < o.price} onClick={() => buy(o.offer)}>
               {o.bought ? "Bought" : o.locked ? `Lv ${o.unlockLevel}` : "Buy"}
             </button>
@@ -854,7 +873,19 @@ export function App() {
         <img src="/icon.svg" alt="" width={64} height={64} className="icon" />
         <div className="hero-text">
           <h1>{c.name}</h1>
-          <p>Lv {c.level} · <span className="power" title="Combat power from level, equipment, talents and guild buffs">⚔ {c.power}</span> · <Gold amount={c.gold} /> · {statParts(c).join(" · ") || "no equipment yet"}</p>
+          <dl className="stats hero-stats">
+            {[
+              { icon: "star", label: "Level", value: c.level },
+              { icon: "power", label: "Power", value: c.power, title: "Combat power from level, equipment, talents and guild buffs" },
+              { icon: "gold", label: "Gold", value: c.gold },
+              ...STAT_KEYS.map((k) => ({ icon: k, label: STAT_NAMES[k], value: statValue(c, k) })),
+            ].map(({ icon, label, value, title }: { icon: string; label: string; value: string | number; title?: string }) => (
+              <div key={label} title={title}>
+                <dt><img className="icon" src={`/ui/${icon}.svg`} alt="" width={16} height={16} />{label}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
           <Bar filled={Math.floor((c.xpIntoLevel / c.xpForNext) * 10)} total={10} label={`${c.xpIntoLevel} of ${c.xpForNext} XP`} />
           <p className="dim">XP {c.xpIntoLevel}/{c.xpForNext}</p>
         </div>

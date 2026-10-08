@@ -216,6 +216,12 @@ h3.sub { margin: 4px 0 0; font: 10px/1.6 var(--display); color: var(--gold); tex
 .stats div { background: var(--panel-deep); padding: 8px 12px; display: grid; gap: 2px; }
 .stats dt { font: 8px/1.6 var(--display); color: var(--ink-dim); text-transform: uppercase; }
 .stats dd { margin: 0; font-size: 28px; color: var(--gold); font-variant-numeric: tabular-nums; }
+.hero-stats { grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr)); }
+.hero-stats dt { display: flex; align-items: center; gap: 4px; }
+.hero-stats dd { font-size: 22px; color: var(--ink); }
+.stat-list { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; vertical-align: middle; }
+.stat { display: inline-flex; align-items: center; gap: 4px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.slot .stat-list { justify-content: center; font-size: 18px; }
 
 .achievements { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr)); gap: 8px; }
 .achievements li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; background: var(--panel-deep); padding: 8px 12px; opacity: .55; }

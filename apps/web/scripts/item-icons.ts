@@ -277,3 +277,14 @@ for (const [key, t] of Object.entries(TALENTS)) {
   writeFileSync(new URL(`${key}.svg`, talents), svg(rows, TALENT_MATERIAL[t.icon] ?? TREE[t.tree]));
 }
 console.log(`Wrote ${Object.keys(TALENTS).length} talent icons to ${talents.pathname}`);
+
+// Stat icons reuse the sprites of the talents that raise the stat.
+const STAT_SPRITES: Record<string, [string[], Material]> = {
+  attack: [SPRITES.sword, TREE.offense],
+  defense: [SPRITES.shield, TREE.defense],
+  luck: [TALENT_SPRITES.clover, TREE.luck],
+  fortune: [TALENT_SPRITES.coins, GOLD],
+  power: [TALENT_SPRITES.lightning, GOLD],
+};
+for (const [name, [rows, material]] of Object.entries(STAT_SPRITES)) writeFileSync(new URL(`${name}.svg`, ui), svg(rows, material));
+console.log(`Wrote ${Object.keys(STAT_SPRITES).length} stat icons to ${ui.pathname}`);
