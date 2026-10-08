@@ -28,6 +28,15 @@ async function player(name: string) {
 }
 
 const at = (ms: number) => { clock = T0 + ms; };
+/** Achievements are checked after the response is sent, so their inbox entry can lag behind the request. */
+async function achievementNoted(name: string) {
+  for (let i = 0; i < 100; i++) {
+    if (await db.notification.count({ where: { kind: "achievement", character: { name } } })) return;
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  assert.fail(`no achievement noted for ${name}`);
+}
+
 const lastQuestId = async () => (await db.quest.findFirstOrThrow({ orderBy: { id: "desc" } })).id;
 
 test("a quest resolves at once and reports its rewards", async () => {
@@ -42,6 +51,7 @@ test("a quest resolves at once and reports its rewards", async () => {
     success: true, xp: 70, gold: 14, loot: "Leather Cap", rested: false, readyAt: new Date(T0 + COOLDOWN_MS).toISOString(),
   });
   assert.equal((await p.call("GET", "/quests/current")).json().quest.name, name);
+  await achievementNoted("hero");
   assert.deepEqual((await p.call("GET", "/character")).json(), {
     name: "hero", xp: 70, gold: 14, tour: "new", level: 1, xpIntoLevel: 70, xpForNext: 100, attack: 0, defense: 0, luck: 0, fortune: 0, power: 53, unread: 1, inbox: 1,
   });
