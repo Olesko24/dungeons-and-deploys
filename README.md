@@ -26,8 +26,8 @@ New here? Read the [player manual](docs/manual.md).
 |---|---|---|
 | Quest | 1 | `quest` or a button on the website, result at once, then 45 min cooldown. 75% success plus luck |
 | Random encounter | 1 | 2% chance per heartbeat (terminal, Claude Code or open website). Fight within 5 min |
-| Dungeon | 1–5 | Three stages and a boss, 15 min each. Difficulty and loot scale with party size |
-| Raid | 5+ | Guild only, scheduled by the leader. Ten bosses unlocked one by one, each needs more combat power and drops better loot |
+| Dungeon | 1–5 | Three stages and a boss, 15 min each. Difficulty and loot scale with party size, 30% chance for a boss shard |
+| Raid | 5+ | Guild only, scheduled by the leader. Ten bosses unlocked one by one, each needs more combat power and drops better loot, 30% chance for a shard |
 | Market | – | Sellers set the price, buyers line up for 30 min and one is drawn, or buy at once without a line |
 | Shop | – | Three new offers every day, each once per player |
 | Talents | – | One point per level up to 100, four trees of 8 talents with 36 ranks each, reset for 10 gold per point |
@@ -36,6 +36,8 @@ New here? Read the [player manual](docs/manual.md).
 
 Items drop in ten rarities and eleven equipment slots, with rolled stats and twelve weapon kinds.
 Higher levels raise the chance for better loot. All items: see `apps/web/public/items/`.
+A bag holds 50 items. Scrap items for a quarter of their value, with a full bag new loot is scrapped at once.
+Fuse 3 items of one rarity into a random item of the next, forge boss shards into a random item of their rarity.
 
 ### Heartbeats
 
@@ -61,7 +63,11 @@ quest pair                         # log in another device: quest login --pair <
 quest                              # start quest
 quest status
 quest char                         # character sheet
-quest inv / quest equip <item>
+quest inv                          # bag, equipment and shards
+quest equip <#id> / quest unequip <#id>
+quest scrap <#id>                  # destroy a bag item for gold
+quest upgrade <#id> <#id> <#id>    # fuse 3 items of one rarity into one of the next
+quest forge <rarity>               # turn a shard into an item
 quest fight                        # random encounter
 quest market                       # every listing, buy <#id>, sell <#id> [price]
 quest inbox                        # what happened while you were away
@@ -155,8 +161,10 @@ dungeons-and-deploys/
 A queue holds jobs that should run later or outside the request. Workers pick jobs up and execute them.
 
 - `quest.resolve` – legacy, only resolves quests started before quests resolved at once.
-- `raid.start` / `raid.tick` – scheduled by guild leaders, processes the shared boss fight.
+- `raid.tick` – scheduled by guild leaders, processes the shared boss fight.
 - `dungeon.stage` – advances a dungeon to the next stage.
+- `market.draw` – draws one buyer from the line once a listing's 30 min window is over.
+- `inbox.cleanup` – daily, deletes inbox entries older than 30 days.
 
 Why a queue instead of a timer in memory: jobs survive restarts, run exactly once across multiple API instances, and retry on failure.
 
