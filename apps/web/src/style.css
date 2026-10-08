@@ -256,3 +256,7 @@ tbody tr.you td { color: var(--gold); }
 @media (prefers-reduced-motion: reduce) {
   button:active { transform: none; }
 }
+
+.cooldown { display: grid; gap: 6px; flex: 1; min-width: min(100%, 16rem); }
+.countdown { margin: 0; }
+.countdown strong { font-size: 28px; color: var(--gold); font-variant-numeric: tabular-nums; font-weight: normal; }

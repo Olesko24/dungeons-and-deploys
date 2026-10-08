@@ -217,12 +217,44 @@ function TerminalPair({ onClose, onOpen }: { onClose: () => void; onOpen: (doc: 
   );
 }
 
+/** The current time, refreshed every second while `active`. */
+function useNow(active: boolean) {
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    if (!active) return;
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [active]);
+  return now;
+}
+
+const clock = (ms: number) => {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+};
+
+const cooling = (status: Status) => !!status.quest?.resolved && new Date(status.readyAt).getTime() > Date.now();
+
+/** Shows the rest in the tab title, so a background tab tells when the next quest is ready. */
+function TabTitle({ status }: { status: Status | null }) {
+  const now = useNow(!!status && cooling(status));
+  useEffect(() => {
+    const left = status?.quest?.resolved ? new Date(status.readyAt).getTime() - now : 0;
+    document.title = status ? `${left > 0 ? `⏳ ${clock(left)}` : "✓ Quest ready"} · Dungeons & Deploys` : "Dungeons & Deploys";
+  }, [status, now]);
+  return null;
+}
+
 function QuestStatus({ status, onChange }: { status: Status; onChange: () => void }) {
   const q = status.quest;
   const e = status.encounter;
   const [message, setMessage] = useState("");
   const [code, setCode] = useState("");
-  const ready = !q || (q.resolved && !minutesUntil(status.readyAt));
+  const now = useNow(cooling(status));
+  const left = new Date(status.readyAt).getTime() - now;
+  const ready = !q || (q.resolved && left <= 0);
+  const rest = q ? new Date(status.readyAt).getTime() - new Date(q.endsAt).getTime() : 0;
 
   async function act(path: string, describe: (data: never) => string, body: object = {}) {
     try {
@@ -247,6 +279,34 @@ function QuestStatus({ status, onChange }: { status: Status; onChange: () => voi
           <button type="button" className="small" onClick={() => act("/fight", fightResult)}>Fight</button>
         </div>
       )}
+      {q && !q.resolved && (
+        <>
+          <p>⚔ Quest running · {minutesUntil(q.endsAt) ? `${minutesUntil(q.endsAt)}m left` : "rolling the dice"}</p>
+          <Bar filled={questProgress(q)} total={9} label="Quest progress" />
+        </>
+      )}
+      {q?.resolved && !ready && (
+        <div className="row">
+          <div className="cooldown">
+            <p className="countdown">Next quest in <strong>{clock(left)}</strong></p>
+            <Bar filled={Math.floor((1 - left / rest) * 10)} total={10} label={`Resting, next quest in ${clock(left)}`} />
+          </div>
+          <button type="button" disabled>Start quest</button>
+        </div>
+      )}
+      {ready && (
+        <div className="row">
+          <p className="countdown"><strong>{q ? "Quest ready!" : "No quest yet."}</strong> The result comes at once, then 45 minutes rest.</p>
+          <button type="button" data-tour="quest" onClick={() => act("/quests", questResult)}>Start quest</button>
+        </div>
+      )}
+      {q?.resolved && (
+        <p>
+          Last quest: {q.name} · {q.success ? `✓ success · +${q.xp} XP · +${q.gold} gold` : `✗ failed · +${q.xp} XP`}
+          {q.loot && <> · found <span className={q.loot.rarity}><RarityIcon rarity={q.loot.rarity} />{q.loot.name}</span></>}
+        </p>
+      )}
+      {q?.story && <p className="dim">{q.story}</p>}
       {status.dungeon?.state === "lobby" && (
         <p>Dungeon <code>{status.dungeon.code}</code> starts in {minutesUntil(status.dungeon.startsAt)}m · party: {status.dungeon.members.join(", ")}</p>
       )}
@@ -265,26 +325,6 @@ function QuestStatus({ status, onChange }: { status: Status; onChange: () => voi
             <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Dungeon code" aria-label="Dungeon code" required />
             <button type="submit" className="small">Join</button>
           </form>
-        </div>
-      )}
-      {q && !q.resolved && (
-        <>
-          <p>⚔ Quest running · {minutesUntil(q.endsAt) ? `${minutesUntil(q.endsAt)}m left` : "rolling the dice"}</p>
-          <Bar filled={questProgress(q)} total={9} label="Quest progress" />
-        </>
-      )}
-      {q?.resolved && (
-        <p>
-          Last quest: {q.name} · {q.success ? `✓ success · +${q.xp} XP · +${q.gold} gold` : `✗ failed · +${q.xp} XP`}
-          {q.loot && <> · found <span className={q.loot.rarity}><RarityIcon rarity={q.loot.rarity} />{q.loot.name}</span></>}
-          {minutesUntil(status.readyAt) ? ` · next quest in ${minutesUntil(status.readyAt)}m` : ""}
-        </p>
-      )}
-      {q?.story && <p className="dim">{q.story}</p>}
-      {ready && (
-        <div className="row">
-          <p>{q ? "Ready for a new quest." : "No quest yet."} The result comes at once, then 45 minutes rest.</p>
-          <button type="button" data-tour="quest" onClick={() => act("/quests", questResult)}>Start quest</button>
         </div>
       )}
       {message && <p role="status" className="dim">{message}</p>}
@@ -893,7 +933,7 @@ export function App() {
       </main>
     );
   }
-  if (loggedOut) return <Login onDone={() => void load()} onOpen={setView} />;
+  if (loggedOut) return <><TabTitle status={null} /><Login onDone={() => void load()} onOpen={setView} /></>;
   if (!data) return <main className="loading">Loading…</main>;
 
   const c = data.character;
@@ -967,6 +1007,7 @@ export function App() {
         <button type="button" className="link" onClick={() => { setView("ideas"); window.scrollTo(0, 0); }}>Ideas &amp; voting</button>
       </footer>
       {touring && <Tour name={c.name} onView={setView} onEnd={endTour} />}
+      <TabTitle status={data.status} />
     </main>
   );
 }

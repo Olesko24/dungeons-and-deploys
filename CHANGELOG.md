@@ -17,6 +17,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). New
 
 ### Added
 
+- A live countdown to the next quest at the top of the status, with a rest bar and the start button waiting
+  next to it. The browser tab title shows the countdown too.
 - Short alert sounds on the website when a quest is ready, a monster shows up, or a dungeon or raid starts
   and ends. **Sound on** at the top mutes them.
 - Stats with icons on the website: the character header shows level, power, gold and every stat as tiles, and
