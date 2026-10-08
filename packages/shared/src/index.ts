@@ -5,6 +5,8 @@ export const COOLDOWN_MS = 45 * 60 * 1000;
 export const QUEST_BASE_CHANCE = 0.75;
 /** Rarity rolls for quest loot, the best one counts. */
 export const QUEST_LOOT_ROLLS = 2;
+/** Successful quests in a row without loot, after which the next successful quest always drops one. */
+export const QUEST_LOOT_PITY = 3;
 
 /** XP needed to go from `level` to `level + 1`. */
 export const xpToNext = (level: number) => Math.round(100 * level ** 1.5);

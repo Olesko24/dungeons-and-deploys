@@ -106,6 +106,18 @@ test("loot lands in the inventory and equipment raises the odds", async () => {
   assert.equal((await p.call("POST", "/quests")).json().success, true);
 });
 
+test("after three successful quests without loot the next one drops an item", async () => {
+  // 0.5 succeeds (75%) but misses the 40% drop chance.
+  dice = 0.5;
+  const p = await player("dry");
+  const loot = [];
+  for (let i = 0; i < 5; i++) {
+    at(i * COOLDOWN_MS);
+    loot.push(!!(await p.call("POST", "/quests")).json().loot);
+  }
+  assert.deepEqual(loot, [false, false, false, true, false]);
+});
+
 test("equip and unequip", async () => {
   const p = await player("knight");
   const { id: characterId } = await p.character();

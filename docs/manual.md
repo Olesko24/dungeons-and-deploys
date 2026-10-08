@@ -84,7 +84,8 @@ Start a quest with `quest` or the **Start quest** button on the website. The dic
 - 75% success chance, plus your **Luck**, at most 95%
 - Success: 70 XP and 14–19 gold. **Fortune** adds percent to that gold
 - Failure: 10 XP
-- A successful quest has a 40% chance to drop an item, with two rarity rolls (the better one counts)
+- A successful quest has a 40% chance to drop an item, with two rarity rolls (the better one counts). After three
+  successful quests without loot, the next successful quest always drops one.
 
 After a quest there is a 45-minute rest before the next one.
 

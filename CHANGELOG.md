@@ -23,6 +23,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Every rarity has its own symbol on the website, and the shop shows a rarity legend.
 - Ideas: suggest features for the game and upvote the ones you want, linked at the bottom of the website.
 - Found, join and leave a guild from the guild hall on the website.
+- Bad luck protection: after three successful quests without loot, the next successful quest always drops an
+  item.
 - Dungeons, market and raids on the website: start or join a dungeon, sell and draw items on the market, and
   schedule or join a raid, without the terminal.
 - Talents: one point per level in four trees (offense, defense, luck, general) of 8 talents each, with rows that

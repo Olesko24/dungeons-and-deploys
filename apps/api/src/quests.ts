@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import {
   COOLDOWN_MS,
+  QUEST_LOOT_PITY,
   QUEST_LOOT_ROLLS,
   type Talents,
   equipmentBonus,
@@ -141,7 +142,16 @@ async function grantQuest(tx: Prisma.TransactionClient, questId: number, random:
   const bonus = playerBonus(character.items, character.talents as Talents, await guildBuffs(tx, character.id, t));
   const outcome = questOutcome(random, bonus.gear.luck + bonus.questLuck, bonus.gear.fortune + bonus.questGold);
   outcome.xp = withBonus(outcome.success ? outcome.xp : outcome.xp + bonus.failXp, bonus.xp + bonus.questXp);
-  const loot = outcome.success ? rollLoot(levelFromXp(character.xp).level, QUEST_LOOT_ROLLS, random, bonus) : null;
+  const recent = await tx.quest.findMany({
+    where: { characterId: character.id, success: true, id: { not: questId } },
+    orderBy: { resolvedAt: "desc" },
+    take: QUEST_LOOT_PITY,
+    select: { lootItemId: true },
+  });
+  const dry = recent.length === QUEST_LOOT_PITY && recent.every((q) => !q.lootItemId);
+  const loot = outcome.success
+    ? rollLoot(levelFromXp(character.xp).level, QUEST_LOOT_ROLLS, random, dry ? { ...bonus, drop: 100 } : bonus)
+    : null;
 
   const updated = await tx.quest.updateMany({ where: { id: questId, resolvedAt: null }, data: { ...outcome, resolvedAt: t } });
   if (updated.count === 0) return null;
