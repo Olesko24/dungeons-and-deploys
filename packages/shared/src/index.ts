@@ -7,6 +7,13 @@ export const QUEST_BASE_CHANCE = 0.75;
 export const QUEST_LOOT_ROLLS = 2;
 /** Successful quests in a row without loot, after which the next successful quest always drops one. */
 export const QUEST_LOOT_PITY = 3;
+/** Every full cooldown that passes without a quest earns one rested quest, up to this many. */
+export const RESTED_MAX = 6;
+/** Extra XP and gold in percent on a rested quest. */
+export const RESTED_BONUS = 50;
+
+/** Rested quests after idling `idleMs` past the ready time, on top of the `stored` ones. */
+export const restedQuests = (stored: number, idleMs: number) => Math.min(RESTED_MAX, stored + Math.max(0, Math.floor(idleMs / COOLDOWN_MS)));
 
 /** XP needed to go from `level` to `level + 1`. */
 export const xpToNext = (level: number) => Math.round(100 * level ** 1.5);

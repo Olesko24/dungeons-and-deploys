@@ -1,6 +1,7 @@
 export type Status = {
   quest: { startedAt: string; endsAt: string; resolved: boolean } | null;
   readyAt: string;
+  rested?: number;
   character: { name: string; level: number; gold: number };
   encounter?: { name: string; expiresAt: string; winChance: number } | null;
   dungeon?: { code: string; state: string; startsAt: string; cleared: number; stageEndsAt: string | null } | null;

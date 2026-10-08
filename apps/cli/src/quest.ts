@@ -112,13 +112,14 @@ async function heartbeat(send: boolean) {
 }
 
 type Loot = { name: string; rarity: string; scrapped?: boolean; scrap?: number };
-type QuestResult = { name: string; story: string | null; success: boolean | null; xp: number; gold: number; loot: Loot | null };
+type QuestResult = { name: string; story: string | null; success: boolean | null; xp: number; gold: number; loot: Loot | null; rested?: boolean };
 
 const lootText = (l: Loot) => `${rarityColor(l.name, l.rarity)} (${l.rarity})${l.scrapped ? `, bag full, scrapped for ${l.scrap}g` : ""}`;
 
 function questResult(q: QuestResult) {
   const loot = q.loot ? ` · Found: ${lootText(q.loot)}` : "";
-  return `${q.name}: ${q.success ? `✓ Success · +${q.xp} XP · +${q.gold} gold${loot}` : `✗ Failed · +${q.xp} XP`}`;
+  const rested = q.rested ? " · rested +50%" : "";
+  return `${q.name}: ${q.success ? `✓ Success · +${q.xp} XP · +${q.gold} gold${rested}${loot}` : `✗ Failed · +${q.xp} XP${rested}`}`;
 }
 
 async function startQuest() {
@@ -154,6 +155,7 @@ async function status() {
   console.log(`Last quest: ${questResult(q)}`);
   if (q.story) console.log(`  ${q.story}`);
   console.log(ready > 0 ? `Next quest in ${ready}m.` : "Ready for a new quest: quest");
+  if (data.rested) console.log(`Rested: the next ${data.rested} quests give +50% XP and gold.`);
 }
 
 async function fightMonster() {

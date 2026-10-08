@@ -24,6 +24,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). New
 
 ### Added
 
+- Rested quests: every 45 minutes without a quest earn one, up to 6. A rested quest gives 50% more XP and gold,
+  so a night's sleep catches up a little. Status and the website show how many you have.
 - Upgrade items: fuse 3 bag items of one rarity into a random item of the next rarity with the **Upgrade**
   button or `quest upgrade <#id> <#id> <#id>`.
 - Shards: dungeon and raid bosses have a 30% chance to drop a shard on top of their loot. Forge it into a random

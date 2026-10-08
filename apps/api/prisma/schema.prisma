@@ -70,6 +70,8 @@ model Character {
   /// Successful quests in a row right now and the best run ever, kept by every resolved quest for the statistics.
   questStreak     Int          @default(0) @map("quest_streak")
   bestQuestStreak Int          @default(0) @map("best_quest_streak")
+  /// Quests with extra XP and gold, earned by idle time. Unspent idle time since the last quest is added when it is read.
+  restedQuests Int             @default(0) @map("rested_quests")
   quests       Quest[]
   items        Item[]
   shards       Shard[]

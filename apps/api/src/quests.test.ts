@@ -39,7 +39,7 @@ test("a quest resolves at once and reports its rewards", async () => {
   const { name, story, ...result } = start.json();
   assert.ok(name && story);
   assert.deepEqual({ ...result, loot: result.loot.name }, {
-    success: true, xp: 70, gold: 14, loot: "Leather Cap", readyAt: new Date(T0 + COOLDOWN_MS).toISOString(),
+    success: true, xp: 70, gold: 14, loot: "Leather Cap", rested: false, readyAt: new Date(T0 + COOLDOWN_MS).toISOString(),
   });
   assert.equal((await p.call("GET", "/quests/current")).json().quest.name, name);
   assert.deepEqual((await p.call("GET", "/character")).json(), {
@@ -192,6 +192,20 @@ test("three items of a rarity fuse into one of the next, shards forge items", as
   assert.equal((await p.call("POST", "/inventory/shards/mythic/forge")).json().item.rarity, "mythic");
   assert.deepEqual((await p.call("GET", "/inventory")).json().shards, {}, "used up");
   assert.equal((await p.call("POST", "/inventory/shards/shiny/forge")).statusCode, 404);
+});
+
+test("idle time earns rested quests with extra XP and gold", async () => {
+  at(0);
+  dice = 0;
+  const p = await player("sleeper");
+  await p.call("POST", "/quests");
+  at(11 * COOLDOWN_MS);
+  assert.equal((await p.call("GET", "/quests/current")).json().rested, 6, "ten missed quests, capped at six");
+  const q = (await p.call("POST", "/quests")).json();
+  assert.deepEqual([q.rested, q.xp, q.gold], [true, 105, 21], "+50% on 70 XP and 14 gold");
+  assert.equal((await p.call("GET", "/quests/current")).json().rested, 5);
+  at(12 * COOLDOWN_MS + COOLDOWN_MS / 2);
+  assert.equal((await p.call("GET", "/quests/current")).json().rested, 5, "half a missed quest earns nothing");
 });
 
 test("quest routes need a token", async () => {

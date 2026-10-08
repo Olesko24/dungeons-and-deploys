@@ -1,4 +1,4 @@
-import { BAG_LIMIT, MARKET_MAX_PRICE, PRICE_TAGS, type PriceTag, RARITIES, type Rarity as RarityName, UPGRADE_COST, priceTag, sellerPayout } from "@dnd/shared";
+import { BAG_LIMIT, MARKET_MAX_PRICE, PRICE_TAGS, type PriceTag, RARITIES, RESTED_BONUS, type Rarity as RarityName, UPGRADE_COST, priceTag, sellerPayout } from "@dnd/shared";
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import {
   type Achievement,
@@ -269,8 +269,10 @@ function QuestStatus({ status, onChange }: { status: Status; onChange: () => voi
     }
     onChange();
   }
-  const questResult = (r: Quest & { readyAt: string }) =>
-    `${r.name}: ${r.success ? `✓ success · +${r.xp} XP · +${r.gold} gold${r.loot ? ` · found ${lootText(r.loot)}` : ""}` : `✗ failed · +${r.xp} XP`}`;
+  const questResult = (r: Quest & { readyAt: string; rested: boolean }) => {
+    const rested = r.rested ? ` · rested +${RESTED_BONUS}%` : "";
+    return `${r.name}: ${r.success ? `✓ success · +${r.xp} XP · +${r.gold} gold${rested}${r.loot ? ` · found ${lootText(r.loot)}` : ""}` : `✗ failed · +${r.xp} XP${rested}`}`;
+  };
   const fightResult = (f: { won: boolean; story: string; xp: number; gold: number; loot: Item | null }) =>
     `${f.won ? `Victory · +${f.xp} XP · +${f.gold} gold${f.loot ? ` · found ${lootText(f.loot)}` : ""}` : "Defeated. It got away, nothing lost."} ${f.story}`;
   const dungeonResult = (d: { code: string }) => `In dungeon ${d.code}. Share the code, others can join until it starts.`;
@@ -305,6 +307,7 @@ function QuestStatus({ status, onChange }: { status: Status; onChange: () => voi
           <button type="button" data-tour="quest" onClick={() => act("/quests", questResult)}>Start quest</button>
         </div>
       )}
+      {status.rested > 0 && <p>Rested: the next {status.rested} quests give +{RESTED_BONUS}% XP and gold.</p>}
       {q?.resolved && (
         <p>
           Last quest: {q.name} · {q.success ? `✓ success · +${q.xp} XP · +${q.gold} gold` : `✗ failed · +${q.xp} XP`}

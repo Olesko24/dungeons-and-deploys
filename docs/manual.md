@@ -90,6 +90,11 @@ Start a quest with `quest` or the **Start quest** button on the website. The dic
 
 After a quest there is a 45-minute rest before the next one.
 
+**Rested quests.** Every full 45 minutes after your quest is ready without starting the next one earns a rested
+quest, up to **6**. A rested quest gives **50% more XP and gold**, loot stays the same. After a night's sleep the
+next six quests are rested, which makes up for some of the quests you missed. `quest status` and the website show
+how many you have.
+
 ```sh
 quest status            # last result and when the next quest is ready
 quest status --short    # the one-line status used by status lines, no network
@@ -255,7 +260,7 @@ There is no minimum level to equip anything.
 
 ### Bag limit and scrapping
 
-You can own **50 items**, equipped and listed ones included. Scrap items you do not need: an item is gone for good and pays a quarter of its value in gold. With a full bag, new loot from quests, fights, dungeons and raids is scrapped right away and paid out, so nothing is lost, and the shop and market refuse purchases until you make room. A market draw you already joined still delivers its item.
+You can own **50 items**, equipped and listed ones included. Scrap items you do not need: an item is gone for good and pays a quarter of its value in gold. With a full bag, new loot from quests, fights, dungeons and raids is scrapped right away and paid out, so nothing is lost, and the shop and market refuse purchases until you make room. A market draw you already joined still delivers its item. On the website **Scrap** next to a bag item shows its gold and asks before it destroys the item.
 
 ```sh
 quest inv                         # equipped items and your bag
@@ -268,7 +273,7 @@ quest scrap <#id>                 # destroy a bag item for a quarter of its valu
 
 Fuse **3 bag items of the same rarity** into one random item of the next rarity, with freshly rolled stats. Equipped and listed items cannot be fused, eternal items are already the highest rarity. On the website pick three items with **Upgrade** in your bag.
 
-Dungeon and raid bosses have a **30% chance** per player to drop a shard on top of their loot. A shard rolls its rarity like the boss loot. Forge it into a random item of that rarity whenever you have room in your bag. Shards stack and do not count against the bag limit.
+Dungeon and raid bosses have a **30% chance** per player to drop a shard on top of their loot. A shard rolls its rarity like the boss loot. Forge it into a random item of that rarity whenever you have room in your bag. Shards stack and do not count against the bag limit. On the website they show above your bag, each with a **Forge** button.
 
 ```sh
 quest upgrade <#id> <#id> <#id>   # 3 items of one rarity → 1 random item of the next
@@ -351,7 +356,7 @@ quest market unlist <#id>
 
 ## Inbox
 
-The inbox collects what happened to you, also while you were away: market sales and draws, dungeon and raid results with their rewards and level-ups, scheduled raids, guild members joining and leaving, buffs your leader bought and achievements. The website shows the number of new entries on **Inbox** at the top, `quest char` mentions them too.
+The inbox collects what happened to you, also while you were away: market sales and draws, dungeon and raid results with their rewards and level-ups, scheduled raids, guild members joining and leaving, buffs your leader bought and achievements. On the website **Inbox** at the top shows how many entries there are and lights up while some are new. It opens the inbox over the page. `quest char` mentions new entries too.
 
 Delete single entries or clear the whole inbox, deleted entries are gone for good. Entries older than 30 days are deleted automatically.
 

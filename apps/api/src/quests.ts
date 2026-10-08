@@ -3,6 +3,7 @@ import {
   COOLDOWN_MS,
   QUEST_LOOT_PITY,
   QUEST_LOOT_ROLLS,
+  RESTED_BONUS,
   type Talents,
   equipmentBonus,
   guildShare,
@@ -12,6 +13,7 @@ import {
   questName,
   questOutcome,
   questStory,
+  restedQuests,
   rollLoot,
   rollStats,
   talentBonus,
@@ -55,9 +57,17 @@ export function questRoutes(app: FastifyInstance, { db, now, random }: Required<
       if (last && last.endsAt.getTime() + cooldown > t.getTime()) {
         return { error: "cooldown", readyAt: new Date(last.endsAt.getTime() + cooldown) };
       }
+      const rested = last ? restedQuests(character.restedQuests, t.getTime() - last.endsAt.getTime() - cooldown) : 0;
       const quest = await tx.quest.create({ data: { characterId: character.id, startedAt: t, endsAt: t } });
-      const outcome = await grantQuest(tx, quest.id, random, t);
-      return { name: questName(quest.id), story: questStory(quest.id, outcome?.success ?? null), ...outcome, readyAt: new Date(t.getTime() + cooldown) };
+      const outcome = await grantQuest(tx, quest.id, random, t, rested > 0);
+      await tx.character.update({ where: { id: character.id }, data: { restedQuests: Math.max(0, rested - 1) } });
+      return {
+        name: questName(quest.id),
+        story: questStory(quest.id, outcome?.success ?? null),
+        ...outcome,
+        rested: rested > 0,
+        readyAt: new Date(t.getTime() + cooldown),
+      };
     });
     return reply.code("error" in result ? 409 : 201).send(result);
   });
@@ -66,13 +76,17 @@ export function questRoutes(app: FastifyInstance, { db, now, random }: Required<
   const latestQuest = (characterId: number) =>
     db.quest.findFirst({ where: { characterId }, orderBy: { startedAt: "desc" }, include: { lootItem: true } });
 
-  const status = async (character: Character, last: (Quest & { lootItem: Item | null }) | null) => ({
-    quest: last ? questView(last) : null,
-    readyAt: last ? new Date(last.endsAt.getTime() + (await cooldownMs(db, character, now()))) : now(),
-    character: { name: character.name, gold: character.gold, level: levelFromXp(character.xp).level },
-    encounter: await encounterView(db, character, now()),
-    dungeon: await dungeonView(db, character.id, now()),
-  });
+  const status = async (character: Character, last: (Quest & { lootItem: Item | null }) | null) => {
+    const readyAt = last ? new Date(last.endsAt.getTime() + (await cooldownMs(db, character, now()))) : now();
+    return {
+      quest: last ? questView(last) : null,
+      readyAt,
+      rested: last ? restedQuests(character.restedQuests, now().getTime() - readyAt.getTime()) : 0,
+      character: { name: character.name, gold: character.gold, level: levelFromXp(character.xp).level },
+      encounter: await encounterView(db, character, now()),
+      dungeon: await dungeonView(db, character.id, now()),
+    };
+  };
 
   app.get("/quests/current", async (req, reply) => {
     const character = await requireCharacter(db, req, reply);
@@ -139,7 +153,7 @@ export function resolveQuest(db: PrismaClient, questId: number, random = Math.ra
   return db.$transaction((tx) => grantQuest(tx, questId, random, t));
 }
 
-async function grantQuest(tx: Prisma.TransactionClient, questId: number, random: () => number, t: Date) {
+async function grantQuest(tx: Prisma.TransactionClient, questId: number, random: () => number, t: Date, rested = false) {
   const quest = await tx.quest.findUnique({
     where: { id: questId },
     include: { character: { include: { items: { where: { equippedSlot: { not: null } } } } } },
@@ -149,7 +163,8 @@ async function grantQuest(tx: Prisma.TransactionClient, questId: number, random:
   const { character } = quest;
   const bonus = playerBonus(character.items, character.talents as Talents, await guildBuffs(tx, character.id, t));
   const outcome = questOutcome(random, bonus.gear.luck + bonus.questLuck, bonus.gear.fortune + bonus.questGold);
-  outcome.xp = withBonus(outcome.success ? outcome.xp : outcome.xp + bonus.failXp, bonus.xp + bonus.questXp);
+  outcome.xp = withBonus(outcome.success ? outcome.xp : outcome.xp + bonus.failXp, bonus.xp + bonus.questXp + (rested ? RESTED_BONUS : 0));
+  if (rested) outcome.gold = withBonus(outcome.gold, RESTED_BONUS);
   const recent = await tx.quest.findMany({
     where: { characterId: character.id, success: true, id: { not: questId } },
     orderBy: { resolvedAt: "desc" },
