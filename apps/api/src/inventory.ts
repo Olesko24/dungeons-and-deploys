@@ -14,7 +14,7 @@ import {
   scrapValue,
 } from "@dnd/shared";
 import type { PrismaClient } from "./generated/prisma/client.ts";
-import { BAG_FULL, itemCount, itemView, requireCharacter } from "./characters.ts";
+import { BAG_FULL, bagFull, itemView, requireCharacter } from "./characters.ts";
 
 const SLOTS = ["head", "chest", "legs", "hands", "feet", "mainHand", "offHand", "ring1", "ring2", "neck", "ears"];
 
@@ -113,7 +113,10 @@ export function inventoryRoutes(app: FastifyInstance, db: PrismaClient, random: 
         if (used.count !== UPGRADE_COST) throw new Error("items changed");
         const key = randomItemOf(next, random);
         return tx.item.create({ data: { characterId: character.id, key, ...rollStats(key, random) } });
-      }).catch(() => "the items changed meanwhile, try again");
+      }).catch((err) => {
+        if (err instanceof Error && err.message === "items changed") return "the items changed meanwhile, try again";
+        throw err;
+      });
       if (typeof result === "string") return reply.code(400).send({ error: result });
       return { item: itemView(result) };
     },
@@ -125,14 +128,14 @@ export function inventoryRoutes(app: FastifyInstance, db: PrismaClient, random: 
     if (!character) return;
     const rarity = req.params.rarity as Rarity;
     if (!RARITIES.includes(rarity)) return reply.code(404).send({ error: "unknown rarity" });
-    if ((await itemCount(db, character.id)) >= BAG_LIMIT) return reply.code(400).send({ error: BAG_FULL });
     const forged = await db.$transaction(async (tx) => {
+      if (await bagFull(tx, character.id)) return BAG_FULL;
       const used = await tx.shard.updateMany({ where: { characterId: character.id, rarity, count: { gt: 0 } }, data: { count: { decrement: 1 } } });
-      if (used.count === 0) return null;
+      if (used.count === 0) return `you have no ${rarity} shard`;
       const key = randomItemOf(rarity, random);
       return tx.item.create({ data: { characterId: character.id, key, ...rollStats(key, random) } });
     });
-    if (!forged) return reply.code(400).send({ error: `you have no ${rarity} shard` });
+    if (typeof forged === "string") return reply.code(400).send({ error: forged });
     return { item: itemView(forged) };
   });
 

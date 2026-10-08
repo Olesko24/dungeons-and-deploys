@@ -1,6 +1,5 @@
 import type { FastifyInstance } from "fastify";
 import {
-  BAG_LIMIT,
   ITEM_BASES,
   ITEM_TYPES,
   MARKET_DRAW_MS,
@@ -13,7 +12,7 @@ import {
   sellerPayout,
 } from "@dnd/shared";
 import type { Deps } from "./app.ts";
-import { BAG_FULL, itemCount, itemView, requireCharacter } from "./characters.ts";
+import { BAG_FULL, bagFull, itemView, requireCharacter } from "./characters.ts";
 import { notify } from "./inbox.ts";
 import { trySyncProgress } from "./stats.ts";
 import type { Prisma, PrismaClient } from "./generated/prisma/client.ts";
@@ -139,7 +138,7 @@ export function marketRoutes(app: FastifyInstance, { db, now, scheduleDraw }: Re
       if (t >= at && listing.bids.length) return { code: 409, error: "the draw for this item is running, try again in a moment" };
       if (listing.bids.some((b) => b.characterId === character.id)) return { code: 409, error: "you are already in line" };
       // A winner gets the item even if the bag filled up while waiting for the draw.
-      if ((await itemCount(tx, character.id)) >= BAG_LIMIT) return { code: 400, error: BAG_FULL };
+      if (await bagFull(tx, character.id)) return { code: 400, error: BAG_FULL };
 
       const paid = await tx.character.updateMany({ where: { id: character.id, gold: { gte: price } }, data: { gold: { decrement: price } } });
       if (paid.count === 0) return { code: 400, error: `not enough gold, it costs ${price}` };

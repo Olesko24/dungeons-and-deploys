@@ -114,7 +114,12 @@ export function questRoutes(app: FastifyInstance, { db, now, random }: Required<
     if (!character) return;
     const equipped = await equippedItems(db, character.id);
     const { level } = levelFromXp(character.xp);
-    const bonus = playerBonus(equipped, character.talents as Talents, await guildBuffs(db, character.id, now()));
+    const [buffs, unread, inbox] = await Promise.all([
+      guildBuffs(db, character.id, now()),
+      unreadCount(db, character.id, character.inboxSeenAt),
+      db.notification.count({ where: { characterId: character.id } }),
+    ]);
+    const bonus = playerBonus(equipped, character.talents as Talents, buffs);
     return {
       name: character.name,
       xp: character.xp,
@@ -123,8 +128,8 @@ export function questRoutes(app: FastifyInstance, { db, now, random }: Required<
       ...levelFromXp(character.xp),
       ...equipmentBonus(equipped),
       power: playerPower(level, bonus.gear, bonus.power),
-      unread: await unreadCount(db, character.id, character.inboxSeenAt),
-      inbox: await db.notification.count({ where: { characterId: character.id } }),
+      unread,
+      inbox,
     };
   });
 }

@@ -41,13 +41,19 @@ export const itemView = (i: Item) => ({
 });
 
 /** Items that count against the bag limit: everything not scrapped. */
-export const itemCount = (db: Pick<PrismaClient, "item">, characterId: number) => db.item.count({ where: { characterId, scrappedAt: null } });
+const itemCount = (db: Pick<PrismaClient, "item">, characterId: number) => db.item.count({ where: { characterId, scrappedAt: null } });
 
 export const BAG_FULL = `your bag is full (${BAG_LIMIT} items), scrap something first`;
 
+/** Locks the character row first, so concurrent loot and purchases cannot both take the last free slot. */
+export async function bagFull(tx: Prisma.TransactionClient, characterId: number) {
+  await tx.$queryRaw`SELECT id FROM characters WHERE id = ${characterId} FOR UPDATE`;
+  return (await itemCount(tx, characterId)) >= BAG_LIMIT;
+}
+
 /** Creates loot for a character. With a full bag it is scrapped at once and paid out in gold, so nothing is lost. */
 export async function giveLoot(tx: Prisma.TransactionClient, characterId: number, key: string, stats: Stats) {
-  const full = (await itemCount(tx, characterId)) >= BAG_LIMIT;
+  const full = await bagFull(tx, characterId);
   const loot = await tx.item.create({ data: { characterId, key, ...stats, scrappedAt: full ? new Date() : null } });
   if (full) await tx.character.update({ where: { id: characterId }, data: { gold: { increment: scrapValue(key, stats) } } });
   return loot;

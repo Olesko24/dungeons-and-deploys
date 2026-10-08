@@ -439,7 +439,7 @@ async function inventory() {
 }
 
 async function upgrade(ids: string[]) {
-  if (ids.length !== 3) throw new Error("Usage: quest upgrade <#id> <#id> <#id>");
+  if (!ids.length) throw new Error("Usage: quest upgrade <#id> <#id> <#id>");
   const res = await authed("/inventory/upgrade", "POST", { ids: ids.map((id) => Number(id.replace("#", ""))) });
   fail(res);
   console.log(`Fused into ${lootText(res.data.item)}.`);
@@ -447,7 +447,7 @@ async function upgrade(ids: string[]) {
 
 async function forge(rarity: string | undefined) {
   if (!rarity) throw new Error("Usage: quest forge <rarity>");
-  const res = await authed(`/inventory/shards/${rarity}/forge`, "POST");
+  const res = await authed(`/inventory/shards/${encodeURIComponent(rarity)}/forge`, "POST");
   fail(res);
   console.log(`Forged ${lootText(res.data.item)}.`);
 }

@@ -1067,30 +1067,31 @@ export function App() {
 
   const lastFull = useRef(0);
   /**
-   * Polls fetch only the character, status and raid. Bag, history and guild change mostly through actions, which
+   * Polls fetch only the character, status, raid and guild. Bag and history change mostly through actions, which
    * reload everything. A poll fetches them too when the character changed (a quest from the terminal, a sale,
    * dungeon loot) and at least every 5 minutes.
    */
   const load = useCallback(async (full = true) => {
     try {
-      const [character, status, raid] = await Promise.all([api<Character>("/character"), api<Status>("/quests/current"), api<Raids>("/raids/current")]);
+      const [character, status, raid, guild] = await Promise.all([
+        api<Character>("/character"),
+        api<Status>("/quests/current"),
+        api<Raids>("/raids/current"),
+        api<{ guild: Guild | null }>("/guild"),
+      ]);
       // Read after the fetch, so a reload that finished meanwhile is not overwritten with older data.
       const prev = last.current;
       const changed =
         full || !prev || Date.now() - lastFull.current > 5 * 60_000 ||
         prev.character.xp !== character.xp || prev.character.gold !== character.gold || prev.character.unread !== character.unread ||
         prev.status.quest?.startedAt !== status.quest?.startedAt;
-      let rest = prev && { items: prev.items, shards: prev.shards, history: prev.history, guild: prev.guild };
+      let rest = prev && { items: prev.items, shards: prev.shards, history: prev.history };
       if (changed || !rest) {
-        const [inventory, history, guild] = await Promise.all([
-          api<{ items: Item[]; shards: Record<string, number> }>("/inventory"),
-          api<Quest[]>("/quests/history"),
-          api<{ guild: Guild | null }>("/guild"),
-        ]);
-        rest = { items: inventory.items, shards: inventory.shards, history, guild: guild.guild };
+        const [inventory, history] = await Promise.all([api<{ items: Item[]; shards: Record<string, number> }>("/inventory"), api<Quest[]>("/quests/history")]);
+        rest = { items: inventory.items, shards: inventory.shards, history };
         lastFull.current = Date.now();
       }
-      const next = { character, status, raids: raid, ...rest };
+      const next = { character, status, raids: raid, guild: guild.guild, ...rest };
       if (last.current) announce(last.current, next);
       last.current = next;
       setData(next);
