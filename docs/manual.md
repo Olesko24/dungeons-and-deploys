@@ -32,7 +32,7 @@ You need an access code from someone who runs the game. Start in the terminal or
 same character.
 
 **Website:** enter the access code and a character name under **New here? Start playing**. To add the terminal
-later, click **Terminal** at the top: it shows the install command and a pair code.
+later, or your phone, click **Devices** at the top: it shows a pair code and how to use it.
 
 **Terminal:** you need Node.js 24 or newer.
 
@@ -461,7 +461,7 @@ On the website, click a name on a leaderboard to see that player's public profil
 
 ## Website
 
-The website shows your character, equipment, bag, quest history, guild, talents, shop, market, inbox, statistics and leaderboards. Everything the terminal can do in the game works there too: start or join a dungeon in the status panel, sell items from your bag and buy them under **market**, schedule a raid in the guild hall (leader) and join it in the raid panel. New players can create their character there with an access code. Players who started in the terminal run `quest pair` and enter the code it shows. **Terminal** at the top does the opposite: it shows a pair code to log in the terminal, or another browser such as your phone.
+The website shows your character, equipment, bag, quest history, guild, talents, shop, market, inbox, statistics and leaderboards. Everything the terminal can do in the game works there too: start or join a dungeon in the status panel, sell items from your bag and buy them under **market**, schedule a raid in the guild hall (leader) and join it in the raid panel. New players can create their character there with an access code. Players who started in the terminal run `quest pair` and enter the code it shows. **Devices** at the top does the opposite: it shows a pair code to log in the terminal, Claude Code or another browser such as your phone. See [Account and devices](#account-and-devices).
 
 An open tab plays short sounds when a quest is ready, a monster shows up, or a dungeon or raid starts and ends. Browsers only allow sound after your first click on the page. **Sound on** at the top mutes them, the choice is remembered in that browser.
 
@@ -471,7 +471,21 @@ On your first visit a short tour walks you through the page. It highlights the r
 
 Dungeons & Deploys has no email and no password. Your login token on your devices is your account.
 
-- To play on another device, run `quest pair` (or click **Terminal** on the website) on a device that is logged in, then `quest login --pair <code>` on the new one within 10 minutes.
+You log in another device with a pair code from a device that is already logged in. A code works once and for 10 minutes.
+
+**Get a code** on a logged-in device:
+
+- Website: click **Devices** at the top.
+- Terminal or Claude Code: run `quest pair` (`! quest pair` in Claude Code).
+
+**Use the code** on the new device:
+
+- Website, for example on your phone: open the website and enter the code under **Already playing?**.
+- Terminal: install the CLI (`npm install -g dungeons-and-deploys`), then run `quest login --pair <code>`.
+- Claude Code: log in the terminal as above, then set up the plugin as in [Getting started](#getting-started).
+
+Log out with **Log out** on the website or `quest logout` in the terminal. `quest logout --all` ends every session, for example after losing a laptop. Sessions expire after a year.
+
 - **If you lose every logged-in device, your character is lost.** Keep it paired on a second device if you care about it.
 - The token is stored in `~/.dungeons-and-deploys/config.json`, readable only by you.
 

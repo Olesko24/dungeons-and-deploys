@@ -24,6 +24,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). New
 
 ### Added
 
+- **Devices** at the top of the website (was **Terminal**) explains how to log in this character on another
+  browser, your phone, the terminal or Claude Code, with the pair code shown large and a button for a new one.
+  The manual has a step-by-step section under Account and devices.
 - Public profiles on the website: click a name on a leaderboard to see the player's level, combat power, stats,
   guild, achievements and equipment. **Profile** at the top shows your own. Gold and the bag stay private.
 - Auto-scrap: loot below a rarity you pick is scrapped on arrival and paid out in gold. Set it above your bag on

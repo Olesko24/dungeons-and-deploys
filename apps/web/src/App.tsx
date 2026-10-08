@@ -207,7 +207,9 @@ function Login({ onDone, onOpen }: { onDone: () => void; onOpen: (doc: DocName) 
       <form className="panel" onSubmit={(e) => submit(e, "login")}>
         <h2>Already playing?</h2>
         <label htmlFor="code">Pair code</label>
-        <p className="dim">Run <code>quest pair</code> in your terminal and enter the code it shows.</p>
+        <p className="dim">
+          Get a code on a device that is logged in: <strong>Devices</strong> at the top of the website, or <code>quest pair</code> in your terminal.
+        </p>
         <input id="code" value={pair} onChange={(e) => setPair(e.target.value)} placeholder="ABCD-EFGH" autoComplete="off" required />
         {failed("login")}
         <button type="submit">Log in</button>
@@ -228,28 +230,45 @@ function Login({ onDone, onOpen }: { onDone: () => void; onOpen: (doc: DocName) 
   );
 }
 
-/** Pair code for logging in the terminal, for players who started on the website. */
-function TerminalPair({ onClose, onOpen }: { onClose: () => void; onOpen: (doc: DocName) => void }) {
+/** A pair code and how to use it, to log in this character on another browser, phone, terminal or Claude Code. */
+function DevicePair({ onClose, onOpen }: { onClose: () => void; onOpen: (doc: DocName) => void }) {
   const [pair, setPair] = useState<{ code: string; expiresAt: string } | null>(null);
   const [error, setError] = useState("");
-  useEffect(() => void api<{ code: string; expiresAt: string }>("/auth/pair", {}).then(setPair, (err: Error) => setError(err.message)), []);
+  const create = () => {
+    setPair(null);
+    setError("");
+    void api<{ code: string; expiresAt: string }>("/auth/pair", {}).then(setPair, (err: Error) => setError(err.message));
+  };
+  useEffect(create, []);
+  const code = pair?.code ?? "…";
   return (
-    <section className="panel install" aria-label="Connect your terminal">
+    <section className="panel install" aria-label="Log in on another device">
       <div className="row">
-        <h2>Connect your terminal</h2>
+        <h2>Log in on another device</h2>
         <button type="button" className="small ghost" onClick={onClose}>Close</button>
       </div>
+      <p className="dim">There is no password. A pair code logs in one more device with this character.</p>
       {error && <p className="error" role="alert">{error}</p>}
+      <p className="pair-code">
+        <code>{code}</code>
+        {pair && <span className="dim"> · works once, for {minutesUntil(pair.expiresAt)} minutes</span>}
+        <button type="button" className="small ghost" onClick={create}>New code</button>
+      </p>
+      <h3 className="sub">Another browser or your phone</h3>
+      <ol>
+        <li>Open this website on the other device.</li>
+        <li>Enter <code>{code}</code> under <strong>Already playing?</strong> and click <strong>Log in</strong>.</li>
+      </ol>
+      <h3 className="sub">Terminal or Claude Code</h3>
       <ol>
         <li>Install <a href="https://nodejs.org">Node.js</a> 24 or newer, then <code>{INSTALL}</code></li>
-        <li>{pair ? <>Run <code>quest login --pair {pair.code}</code> within {minutesUntil(pair.expiresAt)} minutes</> : "Creating a pair code…"}</li>
+        <li>Run <code>quest login --pair {code}</code></li>
         <li>Run <code>quest</code> for a quest. The <button type="button" className="link" onClick={() => onOpen("manual")}>manual</button> shows the Claude Code plugin and shell prompt.</li>
       </ol>
-      {pair && (
-        <p className="dim">
-          Another browser or your phone? Open this website there and enter <code>{pair.code}</code> under Already playing. Each code works once.
-        </p>
-      )}
+      <p className="dim">
+        The other way round: <code>quest pair</code> in a logged-in terminal shows a code for this website or another terminal.
+        Keep at least two devices logged in, a character without a logged-in device is lost.
+      </p>
     </section>
   );
 }
@@ -1267,12 +1286,12 @@ export function App() {
             </button>
             <button type="button" className="small ghost" onClick={() => showProfile(c.name)}><UiIcon name="star" />Profile</button>
             <button type="button" className="small ghost" onClick={() => setTouring(true)}><UiIcon name="help" />Tour</button>
-            <button type="button" className="small ghost" data-tour="terminal" onClick={() => setPairing(true)}><UiIcon name="terminal" />Terminal</button>
+            <button type="button" className="small ghost" data-tour="devices" onClick={() => setPairing(true)}><UiIcon name="terminal" />Devices</button>
             <button type="button" className="small ghost" onClick={() => api("/auth/logout", {}).then(() => setLoggedOut(true))}><UiIcon name="logout" />Log out</button>
           </div>
         </div>
       </header>
-      {pairing && <TerminalPair onClose={() => setPairing(false)} onOpen={setView} />}
+      {pairing && <DevicePair onClose={() => setPairing(false)} onOpen={setView} />}
       <BetaNote onOpen={setView} />
       <nav className="tabs" aria-label="Sections">
         {(["character", "talents", "shop", "market", "stats", "ranks", "manual", "changelog"] as const).map((v) => (

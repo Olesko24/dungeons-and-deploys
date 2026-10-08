@@ -94,6 +94,8 @@ input {
 .login label { font: 12px var(--display); color: var(--gold); }
 .install ol { margin: 0; padding-left: 1.5em; display: grid; gap: 8px; }
 .install code { overflow-wrap: anywhere; }
+.pair-code { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.pair-code code { font-size: 1.5em; letter-spacing: 0.1em; }
 .loading { font: 12px var(--display); }
 
 .hero { grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 16px; }

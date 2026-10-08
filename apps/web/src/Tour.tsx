@@ -35,8 +35,8 @@ const steps = (name: string): Step[] => [
   },
   { target: "[data-tour=nav-shop]", text: "The shop has three new offers every day. Stats and ranks are next to it." },
   {
-    target: "[data-tour=terminal]",
-    text: "The game also runs next to your work: `quest` in your terminal, or `! quest` in Claude Code. Terminal shows how to install it and connect it to this character. Your shell and Claude Code spawn monsters while you work.",
+    target: "[data-tour=devices]",
+    text: "The game also runs next to your work: `quest` in your terminal, or `! quest` in Claude Code. Devices shows how to log in this character there, or on your phone. Your shell and Claude Code spawn monsters while you work.",
   },
   { text: "Tour done. Achievement unlocked: Hello, World!" },
 ];
