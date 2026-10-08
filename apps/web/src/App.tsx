@@ -837,12 +837,12 @@ function InboxView({ onChange }: { onChange: () => void }) {
   const [entries, setEntries] = useState<InboxEntry[] | null>(null);
   const load = useCallback(() => api<{ notifications: InboxEntry[] }>("/inbox").then((r) => setEntries(r.notifications)), []);
   useEffect(() => void load().then(onChange), [load, onChange]);
-  const remove = (path: string) => void api(path, {}).then(load);
+  const remove = (path: string) => void api(path, {}).then(load).then(onChange);
   if (!entries) return <section className="panel"><p>Loading…</p></section>;
   return (
     <section className="panel">
       <div className="row">
-        <h2><UiIcon name="scroll" />Inbox · {entries.length}</h2>
+        <h2><UiIcon name="mail" />Inbox · {entries.length}</h2>
         {entries.length > 0 && (
           <button type="button" className="small ghost" onClick={() => confirm("Delete every entry? This cannot be undone.") && remove("/inbox/clear")}>Clear all</button>
         )}
@@ -1164,7 +1164,8 @@ export function App() {
         </div>
         <div className="hero-actions">
           <button type="button" className={`inbox-button ${c.unread ? "" : "ghost"}`} popoverTarget="inbox-popover">
-            <UiIcon name="mail" />Inbox{c.unread > 0 && <span className="badge" aria-label={`${c.unread} unread`}>{c.unread}</span>}
+            <UiIcon name="mail" />Inbox
+            <span className={`badge ${c.unread ? "" : "read"}`} title={`${c.inbox} messages, ${c.unread} unread`}>{c.inbox}</span>
           </button>
           {/* Mounted only while open: loading the inbox marks it read. */}
           <div id="inbox-popover" popover="auto" onToggle={(e) => setInboxOpen((e.nativeEvent as ToggleEvent).newState === "open")}>

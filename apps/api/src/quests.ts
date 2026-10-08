@@ -124,6 +124,7 @@ export function questRoutes(app: FastifyInstance, { db, now, random }: Required<
       ...equipmentBonus(equipped),
       power: playerPower(level, bonus.gear, bonus.power),
       unread: await unreadCount(db, character.id, character.inboxSeenAt),
+      inbox: await db.notification.count({ where: { characterId: character.id } }),
     };
   });
 }

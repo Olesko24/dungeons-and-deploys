@@ -105,6 +105,7 @@ input {
 .hero-actions button.small .ui-icon { width: 16px; height: 16px; }
 .inbox-button { justify-content: center; }
 .badge { background: var(--bad); color: var(--ink); font-size: 10px; padding: 4px 6px; margin-left: auto; }
+.badge.read { background: var(--panel); color: var(--ink-dim); }
 
 .slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 12px; }
 .slot { background: var(--panel-deep); padding: 8px; display: grid; justify-items: center; gap: 6px; border-bottom: var(--pixel) solid currentColor; }
