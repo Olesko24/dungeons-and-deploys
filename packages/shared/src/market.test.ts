@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { marketValue, priceTag, rollQuality, rollStats, sellerPayout } from "./index.ts";
+import { marketValue, priceTag, rollQuality, rollStats, scrapValue, sellerPayout } from "./index.ts";
 
 const none = { attack: 0, defense: 0, luck: 0, fortune: 0 };
 
@@ -24,4 +24,9 @@ test("price tags and payout", () => {
   assert.deepEqual([priceTag(80, 100), priceTag(85, 100), priceTag(115, 100), priceTag(116, 100)], ["loot", "fair", "fair", "ripoff"]);
   assert.equal(sellerPayout(120), 108);
   assert.equal(sellerPayout(9), 8);
+});
+
+test("scrapping pays a quarter of the value, at least 1 gold", () => {
+  assert.equal(scrapValue("helm.epic", { ...none, defense: 10 }), 37);
+  assert.equal(scrapValue("helm.common", { ...none, defense: 1 }), 3);
 });

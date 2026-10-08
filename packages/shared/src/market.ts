@@ -22,3 +22,8 @@ export const priceTag = (price: number, value: number): PriceTag =>
 
 /** What the seller receives after the fee. The fee leaves the game as a gold sink. */
 export const sellerPayout = (price: number) => Math.floor(price * (1 - MARKET_FEE));
+
+/** Items a character can own, equipped and listed ones included. Loot beyond it is scrapped at once. */
+export const BAG_LIMIT = 50;
+/** Scrapping pays a quarter of an item's value, well below a market sale. */
+export const scrapValue = (key: string, stats: Stats) => Math.max(1, Math.floor(marketValue(key, stats) / 4));

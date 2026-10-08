@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
-import { levelFromXp, shopDay, shopOffers } from "@dnd/shared";
+import { BAG_LIMIT, levelFromXp, shopDay, shopOffers } from "@dnd/shared";
 import type { Deps } from "./app.ts";
-import { itemView, requireCharacter } from "./characters.ts";
+import { BAG_FULL, itemCount, itemView, requireCharacter } from "./characters.ts";
 import { Prisma } from "./generated/prisma/client.ts";
 
 export function shopRoutes(app: FastifyInstance, { db, now }: Required<Deps>) {
@@ -43,6 +43,8 @@ export function shopRoutes(app: FastifyInstance, { db, now }: Required<Deps>) {
       if (levelFromXp(character.xp).level < offer.unlockLevel) {
         return reply.code(400).send({ error: `${offer.rarity} offers unlock at level ${offer.unlockLevel}` });
       }
+
+      if ((await itemCount(db, character.id)) >= BAG_LIMIT) return reply.code(400).send({ error: BAG_FULL });
 
       const result = await db
         .$transaction(async (tx) => {

@@ -1,7 +1,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { item, itemName, marketValue } from "@dnd/shared";
+import { BAG_LIMIT, type Stats, item, itemName, marketValue, scrapValue } from "@dnd/shared";
 import { requireUser } from "./auth.ts";
-import type { Item, PrismaClient } from "./generated/prisma/client.ts";
+import type { Item, Prisma, PrismaClient } from "./generated/prisma/client.ts";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -34,7 +34,27 @@ export const itemView = (i: Item) => ({
   price: i.price,
   /** Suggested market price for this roll. */
   value: marketValue(i.key, i),
+  /** Gold for scrapping it. */
+  scrap: scrapValue(i.key, i),
+  /** Scrapped right away because the bag was full. */
+  scrapped: !!i.scrappedAt,
 });
+
+/** Items that count against the bag limit: everything not scrapped. */
+export const itemCount = (db: Pick<PrismaClient, "item">, characterId: number) => db.item.count({ where: { characterId, scrappedAt: null } });
+
+export const BAG_FULL = `your bag is full (${BAG_LIMIT} items), scrap something first`;
+
+/** Creates loot for a character. With a full bag it is scrapped at once and paid out in gold, so nothing is lost. */
+export async function giveLoot(tx: Prisma.TransactionClient, characterId: number, key: string, stats: Stats) {
+  const full = (await itemCount(tx, characterId)) >= BAG_LIMIT;
+  const loot = await tx.item.create({ data: { characterId, key, ...stats, scrappedAt: full ? new Date() : null } });
+  if (full) await tx.character.update({ where: { id: characterId }, data: { gold: { increment: scrapValue(key, stats) } } });
+  return loot;
+}
+
+/** " Your bag was full, so it was scrapped for 12 gold." for loot scrapped on arrival. */
+export const scrappedNote = (loot: Item) => (loot.scrappedAt ? ` Your bag was full, so it was scrapped for ${scrapValue(loot.key, loot)} gold.` : "");
 
 export const equippedItems = (db: Pick<PrismaClient, "item">, characterId: number) =>
   db.item.findMany({ where: { characterId, equippedSlot: { not: null } } });

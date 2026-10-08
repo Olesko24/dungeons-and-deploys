@@ -19,7 +19,7 @@ import {
   withBonus,
 } from "@dnd/shared";
 import type { Deps } from "./app.ts";
-import { equippedItems, itemView, requireCharacter } from "./characters.ts";
+import { equippedItems, giveLoot, itemView, requireCharacter } from "./characters.ts";
 import { guildBuffs } from "./guilds.ts";
 import type { Character, PrismaClient } from "./generated/prisma/client.ts";
 
@@ -89,7 +89,7 @@ export function encounterRoutes(app: FastifyInstance, { db, now, random }: Requi
         data: { xp: { increment: rewards.xp }, gold: { increment: rewards.gold } },
       });
       const loot = lootKey
-        ? await tx.item.create({ data: { characterId: character.id, key: lootKey, ...rollStats(lootKey, random) } })
+        ? await giveLoot(tx, character.id, lootKey, rollStats(lootKey, random))
         : null;
       if (loot) await tx.encounter.update({ where: { id: encounter.id }, data: { lootItemId: loot.id } });
       return { monster: MONSTERS[monster].name, level: encounter.level, winChance: chance, won, story: fightStory(monster, won), ...rewards, loot: loot && itemView(loot) };

@@ -144,6 +144,28 @@ test("equip and unequip", async () => {
   assert.equal((await p.call("GET", "/inventory")).json().items.filter((i: { equippedSlot: string | null }) => i.equippedSlot).length, 0);
 });
 
+test("scrapping pays gold, a full bag scraps new loot and refuses purchases", async () => {
+  at(0);
+  dice = 0;
+  const p = await player("hoarder");
+  const { id: characterId } = await p.character();
+  const helm = await db.item.create({ data: { characterId, key: "helm.epic", defense: 10 } });
+  assert.deepEqual((await p.call("POST", `/inventory/${helm.id}/scrap`)).json(), { gold: 37 }, "a quarter of the 150 value");
+  assert.equal((await p.call("POST", `/inventory/${helm.id}/equip`)).statusCode, 404, "scrapped is gone");
+  assert.equal((await p.call("GET", "/inventory")).json().items.length, 0);
+
+  await db.item.createMany({ data: Array.from({ length: 50 }, () => ({ characterId, key: "ring.common", luck: 1 })) });
+  const quest = (await p.call("POST", "/quests")).json();
+  assert.deepEqual([quest.loot.name, quest.loot.scrapped], ["Leather Cap", true], "loot beyond 50 items is scrapped on arrival");
+  assert.equal((await p.character()).gold, 37 + 14 + 3, "scrap gold, quest gold and the scrapped cap");
+  assert.equal((await p.call("GET", "/inventory")).json().items.length, 50);
+  assert.equal((await p.call("GET", "/stats")).json().stats.itemsFound, 1, "scrapped loot still counts as found");
+
+  const seller = await player("pedlar");
+  const offer = await db.item.create({ data: { characterId: (await seller.character()).id, key: "boots.common", listedAt: new Date(0), price: 1 } });
+  assert.equal((await p.call("POST", `/market/buy/${offer.id}`)).json().error, "your bag is full (50 items), scrap something first");
+});
+
 test("quest routes need a token", async () => {
   const res = await (await app()).inject({ method: "POST", url: "/quests" });
   assert.equal(res.statusCode, 401);

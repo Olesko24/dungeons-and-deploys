@@ -19,7 +19,7 @@ import {
 } from "@dnd/shared";
 import type { Deps } from "./app.ts";
 import { randomCode } from "./auth.ts";
-import { equippedItems, requireCharacter } from "./characters.ts";
+import { equippedItems, giveLoot, requireCharacter, scrappedNote } from "./characters.ts";
 import { guildBuffs } from "./guilds.ts";
 import { levelUpNote, notify } from "./inbox.ts";
 import type { PrismaClient } from "./generated/prisma/client.ts";
@@ -95,12 +95,12 @@ export function resolveStage(db: PrismaClient, dungeonId: number, stage: number,
         let lootItemId: number | undefined;
         if (last) {
           const key = bossLoot(level, members.length, random);
-          const loot = await tx.item.create({ data: { characterId: m.characterId, key, ...rollStats(key, random) } });
+          const loot = await giveLoot(tx, m.characterId, key, rollStats(key, random));
           lootItemId = loot.id;
           const xp = m.xp + reward.xp;
           await notify(tx, [m.characterId], "dungeon",
             `Dungeon ${dungeon.code} cleared! You earned ${xp} XP, ${m.gold + reward.gold} gold and ${itemName(key, loot)}.` +
-              levelUpNote(m.character.xp - m.xp, m.character.xp + reward.xp));
+              levelUpNote(m.character.xp - m.xp, m.character.xp + reward.xp) + scrappedNote(loot));
         }
         await tx.dungeonMember.update({
           where: { dungeonId_characterId: { dungeonId, characterId: m.characterId } },

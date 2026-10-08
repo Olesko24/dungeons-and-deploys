@@ -111,10 +111,13 @@ async function heartbeat(send: boolean) {
   spawn(process.execPath, [process.argv[1], "heartbeat", "--send"], { detached: true, stdio: "ignore" }).unref();
 }
 
-type QuestResult = { name: string; story: string | null; success: boolean | null; xp: number; gold: number; loot: { name: string; rarity: string } | null };
+type Loot = { name: string; rarity: string; scrapped?: boolean; scrap?: number };
+type QuestResult = { name: string; story: string | null; success: boolean | null; xp: number; gold: number; loot: Loot | null };
+
+const lootText = (l: Loot) => `${rarityColor(l.name, l.rarity)} (${l.rarity})${l.scrapped ? `, bag full, scrapped for ${l.scrap}g` : ""}`;
 
 function questResult(q: QuestResult) {
-  const loot = q.loot ? ` · Found: ${rarityColor(q.loot.name, q.loot.rarity)} (${q.loot.rarity})` : "";
+  const loot = q.loot ? ` · Found: ${lootText(q.loot)}` : "";
   return `${q.name}: ${q.success ? `✓ Success · +${q.xp} XP · +${q.gold} gold${loot}` : `✗ Failed · +${q.xp} XP`}`;
 }
 
@@ -161,7 +164,7 @@ async function fightMonster() {
   console.log(`⚔ ${f.monster} (Lv ${f.level}) · your odds ${Math.round(f.winChance * 100)}%`);
   if (!f.won) console.log("✗ Defeated. It got away, nothing lost.");
   else {
-    const loot = f.loot ? ` · Found: ${rarityColor(f.loot.name, f.loot.rarity)} (${f.loot.rarity})` : "";
+    const loot = f.loot ? ` · Found: ${lootText(f.loot)}` : "";
     console.log(`✓ Victory · +${f.xp} XP · +${f.gold} gold${loot}`);
   }
   console.log(`  ${f.story}`);
@@ -429,7 +432,15 @@ async function character() {
 
 async function inventory() {
   const { data } = await authed("/inventory");
-  console.log(inventoryLines(data.items as InventoryItem[], data.bonus).join("\n"));
+  console.log(inventoryLines(data.items as InventoryItem[], data.bonus, rarityColor, data.limit).join("\n"));
+  console.log("\nquest equip <#id> · quest scrap <#id> · quest market sell <#id> [price]");
+}
+
+async function scrap(id: string | undefined) {
+  if (!id) throw new Error("Usage: quest scrap <#id>");
+  const res = await authed(`/inventory/${id.replace("#", "")}/scrap`, "POST");
+  fail(res);
+  console.log(`Scrapped for ${res.data.gold}g.`);
 }
 
 async function equip(id: string | undefined, slot: string | undefined, off = false) {
@@ -461,6 +472,7 @@ const USAGE = `Usage: quest [command]
   quest inv                                      inventory
   quest equip <#id> [--slot ring2]               equip an item
   quest unequip <#id>                            take an item off
+  quest scrap <#id>                              destroy a bag item for a quarter of its value
   quest fight                                    fight a monster that showed up
   quest market [--rarity r] [--slot s]           every listing, --show line|buy|mine, --sort price
   quest market buy|leave <#id>                   join a line or buy at once, leave a line
@@ -552,6 +564,9 @@ try {
       break;
     case "equip":
       await equip(positionals[1], values.slot);
+      break;
+    case "scrap":
+      await scrap(positionals[1]);
       break;
     case "unequip":
       await equip(positionals[1], undefined, true);

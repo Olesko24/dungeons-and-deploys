@@ -68,7 +68,7 @@ export const statsText = (s: Stats) =>
     .filter(Boolean)
     .join(" · ");
 
-export function inventoryLines(items: InventoryItem[], bonus: Stats, color = rarityColor) {
+export function inventoryLines(items: InventoryItem[], bonus: Stats, color = rarityColor, limit?: number) {
   const line = (i: InventoryItem, prefix: string) =>
     `  ${prefix}${`#${i.id}`.padEnd(6)}${color(i.name.padEnd(40), i.rarity)}${i.rarity.padEnd(11)}${statsText(i.stats)}${i.listed ? ` · on market for ${i.price}g` : ""}`;
   const equipped = items.filter((i) => i.equippedSlot);
@@ -77,7 +77,7 @@ export function inventoryLines(items: InventoryItem[], bonus: Stats, color = rar
     `Equipped · ${statsText(bonus) || "no stats yet"}`,
     ...(equipped.length ? equipped.map((i) => line(i, (i.equippedSlot as string).padEnd(10))) : ["  nothing yet"]),
     "",
-    `Bag (${bag.length})`,
+    `Bag (${bag.length})${limit ? ` · ${items.length} of ${limit} items${items.length >= limit ? ", full: new loot is scrapped for gold" : ""}` : ""}`,
     ...(bag.length ? bag.map((i) => line(i, "")) : ["  empty, finish quests to find loot"]),
   ];
 }

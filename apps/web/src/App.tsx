@@ -1,4 +1,4 @@
-import { MARKET_MAX_PRICE, PRICE_TAGS, type PriceTag, priceTag, sellerPayout } from "@dnd/shared";
+import { BAG_LIMIT, MARKET_MAX_PRICE, PRICE_TAGS, type PriceTag, priceTag, sellerPayout } from "@dnd/shared";
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import {
   type Achievement,
@@ -249,6 +249,8 @@ function TabTitle({ status }: { status: Status | null }) {
   return null;
 }
 
+const lootText = (i: Item) => (i.scrapped ? `${i.name} (bag full, scrapped for ${i.scrap} gold)` : i.name);
+
 function QuestStatus({ status, onChange }: { status: Status; onChange: () => void }) {
   const q = status.quest;
   const e = status.encounter;
@@ -268,9 +270,9 @@ function QuestStatus({ status, onChange }: { status: Status; onChange: () => voi
     onChange();
   }
   const questResult = (r: Quest & { readyAt: string }) =>
-    `${r.name}: ${r.success ? `✓ success · +${r.xp} XP · +${r.gold} gold${r.loot ? ` · found ${r.loot.name}` : ""}` : `✗ failed · +${r.xp} XP`}`;
+    `${r.name}: ${r.success ? `✓ success · +${r.xp} XP · +${r.gold} gold${r.loot ? ` · found ${lootText(r.loot)}` : ""}` : `✗ failed · +${r.xp} XP`}`;
   const fightResult = (f: { won: boolean; story: string; xp: number; gold: number; loot: Item | null }) =>
-    `${f.won ? `Victory · +${f.xp} XP · +${f.gold} gold${f.loot ? ` · found ${f.loot.name}` : ""}` : "Defeated. It got away, nothing lost."} ${f.story}`;
+    `${f.won ? `Victory · +${f.xp} XP · +${f.gold} gold${f.loot ? ` · found ${lootText(f.loot)}` : ""}` : "Defeated. It got away, nothing lost."} ${f.story}`;
   const dungeonResult = (d: { code: string }) => `In dungeon ${d.code}. Share the code, others can join until it starts.`;
 
   return (
@@ -409,7 +411,8 @@ function Inventory({ items, onChange }: { items: Item[]; onChange: () => void })
         </div>
       </section>
       <section className="panel">
-        <h2><UiIcon name="bag" />Bag · {bag.length}</h2>
+        <h2><UiIcon name="bag" />Bag · {bag.length} <span className="dim">· {items.length} of {BAG_LIMIT} items</span></h2>
+        {items.length >= BAG_LIMIT && <p className="alert">Your bag is full. New loot is scrapped for gold until you scrap or sell something.</p>}
         {bag.length === 0 && <p className="dim">Empty. Successful quests and won fights drop items.</p>}
         <ul className="items">
           {bag.map((item) => (
@@ -424,7 +427,16 @@ function Inventory({ items, onChange }: { items: Item[]; onChange: () => void })
                 {item.listed ? (
                   <button type="button" className="small ghost" onClick={() => act(`/market/unlist/${item.id}`)}>Unlist</button>
                 ) : (
-                  <button type="button" className="small ghost" aria-expanded={selling === item.id} onClick={() => setSelling(selling === item.id ? null : item.id)}>Sell</button>
+                  <>
+                    <button type="button" className="small ghost" aria-expanded={selling === item.id} onClick={() => setSelling(selling === item.id ? null : item.id)}>Sell</button>
+                    <button
+                      type="button"
+                      className="small ghost"
+                      onClick={() => confirm(`Scrap ${item.name} for ${item.scrap} gold? It is gone for good.`) && act(`/inventory/${item.id}/scrap`)}
+                    >
+                      Scrap {item.scrap}g
+                    </button>
+                  </>
                 )}
               </span>
               {selling === item.id && (
@@ -1016,17 +1028,31 @@ export function App() {
   const [muted, setMutedState] = useState(isMuted);
   const last = useRef<Data | null>(null);
 
-  const load = useCallback(async () => {
+  const lastFull = useRef(0);
+  /**
+   * Polls fetch only the character, status and raid. Bag, history and guild change mostly through actions, which
+   * reload everything. A poll fetches them too when the character changed (a quest from the terminal, a sale,
+   * dungeon loot) and at least every 5 minutes.
+   */
+  const load = useCallback(async (full = true) => {
     try {
-      const [character, status, inventory, history, guild, raid] = await Promise.all([
-        api<Character>("/character"),
-        api<Status>("/quests/current"),
-        api<{ items: Item[] }>("/inventory"),
-        api<Quest[]>("/quests/history"),
-        api<{ guild: Guild | null }>("/guild"),
-        api<Raids>("/raids/current"),
-      ]);
-      const next = { character, status, items: inventory.items, history, guild: guild.guild, raids: raid };
+      const prev = last.current;
+      const [character, status, raid] = await Promise.all([api<Character>("/character"), api<Status>("/quests/current"), api<Raids>("/raids/current")]);
+      const changed =
+        full || !prev || Date.now() - lastFull.current > 5 * 60_000 ||
+        prev.character.xp !== character.xp || prev.character.gold !== character.gold || prev.character.unread !== character.unread ||
+        prev.status.quest?.startedAt !== status.quest?.startedAt;
+      let rest = prev && { items: prev.items, history: prev.history, guild: prev.guild };
+      if (changed || !rest) {
+        const [inventory, history, guild] = await Promise.all([
+          api<{ items: Item[] }>("/inventory"),
+          api<Quest[]>("/quests/history"),
+          api<{ guild: Guild | null }>("/guild"),
+        ]);
+        rest = { items: inventory.items, history, guild: guild.guild };
+        lastFull.current = Date.now();
+      }
+      const next = { character, status, raids: raid, ...rest };
       if (last.current) announce(last.current, next);
       last.current = next;
       setData(next);
@@ -1062,7 +1088,7 @@ export function App() {
   const live = data?.raids.raid?.state === "running";
   useEffect(() => {
     void load();
-    const timer = setInterval(() => void load(), live ? 5_000 : 30_000);
+    const timer = setInterval(() => void load(false), live ? 5_000 : 30_000);
     return () => clearInterval(timer);
   }, [load, live]);
 

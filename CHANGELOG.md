@@ -9,6 +9,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). New
 
 ### Breaking
 
+- A character can own 50 items. Scrap items for a quarter of their value with the **Scrap** button or
+  `quest scrap <#id>`. With a full bag new loot is scrapped right away and paid out in gold, purchases wait
+  until you make room.
 - The market is new. Sellers set their own price, with a suggested value from rarity and roll. Every listing is
   visible with its stats and a price tag (Loot, Fair trade, Rip-off). Buyers line up for 30 minutes, then one is
   drawn and the others get their gold back. Without a line an item can be bought at once. Draws by rarity, the

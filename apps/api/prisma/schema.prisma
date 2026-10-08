@@ -86,6 +86,7 @@ model Character {
   createdAt    DateTime        @default(now()) @map("created_at")
 
   @@index([power])
+  @@index([xp])
   @@map("characters")
 }
 
@@ -122,6 +123,8 @@ model Item {
   listedAt     DateTime?      @map("listed_at")
   price        Int?
   bids         MarketBid[]
+  /// Set when scrapped for gold. The row stays, so loot statistics keep counting it.
+  scrappedAt   DateTime?      @map("scrapped_at")
   createdAt    DateTime       @default(now()) @map("created_at")
   foundIn      Quest?
   wonIn        Encounter?
@@ -130,6 +133,7 @@ model Item {
 
   @@unique([characterId, equippedSlot])
   @@index([listedAt])
+  @@index([characterId, scrappedAt])
   @@map("items")
 }
 
@@ -165,6 +169,7 @@ model MarketDraw {
   createdAt DateTime  @default(now()) @map("created_at")
 
   @@index([buyerId, createdAt])
+  @@index([sellerId])
   @@map("market_draws")
 }
 
@@ -223,6 +228,7 @@ model DungeonMember {
   joinedAt    DateTime  @default(now()) @map("joined_at")
 
   @@id([dungeonId, characterId])
+  @@index([characterId])
   @@map("dungeon_members")
 }
 
@@ -299,6 +305,7 @@ model RaidMember {
   lootItem    Item?     @relation(fields: [lootItemId], references: [id], onDelete: SetNull)
 
   @@id([raidId, characterId])
+  @@index([characterId])
   @@map("raid_members")
 }
 

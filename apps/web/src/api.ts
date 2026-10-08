@@ -1,5 +1,5 @@
 export type Stats = { attack: number; defense: number; luck: number; fortune: number };
-export type Item = { id: number; key: string; name: string; type: string; rarity: string; stats: Stats; equippedSlot: string | null; listed: boolean; price: number | null; value: number };
+export type Item = { id: number; key: string; name: string; type: string; rarity: string; stats: Stats; equippedSlot: string | null; listed: boolean; price: number | null; value: number; scrap: number; scrapped: boolean };
 export type Quest = {
   name: string;
   story: string | null;

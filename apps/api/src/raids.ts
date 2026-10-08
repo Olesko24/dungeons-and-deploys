@@ -21,7 +21,7 @@ import {
   withBonus,
 } from "@dnd/shared";
 import type { Deps } from "./app.ts";
-import { equippedItems, requireCharacter } from "./characters.ts";
+import { equippedItems, giveLoot, requireCharacter, scrappedNote } from "./characters.ts";
 import { guildBuffs, guildMates } from "./guilds.ts";
 import { levelUpNote, notify } from "./inbox.ts";
 import type { Character, PrismaClient } from "./generated/prisma/client.ts";
@@ -134,11 +134,11 @@ export function advanceRaid(db: PrismaClient, raidId: number, tick: number, rand
         guildXp += reward.xp;
         await tx.character.update({ where: { id: f.m.characterId }, data: { xp: { increment: reward.xp }, gold: { increment: reward.gold } } });
         const key = raidLoot(f.level, raid.tier, random);
-        const loot = await tx.item.create({ data: { characterId: f.m.characterId, key, ...rollStats(key, random) } });
+        const loot = await giveLoot(tx, f.m.characterId, key, rollStats(key, random));
         await tx.raidMember.update({ where: { raidId_characterId: { raidId, characterId: f.m.characterId } }, data: { lootItemId: loot.id } });
         await notify(tx, [f.m.characterId], "raid",
           `${boss} was defeated! You dealt ${damage.get(f.m.characterId)} damage and earned ${reward.xp} XP, ${reward.gold} gold and ${itemName(key, loot)}.` +
-            levelUpNote(f.m.character.xp, f.m.character.xp + reward.xp));
+            levelUpNote(f.m.character.xp, f.m.character.xp + reward.xp) + scrappedNote(loot));
       }
       const guild = await tx.guild.findUniqueOrThrow({ where: { id: raid.guildId } });
       // Beating the strongest unlocked boss unlocks the next one.

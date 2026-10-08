@@ -253,10 +253,15 @@ Quest loot rolls the rarity twice and keeps the better result. Dungeon and raid 
 
 There is no minimum level to equip anything.
 
+### Bag limit and scrapping
+
+You can own **50 items**, equipped and listed ones included. Scrap items you do not need: an item is gone for good and pays a quarter of its value in gold. With a full bag, new loot from quests, fights, dungeons and raids is scrapped right away and paid out, so nothing is lost, and the shop and market refuse purchases until you make room. A market draw you already joined still delivers its item.
+
 ```sh
 quest inv                         # equipped items and your bag
 quest equip <#id>                 # rings: --slot ring1 or ring2
 quest unequip <#id>
+quest scrap <#id>                 # destroy a bag item for a quarter of its value
 ```
 
 ## Random encounters
@@ -463,6 +468,7 @@ Dungeons & Deploys has no email and no password. Your login token on your device
 | `quest inv` | Inventory |
 | `quest equip <#id> [--slot ring1\|ring2]` | Equip an item |
 | `quest unequip <#id>` | Take an item off |
+| `quest scrap <#id>` | Destroy a bag item for gold |
 | `quest fight` | Fight a monster that showed up |
 | `quest shop [buy <1-3>]` | Daily shop |
 | `quest market [--rarity r] [--slot s] [--show line\|buy\|mine] [--sort price]` | Market listings |

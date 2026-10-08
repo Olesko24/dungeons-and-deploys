@@ -18,7 +18,7 @@ import {
   withBonus,
 } from "@dnd/shared";
 import type { Deps } from "./app.ts";
-import { equippedItems, itemView, requireCharacter } from "./characters.ts";
+import { equippedItems, giveLoot, itemView, requireCharacter } from "./characters.ts";
 import { SESSION_COOKIE } from "./auth.ts";
 import { dungeonView } from "./dungeons.ts";
 import { encounterView, maybeSpawnEncounter } from "./encounters.ts";
@@ -173,7 +173,7 @@ async function grantQuest(tx: Prisma.TransactionClient, questId: number, random:
     await tx.guild.update({ where: { id: membership.guildId }, data: { xp: { increment: outcome.xp }, gold: { increment: guildShare(outcome.gold) } } });
   }
   if (!loot) return { ...outcome, loot: null };
-  const lootItem = await tx.item.create({ data: { characterId: character.id, key: loot, ...rollStats(loot, random) } });
+  const lootItem = await giveLoot(tx, character.id, loot, rollStats(loot, random));
   await tx.quest.update({ where: { id: questId }, data: { lootItemId: lootItem.id } });
   return { ...outcome, loot: itemView(lootItem) };
 }
