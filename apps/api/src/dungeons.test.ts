@@ -70,6 +70,7 @@ test("a solo run: stages and boss loot", async () => {
   assert.deepEqual([view.state, view.cleared], ["won", 4]);
   assert.ok(view.you.xp > 0);
   assert.equal((await db.dungeonMember.findFirstOrThrow({ where: { characterId: p.characterId } })).lootItemId !== null, true, "the boss drops loot");
+  assert.equal((await db.shard.findFirstOrThrow({ where: { characterId: p.characterId } })).count, 1, "a low roll drops a shard too");
   assert.equal((await p.call("POST", "/dungeons")).statusCode, 201, "a finished run frees the player");
   assert.match((await inbox(p.characterId, "dungeon"))[0], new RegExp(`^Dungeon ${code} cleared! You earned \\d+ XP, \\d+ gold and `));
 });

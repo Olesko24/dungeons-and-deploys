@@ -59,7 +59,7 @@ export async function buildApp(deps: Deps, opts: FastifyServerOptions = {}) {
   authRoutes(app, db);
   const full = { now: () => new Date(), random: Math.random, scheduleStage: async () => {}, scheduleRaid: async () => {}, scheduleDraw: async () => {}, ...deps };
   questRoutes(app, full);
-  inventoryRoutes(app, db);
+  inventoryRoutes(app, db, full.random);
   encounterRoutes(app, full);
   marketRoutes(app, full);
   dungeonRoutes(app, full);

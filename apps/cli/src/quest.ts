@@ -433,7 +433,23 @@ async function character() {
 async function inventory() {
   const { data } = await authed("/inventory");
   console.log(inventoryLines(data.items as InventoryItem[], data.bonus, rarityColor, data.limit).join("\n"));
-  console.log("\nquest equip <#id> · quest scrap <#id> · quest market sell <#id> [price]");
+  const shards = Object.entries(data.shards as Record<string, number>);
+  if (shards.length) console.log(`\nShards · ${shards.map(([rarity, count]) => `${count}× ${rarityColor(rarity, rarity)}`).join(" · ")}`);
+  console.log("\nquest equip <#id> · quest scrap <#id> · quest upgrade <#id> <#id> <#id> · quest forge <rarity> · quest market sell <#id> [price]");
+}
+
+async function upgrade(ids: string[]) {
+  if (ids.length !== 3) throw new Error("Usage: quest upgrade <#id> <#id> <#id>");
+  const res = await authed("/inventory/upgrade", "POST", { ids: ids.map((id) => Number(id.replace("#", ""))) });
+  fail(res);
+  console.log(`Fused into ${lootText(res.data.item)}.`);
+}
+
+async function forge(rarity: string | undefined) {
+  if (!rarity) throw new Error("Usage: quest forge <rarity>");
+  const res = await authed(`/inventory/shards/${rarity}/forge`, "POST");
+  fail(res);
+  console.log(`Forged ${lootText(res.data.item)}.`);
 }
 
 async function scrap(id: string | undefined) {
@@ -473,6 +489,8 @@ const USAGE = `Usage: quest [command]
   quest equip <#id> [--slot ring2]               equip an item
   quest unequip <#id>                            take an item off
   quest scrap <#id>                              destroy a bag item for a quarter of its value
+  quest upgrade <#id> <#id> <#id>                fuse 3 items of one rarity into a random one of the next
+  quest forge <rarity>                           turn a shard into a random item of its rarity
   quest fight                                    fight a monster that showed up
   quest market [--rarity r] [--slot s]           every listing, --show line|buy|mine, --sort price
   quest market buy|leave <#id>                   join a line or buy at once, leave a line
@@ -567,6 +585,12 @@ try {
       break;
     case "scrap":
       await scrap(positionals[1]);
+      break;
+    case "upgrade":
+      await upgrade(positionals.slice(1));
+      break;
+    case "forge":
+      await forge(positionals[1]);
       break;
     case "unequip":
       await equip(positionals[1], undefined, true);

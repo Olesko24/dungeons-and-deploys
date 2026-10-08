@@ -72,6 +72,7 @@ model Character {
   bestQuestStreak Int          @default(0) @map("best_quest_streak")
   quests       Quest[]
   items        Item[]
+  shards       Shard[]
   encounters   Encounter[]
   draws        MarketDraw[]
   bids         MarketBid[]
@@ -123,7 +124,7 @@ model Item {
   listedAt     DateTime?      @map("listed_at")
   price        Int?
   bids         MarketBid[]
-  /// Set when scrapped for gold. The row stays, so loot statistics keep counting it.
+  /// Set when scrapped for gold or fused in an upgrade. The row stays, so loot statistics keep counting it.
   scrappedAt   DateTime?      @map("scrapped_at")
   createdAt    DateTime       @default(now()) @map("created_at")
   foundIn      Quest?
@@ -135,6 +136,17 @@ model Item {
   @@index([listedAt])
   @@index([characterId, scrappedAt])
   @@map("items")
+}
+
+/// Shards from dungeon and raid bosses, stacked per rarity. Each forges into a random item of its rarity.
+model Shard {
+  characterId Int       @map("character_id")
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  rarity      String
+  count       Int       @default(0)
+
+  @@id([characterId, rarity])
+  @@map("shards")
 }
 
 /// A monster that appeared on a heartbeat. Unfought encounters simply expire, `foughtAt` is set once fought.

@@ -264,6 +264,17 @@ quest unequip <#id>
 quest scrap <#id>                 # destroy a bag item for a quarter of its value
 ```
 
+### Upgrading and shards
+
+Fuse **3 bag items of the same rarity** into one random item of the next rarity, with freshly rolled stats. Equipped and listed items cannot be fused, eternal items are already the highest rarity. On the website pick three items with **Upgrade** in your bag.
+
+Dungeon and raid bosses have a **30% chance** per player to drop a shard on top of their loot. A shard rolls its rarity like the boss loot. Forge it into a random item of that rarity whenever you have room in your bag. Shards stack and do not count against the bag limit.
+
+```sh
+quest upgrade <#id> <#id> <#id>   # 3 items of one rarity → 1 random item of the next
+quest forge <rarity>              # shard → random item of its rarity, shards are listed in quest inv
+```
+
 ## Random encounters
 
 Every heartbeat has a 2% chance to spawn a monster, at most one at a time. Your status line and the website show it. You have 5 minutes to fight, in the terminal or with the **Fight** button:
@@ -362,7 +373,7 @@ quest dungeon                # progress
 
 Each stage succeeds or fails for the whole party. The chance depends on everyone's combat power and a teamwork bonus per member. `quest dungeon` and the website show your power and the recommendation for every stage. Nobody needs to be online during the run. Stages get 10% tougher and pay 10% more per member, so groups are rewarded but solo works too.
 
-Every cleared stage pays XP and gold. A failed stage ends the run, you keep what you earned. Beating the boss gives every member a guaranteed item, with more rarity rolls in bigger parties.
+Every cleared stage pays XP and gold. A failed stage ends the run, you keep what you earned. Beating the boss gives every member a guaranteed item, with more rarity rolls in bigger parties, and a 30% chance for a shard.
 
 ## Guilds
 
@@ -427,7 +438,7 @@ Boss HP depends only on the boss and the number of raiders, so it does not grow 
 average power matches the recommendation, the raid wins about 60% of the time. The odds drop fast below it:
 at 90% of the recommendation only about one raid in five wins, so stronger raiders carry weaker ones.
 
-A win gives every raider who dealt damage XP, gold and an item. Harder bosses roll the rarity more often and use at
+A win gives every raider who dealt damage XP, gold, an item and a 30% chance for a shard. Harder bosses roll the rarity more often and use at
 least their loot level, so their average loot is better.
 
 ## Achievements, statistics and leaderboards
@@ -469,6 +480,8 @@ Dungeons & Deploys has no email and no password. Your login token on your device
 | `quest equip <#id> [--slot ring1\|ring2]` | Equip an item |
 | `quest unequip <#id>` | Take an item off |
 | `quest scrap <#id>` | Destroy a bag item for gold |
+| `quest upgrade <#id> <#id> <#id>` | Fuse 3 items of one rarity into one of the next |
+| `quest forge <rarity>` | Turn a shard into an item |
 | `quest fight` | Fight a monster that showed up |
 | `quest shop [buy <1-3>]` | Daily shop |
 | `quest market [--rarity r] [--slot s] [--show line\|buy\|mine] [--sort price]` | Market listings |

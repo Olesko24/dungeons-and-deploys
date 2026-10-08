@@ -24,6 +24,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). New
 
 ### Added
 
+- Upgrade items: fuse 3 bag items of one rarity into a random item of the next rarity with the **Upgrade**
+  button or `quest upgrade <#id> <#id> <#id>`.
+- Shards: dungeon and raid bosses have a 30% chance to drop a shard on top of their loot. Forge it into a random
+  item of its rarity in the bag or with `quest forge <rarity>`. Shards do not count against the bag limit.
+- Equipped items show their name in the equipment panel.
 - Inbox on the website and with `quest inbox`: market sales and draws, dungeon and raid results, guild news and
   achievements, also from while you were away. Delete single entries or clear it.
 - A live countdown to the next quest at the top of the status, with a rest bar and the start button waiting

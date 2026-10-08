@@ -1,5 +1,5 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { BAG_LIMIT, type Stats, item, itemName, marketValue, scrapValue } from "@dnd/shared";
+import { BAG_LIMIT, SHARD_CHANCE, type Stats, item, itemName, marketValue, scrapValue } from "@dnd/shared";
 import { requireUser } from "./auth.ts";
 import type { Item, Prisma, PrismaClient } from "./generated/prisma/client.ts";
 
@@ -55,6 +55,21 @@ export async function giveLoot(tx: Prisma.TransactionClient, characterId: number
 
 /** " Your bag was full, so it was scrapped for 12 gold." for loot scrapped on arrival. */
 export const scrappedNote = (loot: Item) => (loot.scrappedAt ? ` Your bag was full, so it was scrapped for ${scrapValue(loot.key, loot)} gold.` : "");
+
+/** Rolls the boss shard for one player: SHARD_CHANCE to get one, its rarity from `rollKey` like the boss loot. Returns the rarity or null. */
+export async function giveShard(tx: Prisma.TransactionClient, characterId: number, rollKey: () => string, random: () => number) {
+  if (random() >= SHARD_CHANCE) return null;
+  const { rarity } = item(rollKey());
+  await tx.shard.upsert({
+    where: { characterId_rarity: { characterId, rarity } },
+    create: { characterId, rarity, count: 1 },
+    update: { count: { increment: 1 } },
+  });
+  return rarity;
+}
+
+/** " You also found an epic shard." */
+export const shardNote = (rarity: string | null) => (rarity ? ` You also found ${/^[aeiou]/.test(rarity) ? "an" : "a"} ${rarity} shard.` : "");
 
 export const equippedItems = (db: Pick<PrismaClient, "item">, characterId: number) =>
   db.item.findMany({ where: { characterId, equippedSlot: { not: null } } });

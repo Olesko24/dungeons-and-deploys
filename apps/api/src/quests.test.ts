@@ -22,8 +22,8 @@ async function player(name: string) {
   await db.user.create({
     data: { character: { create: { name } }, sessions: { create: { tokenHash: hash(token) } } },
   });
-  const call = async (method: "GET" | "POST", url: string) =>
-    (await app()).inject({ method, url, headers: { authorization: `Bearer ${token}` } });
+  const call = async (method: "GET" | "POST", url: string, payload?: object) =>
+    (await app()).inject({ method, url, payload, headers: { authorization: `Bearer ${token}` } });
   return { call, character: () => db.character.findFirstOrThrow({ where: { name } }) };
 }
 
@@ -164,6 +164,34 @@ test("scrapping pays gold, a full bag scraps new loot and refuses purchases", as
   const seller = await player("pedlar");
   const offer = await db.item.create({ data: { characterId: (await seller.character()).id, key: "boots.common", listedAt: new Date(0), price: 1 } });
   assert.equal((await p.call("POST", `/market/buy/${offer.id}`)).json().error, "your bag is full (50 items), scrap something first");
+});
+
+test("three items of a rarity fuse into one of the next, shards forge items", async () => {
+  dice = 0;
+  const p = await player("smith");
+  const { id: characterId } = await p.character();
+  const [a, b, c] = await Promise.all(["helm.epic", "ring.epic", "sword.epic"].map((key) => db.item.create({ data: { characterId, key } })));
+  const rare = await db.item.create({ data: { characterId, key: "boots.rare" } });
+  const worn = await db.item.create({ data: { characterId, key: "chest.epic", equippedSlot: "chest" } });
+
+  const upgrade = (ids: number[]) => p.call("POST", "/inventory/upgrade", { ids });
+  assert.equal((await upgrade([a.id, b.id, rare.id])).json().error, "the items must have the same rarity");
+  assert.equal((await upgrade([a.id, b.id, worn.id])).json().error, "pick 3 bag items that are not equipped or listed");
+  assert.equal((await upgrade([a.id, b.id])).statusCode, 400, "exactly three");
+  const fused = await upgrade([a.id, b.id, c.id]);
+  assert.equal(fused.json().item.rarity, "legendary");
+  assert.equal((await upgrade([a.id, b.id, c.id])).statusCode, 400, "fused items are gone");
+  assert.deepEqual((await p.call("GET", "/inventory")).json().items.map((i: { id: number }) => i.id), [rare.id, worn.id, fused.json().item.id]);
+
+  const top = await Promise.all([0, 1, 2].map(() => db.item.create({ data: { characterId, key: "ring.eternal" } })));
+  assert.equal((await upgrade(top.map((i) => i.id))).json().error, "eternal is the highest rarity");
+
+  assert.equal((await p.call("POST", "/inventory/shards/mythic/forge")).json().error, "you have no mythic shard");
+  await db.shard.create({ data: { characterId, rarity: "mythic", count: 1 } });
+  assert.deepEqual((await p.call("GET", "/inventory")).json().shards, { mythic: 1 });
+  assert.equal((await p.call("POST", "/inventory/shards/mythic/forge")).json().item.rarity, "mythic");
+  assert.deepEqual((await p.call("GET", "/inventory")).json().shards, {}, "used up");
+  assert.equal((await p.call("POST", "/inventory/shards/shiny/forge")).statusCode, 404);
 });
 
 test("quest routes need a token", async () => {

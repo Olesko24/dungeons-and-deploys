@@ -215,6 +215,14 @@ export function randomItemBase(random: () => number) {
   return kinds[Math.floor(random() * kinds.length)];
 }
 
+/** Bag items of one rarity that fuse into one random item of the next rarity. */
+export const UPGRADE_COST = 3;
+/** Chance per player for a shard on top of dungeon and raid boss loot. A shard forges into a random item of its rarity. */
+export const SHARD_CHANCE = 0.3;
+
+/** A random armor type or weapon kind in a fixed rarity, for upgrades and shards. */
+export const randomItemOf = (rarity: Rarity, random: () => number) => `${randomItemBase(random)}.${rarity}`;
+
 /**
  * Where an item goes and which equipped items have to come off for it.
  * Rings take the first free ring slot, otherwise `preferred` or ring1.

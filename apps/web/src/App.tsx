@@ -1,4 +1,4 @@
-import { BAG_LIMIT, MARKET_MAX_PRICE, PRICE_TAGS, type PriceTag, priceTag, sellerPayout } from "@dnd/shared";
+import { BAG_LIMIT, MARKET_MAX_PRICE, PRICE_TAGS, type PriceTag, RARITIES, type Rarity as RarityName, UPGRADE_COST, priceTag, sellerPayout } from "@dnd/shared";
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import {
   type Achievement,
@@ -373,12 +373,20 @@ function PriceTagLabel({ tag }: { tag: PriceTag }) {
   return <span className={`tag ${tag}`}>{PRICE_TAGS[tag]}</span>;
 }
 
-function Inventory({ items, onChange }: { items: Item[]; onChange: () => void }) {
+function Inventory({ items, shards, onChange }: { items: Item[]; shards: Record<string, number>; onChange: () => void }) {
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [selling, setSelling] = useState<number | null>(null);
+  const [picked, setPicked] = useState<number[]>([]);
   const act = (path: string) => api(path, {}).then(onChange, (err: Error) => setError(err.message));
+  const make = (path: string, body: object = {}) =>
+    api<{ item: Item }>(path, body).then(({ item }) => { setPicked([]); setMessage(`You got ${item.name} (${item.rarity}).`); onChange(); }, (err: Error) => setError(err.message));
   const bySlot = new Map(items.filter((i) => i.equippedSlot).map((i) => [i.equippedSlot, i]));
   const bag = items.filter((i) => !i.equippedSlot);
+  const pickedRarity = bag.find((i) => i.id === picked[0])?.rarity;
+  const nextRarity = pickedRarity && RARITIES[RARITIES.indexOf(pickedRarity as RarityName) + 1];
+  const canPick = (i: Item) => !i.listed && i.rarity !== "eternal" && (!pickedRarity || i.rarity === pickedRarity);
+  const togglePick = (id: number) => setPicked(picked.includes(id) ? picked.filter((p) => p !== id) : picked.length < UPGRADE_COST ? [...picked, id] : picked);
   return (
     <>
       <section className="panel" data-tour="equipment">
@@ -404,6 +412,7 @@ function Inventory({ items, onChange }: { items: Item[]; onChange: () => void })
                     <ItemIcon item={item} />
                   </button>
                 ) : <span className="slot-empty" />}
+                {item && <span className="slot-name">{item.name}</span>}
                 {item && <StatList stats={item.stats} />}
               </div>
             );
@@ -414,6 +423,26 @@ function Inventory({ items, onChange }: { items: Item[]; onChange: () => void })
         <h2><UiIcon name="bag" />Bag · {bag.length} <span className="dim">· {items.length} of {BAG_LIMIT} items</span></h2>
         {items.length >= BAG_LIMIT && <p className="alert">Your bag is full. New loot is scrapped for gold until you scrap or sell something.</p>}
         {bag.length === 0 && <p className="dim">Empty. Successful quests and won fights drop items.</p>}
+        {message && <p role="status">{message}</p>}
+        {Object.keys(shards).length > 0 && (
+          <p className="item-actions">
+            Shards:
+            {RARITIES.filter((r) => shards[r]).map((r) => (
+              <button key={r} type="button" className="small ghost" title={`Forge a random ${r} item`} onClick={() => make(`/inventory/shards/${r}/forge`)}>
+                <RarityIcon rarity={r} /> {shards[r]}× {r} · Forge
+              </button>
+            ))}
+          </p>
+        )}
+        {picked.length > 0 && (
+          <p className="item-actions">
+            {picked.length} of {UPGRADE_COST} {pickedRarity} picked
+            <button type="button" className="small" disabled={picked.length < UPGRADE_COST} onClick={() => make("/inventory/upgrade", { ids: picked })}>
+              Fuse into a random {nextRarity} item
+            </button>
+            <button type="button" className="small ghost" onClick={() => setPicked([])}>Cancel</button>
+          </p>
+        )}
         <ul className="items">
           {bag.map((item) => (
             <li key={item.id} className={item.rarity}>
@@ -424,6 +453,11 @@ function Inventory({ items, onChange }: { items: Item[]; onChange: () => void })
               </div>
               <span className="item-actions">
                 {!item.listed && <button type="button" className="small" onClick={() => act(`/inventory/${item.id}/equip`)}>Equip</button>}
+                {canPick(item) && (
+                  <button type="button" className="small ghost" aria-pressed={picked.includes(item.id)} title={`Fuse ${UPGRADE_COST} items of one rarity into a random item of the next`} onClick={() => togglePick(item.id)}>
+                    {picked.includes(item.id) ? "Picked" : "Upgrade"}
+                  </button>
+                )}
                 {item.listed ? (
                   <button type="button" className="small ghost" onClick={() => act(`/market/unlist/${item.id}`)}>Unlist</button>
                 ) : (
@@ -993,7 +1027,7 @@ function RanksView() {
 
 type View = "character" | "talents" | "shop" | "market" | "stats" | "ranks" | "ideas" | "inbox" | DocName;
 
-type Data = { character: Character; status: Status; items: Item[]; history: Quest[]; guild: Guild | null; raids: Raids };
+type Data = { character: Character; status: Status; items: Item[]; shards: Record<string, number>; history: Quest[]; guild: Guild | null; raids: Raids };
 
 const questReady = (s: Status) => !s.quest || (s.quest.resolved && !minutesUntil(s.readyAt));
 
@@ -1042,14 +1076,14 @@ export function App() {
         full || !prev || Date.now() - lastFull.current > 5 * 60_000 ||
         prev.character.xp !== character.xp || prev.character.gold !== character.gold || prev.character.unread !== character.unread ||
         prev.status.quest?.startedAt !== status.quest?.startedAt;
-      let rest = prev && { items: prev.items, history: prev.history, guild: prev.guild };
+      let rest = prev && { items: prev.items, shards: prev.shards, history: prev.history, guild: prev.guild };
       if (changed || !rest) {
         const [inventory, history, guild] = await Promise.all([
-          api<{ items: Item[] }>("/inventory"),
+          api<{ items: Item[]; shards: Record<string, number> }>("/inventory"),
           api<Quest[]>("/quests/history"),
           api<{ guild: Guild | null }>("/guild"),
         ]);
-        rest = { items: inventory.items, history, guild: guild.guild };
+        rest = { items: inventory.items, shards: inventory.shards, history, guild: guild.guild };
         lastFull.current = Date.now();
       }
       const next = { character, status, raids: raid, ...rest };
@@ -1161,7 +1195,7 @@ export function App() {
       {view === "character" && (
         <>
           <QuestStatus status={data.status} onChange={() => void load()} />
-          <Inventory items={data.items} onChange={() => void load()} />
+          <Inventory items={data.items} shards={data.shards} onChange={() => void load()} />
           {data.raids.raid && <RaidView raid={data.raids.raid} power={data.raids.power} me={c.name} onChange={() => void load()} />}
           <GuildHall guild={data.guild} raids={data.raids} me={c.name} onChange={() => void load()} />
           <History quests={data.history} />
