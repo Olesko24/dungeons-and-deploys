@@ -52,7 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          curl --fail --silent --show-error -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_DEPLOY_URL"
+          curl --fail-with-body --silent --show-error -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_DEPLOY_URL"
         env:
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
           COOLIFY_DEPLOY_URL: ${{ secrets.COOLIFY_DEPLOY_URL }}
