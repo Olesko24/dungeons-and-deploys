@@ -439,15 +439,24 @@ function Inventory({ items, onChange }: { items: Item[]; onChange: () => void })
 }
 
 function History({ quests }: { quests: Quest[] }) {
+  const [all, setAll] = useState(false);
+  const shown = all ? quests : quests.slice(0, 5);
   return (
     <section className="panel">
-      <h2><UiIcon name="scroll" />Quest history</h2>
+      <div className="row">
+        <h2><UiIcon name="scroll" />Quest history</h2>
+        {quests.length > 5 && (
+          <button type="button" className="small ghost" aria-expanded={all} onClick={() => setAll(!all)}>
+            {all ? "Show fewer" : `Show last ${quests.length}`}
+          </button>
+        )}
+      </div>
       {quests.length === 0 ? <p className="dim">No finished quests yet.</p> : (
         <div className="scroll">
           <table>
             <thead><tr><th>Started</th><th>Result</th><th>XP</th><th>Gold</th><th>Loot</th></tr></thead>
             <tbody>
-              {quests.map((q) => (
+              {shown.map((q) => (
                 <tr key={q.startedAt}>
                   <td>{new Date(q.startedAt).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}</td>
                   <td>{q.success ? "✓" : "✗"}</td>
