@@ -749,7 +749,7 @@ function ListingCard({ listing: l, gold, now, onAct }: { listing: Listing; gold:
   const phase = l.phase === "draw" && left <= 0 ? "drawing" : l.phase;
   const line = `${l.bidders} in line`;
   return (
-    <div className={`offer ${l.item.rarity}`}>
+    <div className={`offer listing ${l.item.rarity}`}>
       <ItemIcon item={l.item} />
       <span className="name">{l.item.name}</span>
       <span className="dim"><Rarity rarity={l.item.rarity} /> · <StatList stats={l.item.stats} /></span>
