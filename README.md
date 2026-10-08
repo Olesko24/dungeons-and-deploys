@@ -175,7 +175,8 @@ See [docs/hosting.md](docs/hosting.md) for sizing and operations.
 
 Phases 0–11 are built: accounts, quests, Claude Code and shell integrations, items and loot,
 encounters, market, website, dungeons, guilds, raids, hardening, achievements and a daily shop.
-Open: first deploy to Coolify, publishing the CLI to npm, monitoring alerts.
+Deployed with Coolify, every push to `main` goes live.
+Open: publishing the CLI to npm, monitoring alerts, Postgres backups.
 
 Details per phase: [docs/roadmap.md](docs/roadmap.md)
 

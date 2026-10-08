@@ -25,6 +25,9 @@ Start small. Scale the VPS vertically when needed.
 The API runs as a Coolify application built from this repository, at `https://dnd.meiners-dev.de`.
 The CLI uses this URL by default, `DND_URL` overrides it on login.
 
+Every push to `main` deploys automatically: a GitHub webhook triggers the Coolify build. Run tests,
+typecheck and lint before pushing, a push is a release.
+
 | Setting | Value |
 |---|---|
 | Build pack | Dockerfile |

@@ -51,7 +51,8 @@ No email: the API token on the player's devices is the identity. Losing all devi
 - [x] CLI build for npm (`dungeons-and-deploys` package)
 - [ ] CLI published to npm
 - [x] Dockerfile for the API (web follows in Phase 6)
-- [ ] Deploy to Coolify, Postgres backups to S3 enabled
+- [x] Deploy to Coolify, automatic on every push to `main` via GitHub webhook
+- [ ] Postgres backups to S3 enabled
 - [x] Install guide in README, deploy guide in [hosting.md](hosting.md)
 
 **Done when:** One person plays via the Claude Code plugin, another via the shell integration. Both log in with a code and finish a quest against the deployed server.
