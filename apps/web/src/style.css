@@ -158,7 +158,9 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .offers { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: 12px; }
 .offer { background: var(--panel-deep); padding: 12px; display: grid; justify-items: center; gap: 8px; text-align: center; border-bottom: var(--pixel) solid currentColor; }
 .offer .dim { font-size: 18px; }
-.listing { border: var(--pixel) solid currentColor; }
+.offers.market { grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); gap: 8px; }
+.listing { border: var(--pixel) solid currentColor; padding: 8px; gap: 4px; font-size: 18px; }
+.listing .dim { font-size: 16px; }
 
 .trees { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: 12px; }
 .tree { background: var(--panel-deep); padding: 12px; display: grid; gap: 12px; justify-items: center; align-content: start; }
@@ -261,6 +263,7 @@ tbody tr.you td { color: var(--gold); }
 
 @media (max-width: 30rem) {
   .hero { grid-template-columns: minmax(0, 1fr); }
+  .offers.market { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (prefers-reduced-motion: reduce) {
   button:active { transform: none; }

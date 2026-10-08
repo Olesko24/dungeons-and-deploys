@@ -827,7 +827,7 @@ function MarketView({ onChange }: { onChange: () => void }) {
       </div>
       {message && <p role="status">{message}</p>}
       {!market ? <p>Loading…</p> : market.listings.length === 0 ? <p className="dim">Nothing listed that matches.</p> : (
-        <div className="offers">
+        <div className="offers market">
           {market.listings.map((l) => <ListingCard key={l.item.id} listing={l} gold={market.gold} now={now} onAct={act} />)}
         </div>
       )}
@@ -1107,11 +1107,12 @@ export function App() {
   const reload = useCallback(() => void load(), [load]);
 
   // An open tab counts as a heartbeat once a minute, so monsters can show up here too.
+  // A second over the server's one-per-minute limit, so timer jitter does not run into a 429.
   useEffect(() => {
     if (loggedOut) return;
     const beat = () => void api("/heartbeat", {}).catch(() => {});
     beat();
-    const timer = setInterval(beat, 60_000);
+    const timer = setInterval(beat, 61_000);
     return () => clearInterval(timer);
   }, [loggedOut]);
 
