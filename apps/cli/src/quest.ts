@@ -367,7 +367,7 @@ async function shop(action: string | undefined, offer: string | undefined) {
   const hours = Math.ceil(minutesUntil(data.refreshesAt) / 60);
   console.log(`Shop · ${data.gold}g · new offers in ${hours}h`);
   for (const o of data.offers) {
-    const note = o.bought ? " · bought" : o.locked ? ` · unlocks at Lv ${o.unlockLevel}` : "";
+    const note = o.bought ? " · bought" : "";
     console.log(`  ${o.offer}  ${rarityColor(o.name.padEnd(40), o.rarity)}${o.rarity.padEnd(10)}${String(o.price).padStart(5)}g  ${statsText(o.stats)}${note}`);
   }
   console.log("\nquest shop buy <1-3>");

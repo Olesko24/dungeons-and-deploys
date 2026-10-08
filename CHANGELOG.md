@@ -78,6 +78,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). New
 
 ### Changed
 
+- The shop has no level locks anymore. Epic and mythic offers only need the gold, like items on the market.
 - The quest history on the website shows the last 5 quests, **Show last 20** opens the rest.
 - **Breaking:** Tokenquest is now called **Dungeons & Deploys**. The npm package and the Claude Code plugin are
   `dungeons-and-deploys`, local files move to `~/.dungeons-and-deploys` (log in again), the prompt function is

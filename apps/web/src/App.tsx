@@ -767,8 +767,8 @@ function ShopView({ onChange }: { onChange: () => void }) {
             <span className="name">{o.name}</span>
             <span className="dim"><Rarity rarity={o.rarity} /> · <Gold amount={o.price} /></span>
             <StatList stats={o.stats} />
-            <button type="button" className="small" disabled={o.bought || o.locked || shop.gold < o.price} onClick={() => buy(o.offer)}>
-              {o.bought ? "Bought" : o.locked ? `Lv ${o.unlockLevel}` : "Buy"}
+            <button type="button" className="small" disabled={o.bought || shop.gold < o.price} onClick={() => buy(o.offer)}>
+              {o.bought ? "Bought" : "Buy"}
             </button>
           </div>
         ))}

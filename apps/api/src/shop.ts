@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { levelFromXp, shopDay, shopOffers } from "@dnd/shared";
+import { shopDay, shopOffers } from "@dnd/shared";
 import type { Deps } from "./app.ts";
 import { BAG_FULL, bagFull, itemView, requireCharacter } from "./characters.ts";
 import { Prisma } from "./generated/prisma/client.ts";
@@ -13,7 +13,6 @@ export function shopRoutes(app: FastifyInstance, { db, now }: Required<Deps>) {
     const bought = new Set(
       (await db.shopPurchase.findMany({ where: { characterId: character.id, day } })).map((p) => p.offer),
     );
-    const level = levelFromXp(character.xp).level;
     const tomorrow = new Date(`${day}T00:00:00Z`).getTime() + 24 * 60 * 60 * 1000;
     return {
       gold: character.gold,
@@ -25,8 +24,6 @@ export function shopRoutes(app: FastifyInstance, { db, now }: Required<Deps>) {
         rarity: o.rarity,
         stats: o.stats,
         price: o.price,
-        unlockLevel: o.unlockLevel,
-        locked: level < o.unlockLevel,
         bought: bought.has(i + 1),
       })),
     };
@@ -40,9 +37,6 @@ export function shopRoutes(app: FastifyInstance, { db, now }: Required<Deps>) {
       if (!character) return;
       const day = shopDay(now());
       const offer = shopOffers(day)[req.body.offer - 1];
-      if (levelFromXp(character.xp).level < offer.unlockLevel) {
-        return reply.code(400).send({ error: `${offer.rarity} offers unlock at level ${offer.unlockLevel}` });
-      }
 
       const result = await db
         .$transaction(async (tx) => {

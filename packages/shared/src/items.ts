@@ -176,8 +176,6 @@ const LOOT_TABLE: [minLevel: number, weights: number[]][] = [
 ];
 
 /** The level from which a rarity can drop. */
-export const rarityLevel = (rarity: Rarity) => LOOT_TABLE.findLast(([, weights]) => weights.length > rarityIndex(rarity))![0];
-
 export const DROP_CHANCE = 0.4;
 
 export function rollRarity(level: number, rolls: number, random: () => number): Rarity {

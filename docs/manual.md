@@ -310,11 +310,11 @@ A win gives XP and gold by toughness and a 40% chance for an item. A defeat cost
 
 The shop has three offers per day, the same for every player: one uncommon, one epic and one mythic item. They change at midnight UTC.
 
-| Offer | Price | Needs |
-|---|---|---|
-| Uncommon | 70 gold | – |
-| Epic | 240 gold | level 10 |
-| Mythic | 1000 gold | level 30 |
+| Offer | Price |
+|---|---|
+| Uncommon | 70 gold |
+| Epic | 240 gold |
+| Mythic | 1000 gold |
 
 You can buy each offer once per day. Offers show their stats, and every buyer gets exactly that item.
 

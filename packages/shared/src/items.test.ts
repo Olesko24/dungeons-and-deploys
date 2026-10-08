@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { RARITIES, equipPlan, equipmentBonus, item, itemName, questOutcome, rarityLevel, rollLoot, rollRarity, rollStats } from "./index.ts";
+import { RARITIES, equipPlan, equipmentBonus, item, itemName, questOutcome, rollLoot, rollRarity, rollStats } from "./index.ts";
 
 /** Returns the given values in order, like a loaded die. */
 const dice = (...values: number[]) => () => values.shift() ?? 0;
@@ -55,7 +55,6 @@ test("rarity depends on level", () => {
   assert.equal(rollRarity(89, 1, () => 0.9999), "celestial");
   assert.equal(rollRarity(90, 1, () => 0.9999), "eternal");
   assert.equal(rollRarity(10, 3, dice(0.1, 0.99, 0.5)), "epic", "best of several rolls");
-  assert.deepEqual(RARITIES.map(rarityLevel), [1, 1, 5, 10, 20, 30, 45, 60, 75, 90]);
 });
 
 test("loot roll", () => {
