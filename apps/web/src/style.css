@@ -162,7 +162,8 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .offer .dim { font-size: 18px; }
 .offers.market { grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); gap: 8px; }
 .listing { border: var(--pixel) solid currentColor; padding: 8px; gap: 4px; font-size: 18px; }
-.listing .dim { font-size: 16px; }
+.listing .dim, .listing .rarity, .listing .stat-list { font-size: 16px; }
+.listing .stat-list { justify-content: center; }
 
 .trees { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: 12px; }
 .tree { background: var(--panel-deep); padding: 12px; display: grid; gap: 12px; justify-items: center; align-content: start; }

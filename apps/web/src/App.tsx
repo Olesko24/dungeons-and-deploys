@@ -765,8 +765,9 @@ function ShopView({ onChange }: { onChange: () => void }) {
           <div key={o.offer} className={`offer ${o.rarity}`}>
             <img className="icon" src={`/items/${o.key}.svg`} alt="" width={64} height={64} />
             <span className="name">{o.name}</span>
-            <span className="dim"><Rarity rarity={o.rarity} /> · <Gold amount={o.price} /></span>
+            <Rarity rarity={o.rarity} />
             <StatList stats={o.stats} />
+            <Gold amount={o.price} />
             <button type="button" className="small" disabled={o.bought || shop.gold < o.price} onClick={() => buy(o.offer)}>
               {o.bought ? "Bought" : "Buy"}
             </button>
@@ -785,15 +786,18 @@ const ITEM_TYPE_LABELS: [string, string][] = [
 function ListingCard({ listing: l, gold, now, onAct }: { listing: Listing; gold: number; now: number; onAct: (path: string, done: string) => void }) {
   const left = new Date(l.drawAt).getTime() - now;
   const phase = l.phase === "draw" && left <= 0 ? "drawing" : l.phase;
-  const line = `${l.bidders} in line`;
   return (
     <div className={`offer listing ${l.item.rarity}`}>
+      <PriceTagLabel tag={l.tag} />
       <ItemIcon item={l.item} />
       <span className="name">{l.item.name}</span>
-      <span className="dim"><Rarity rarity={l.item.rarity} /> · <StatList stats={l.item.stats} /></span>
-      <span><Gold amount={l.price} /> <PriceTagLabel tag={l.tag} /></span>
-      <span className="dim">{l.mine ? "your listing" : `by ${l.seller}`} · worth about {l.value}g</span>
-      <span className="dim">{phase === "draw" ? `draw in ${clock(left)} · ${line}` : phase === "drawing" ? `drawing… · ${line}` : "no line · first come, first served"}</span>
+      <Rarity rarity={l.item.rarity} />
+      <StatList stats={l.item.stats} />
+      <Gold amount={l.price} />
+      <span className="dim">worth about {l.value}g</span>
+      <span className="dim">{l.mine ? "your listing" : `by ${l.seller}`}</span>
+      <span className="dim">{phase === "draw" ? `draw in ${clock(left)}` : phase === "drawing" ? "drawing…" : "no line"}</span>
+      {phase !== "buy" && <span className="dim">{l.bidders} in line</span>}
       {l.mine ? (
         <button type="button" className="small ghost" disabled={l.bidders > 0} title={l.bidders ? "Buyers are in line, it gets drawn" : undefined} onClick={() => onAct(`/market/unlist/${l.item.id}`, "Taken off the market.")}>
           Unlist
