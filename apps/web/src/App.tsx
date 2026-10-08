@@ -377,12 +377,14 @@ function Inventory({ items, shards, onChange }: { items: Item[]; shards: Record<
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [selling, setSelling] = useState<number | null>(null);
-  const [picked, setPicked] = useState<number[]>([]);
+  const [picks, setPicked] = useState<number[]>([]);
   const act = (path: string) => api(path, {}).then(onChange, (err: Error) => setError(err.message));
   const make = (path: string, body: object = {}) =>
     api<{ item: Item }>(path, body).then(({ item }) => { setPicked([]); setMessage(`You got ${item.name} (${item.rarity}).`); onChange(); }, (err: Error) => setError(err.message));
   const bySlot = new Map(items.filter((i) => i.equippedSlot).map((i) => [i.equippedSlot, i]));
   const bag = items.filter((i) => !i.equippedSlot);
+  // Drops picks that were scrapped, equipped or listed meanwhile.
+  const picked = picks.filter((id) => bag.some((i) => i.id === id && !i.listed));
   const pickedRarity = bag.find((i) => i.id === picked[0])?.rarity;
   const nextRarity = pickedRarity && RARITIES[RARITIES.indexOf(pickedRarity as RarityName) + 1];
   const canPick = (i: Item) => !i.listed && i.rarity !== "eternal" && (!pickedRarity || i.rarity === pickedRarity);
@@ -1071,8 +1073,9 @@ export function App() {
    */
   const load = useCallback(async (full = true) => {
     try {
-      const prev = last.current;
       const [character, status, raid] = await Promise.all([api<Character>("/character"), api<Status>("/quests/current"), api<Raids>("/raids/current")]);
+      // Read after the fetch, so a reload that finished meanwhile is not overwritten with older data.
+      const prev = last.current;
       const changed =
         full || !prev || Date.now() - lastFull.current > 5 * 60_000 ||
         prev.character.xp !== character.xp || prev.character.gold !== character.gold || prev.character.unread !== character.unread ||

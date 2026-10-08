@@ -58,7 +58,7 @@ export function inventoryRoutes(app: FastifyInstance, db: PrismaClient, random: 
           data: { equippedSlot: null },
         });
         const { count } = await tx.item.updateMany({
-          where: { id: target.id, characterId: character.id, listedAt: null },
+          where: { id: target.id, characterId: character.id, listedAt: null, scrappedAt: null },
           data: { equippedSlot: plan.slot },
         });
         if (count === 0) throw new Error("item changed hands");

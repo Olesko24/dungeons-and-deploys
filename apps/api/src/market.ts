@@ -101,7 +101,7 @@ export function marketRoutes(app: FastifyInstance, { db, now, scheduleDraw }: Re
       if (!target) return reply.code(400).send({ error: "item not found, equipped or already listed" });
       const price = req.body?.price ?? marketValue(target.key, target);
       const t = now();
-      const listed = await db.item.updateMany({ where: { id: target.id, equippedSlot: null, listedAt: null }, data: { listedAt: t, price } });
+      const listed = await db.item.updateMany({ where: { id: target.id, equippedSlot: null, listedAt: null, scrappedAt: null }, data: { listedAt: t, price } });
       if (listed.count === 0) return reply.code(400).send({ error: "item not found, equipped or already listed" });
       await scheduleDraw(target.id, drawAt(t)).catch(async (err) => {
         await db.item.update({ where: { id: target.id }, data: { listedAt: null, price: null } });
