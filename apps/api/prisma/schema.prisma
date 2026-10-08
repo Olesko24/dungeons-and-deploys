@@ -65,10 +65,14 @@ model Character {
   talents      Json            @default("{}")
   /// Website tour: new, skipped or done. Done unlocks an achievement.
   tour         String          @default("new")
+  /// Notifications created after this are unread.
+  inboxSeenAt  DateTime        @default(now()) @map("inbox_seen_at")
   quests       Quest[]
   items        Item[]
   encounters   Encounter[]
   draws        MarketDraw[]
+  bids         MarketBid[]
+  inbox        Notification[]
   dungeons     DungeonMember[]
   guild        GuildMember?
   raids        RaidMember[]
@@ -111,8 +115,10 @@ model Item {
   luck         Int            @default(0)
   fortune      Int            @default(0)
   equippedSlot String?        @map("equipped_slot")
-  /// Set while the item is offered on the market. Listed items cannot be equipped.
+  /// Set while the item is offered on the market, with the seller's price. Listed items cannot be equipped.
   listedAt     DateTime?      @map("listed_at")
+  price        Int?
+  bids         MarketBid[]
   createdAt    DateTime       @default(now()) @map("created_at")
   foundIn      Quest?
   wonIn        Encounter?
@@ -120,6 +126,7 @@ model Item {
   raidLoot     RaidMember?
 
   @@unique([characterId, equippedSlot])
+  @@index([listedAt])
   @@map("items")
 }
 
@@ -143,7 +150,7 @@ model Encounter {
   @@map("encounters")
 }
 
-/// One market purchase. Used for the daily draw limit and as history.
+/// One market sale, drawn or bought at once. Counted for statistics.
 model MarketDraw {
   id        Int       @id @default(autoincrement())
   buyerId   Int       @map("buyer_id")
@@ -156,6 +163,34 @@ model MarketDraw {
 
   @@index([buyerId, createdAt])
   @@map("market_draws")
+}
+
+/// A buyer in line for a listing. The price is taken from the buyer's gold on joining and refunded unless drawn.
+model MarketBid {
+  itemId      Int       @map("item_id")
+  item        Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  characterId Int       @map("character_id")
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  price       Int
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@id([itemId, characterId])
+  @@index([characterId])
+  @@map("market_bids")
+}
+
+/// Something that happened to a character, shown in the inbox. Deleted by the player or after 30 days.
+model Notification {
+  id          Int       @id @default(autoincrement())
+  characterId Int       @map("character_id")
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  /// market, dungeon, raid, guild or achievement
+  kind        String
+  text        String
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([characterId, createdAt])
+  @@map("notifications")
 }
 
 /// A dungeon run: a 5-minute lobby, then three stages and a boss of 15 minutes each.

@@ -124,6 +124,24 @@ export function rollStats(key: string, random: () => number): Stats {
   return stats;
 }
 
+/**
+ * How good a roll is within its rarity, from 0 (every stat at its minimum) to 1 (every stat at its maximum).
+ * The average position of each rolled stat in its range, weapon attack measured before the kind's multiplier.
+ */
+export function rollQuality(key: string, stats: Stats) {
+  const { rarity, primary, signature } = item(key);
+  const tier = rarityIndex(rarity);
+  const kind = key.split(".")[0] as WeaponKind;
+  const position = (value: number, [min, max]: Range) => (max === min ? 1 : Math.min(1, Math.max(0, (value - min) / (max - min))));
+  const base = kind in WEAPONS ? stats[primary] / (WEAPONS[kind].hands * WEAPONS[kind].attack) : stats[primary];
+  const scores = [position(base, PRIMARY_RANGE[primary][tier])];
+  if (signature) scores.push(position(stats[signature], BONUS_RANGE[signature][Math.max(1, tier)]));
+  for (const stat of STATS) {
+    if (stat !== primary && stat !== signature && stats[stat]) scores.push(position(stats[stat], BONUS_RANGE[stat][tier]));
+  }
+  return scores.reduce((sum, s) => sum + s, 0) / scores.length;
+}
+
 /** Name with a prefix for the strongest random bonus stat, measured against its maximum. */
 export function itemName(key: string, stats: Stats) {
   const { rarity, baseName, primary, signature } = item(key);

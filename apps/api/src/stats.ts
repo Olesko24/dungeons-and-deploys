@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { ACHIEVEMENTS, type PlayerStats, type Talents, item, levelFromXp, playerBonus, playerPower, rarityIndex } from "@dnd/shared";
 import { requireCharacter } from "./characters.ts";
+import { notify } from "./inbox.ts";
 import type { Character, PrismaClient } from "./generated/prisma/client.ts";
 
 /** Most successful quests in a row. */
@@ -74,8 +75,13 @@ export async function syncProgress(db: PrismaClient, characterId: number) {
   const power = playerPower(level, bonus.gear, bonus.power);
   if (power !== character.power) await db.character.update({ where: { id: characterId }, data: { power } });
   const stats = await playerStats(db, character);
-  const unlocked = ACHIEVEMENTS.filter((a) => a.done(stats)).map((a) => ({ characterId, key: a.key }));
-  if (unlocked.length) await db.achievement.createMany({ data: unlocked, skipDuplicates: true });
+  const known = new Set((await db.achievement.findMany({ where: { characterId } })).map((a) => a.key));
+  const unlocked = ACHIEVEMENTS.filter((a) => !known.has(a.key) && a.done(stats));
+  if (unlocked.length) {
+    // skipDuplicates covers a parallel sync, which then notifies twice at worst.
+    await db.achievement.createMany({ data: unlocked.map((a) => ({ characterId, key: a.key })), skipDuplicates: true });
+    for (const a of unlocked) await notify(db, [characterId], "achievement", `Achievement unlocked: ${a.name}. ${a.description}.`);
+  }
   return stats;
 }
 

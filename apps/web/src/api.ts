@@ -1,5 +1,5 @@
 export type Stats = { attack: number; defense: number; luck: number; fortune: number };
-export type Item = { id: number; key: string; name: string; type: string; rarity: string; stats: Stats; equippedSlot: string | null; listed: boolean };
+export type Item = { id: number; key: string; name: string; type: string; rarity: string; stats: Stats; equippedSlot: string | null; listed: boolean; price: number | null; value: number };
 export type Quest = {
   name: string;
   story: string | null;
@@ -11,7 +11,7 @@ export type Quest = {
   gold: number;
   loot: Item | null;
 };
-export type Character = Stats & { name: string; xp: number; gold: number; tour: "new" | "skipped" | "done"; level: number; xpIntoLevel: number; xpForNext: number; power: number };
+export type Character = Stats & { name: string; xp: number; gold: number; tour: "new" | "skipped" | "done"; level: number; xpIntoLevel: number; xpForNext: number; power: number; unread: number };
 export type Status = {
   quest: Quest | null;
   readyAt: string;
@@ -51,7 +51,21 @@ export type Raids = { raid: Raid | null; bosses: RaidBoss[]; power: number };
 
 export type ShopOffer = { offer: number; key: string; name: string; rarity: string; stats: Stats; price: number; unlockLevel: number; locked: boolean; bought: boolean };
 export type Shop = { gold: number; refreshesAt: string; offers: ShopOffer[] };
-export type Market = { gold: number; drawsLeft: number; offers: { rarity: string; price: number; available: number; unlockLevel: number; unlocked: boolean }[] };
+export type Listing = {
+  item: Item;
+  seller: string;
+  price: number;
+  value: number;
+  tag: "loot" | "fair" | "ripoff";
+  drawAt: string;
+  /** draw: buyers line up, drawing: the window is over and the draw runs, buy: no line, first come first served */
+  phase: "draw" | "drawing" | "buy";
+  bidders: number;
+  joined: boolean;
+  mine: boolean;
+};
+export type Market = { gold: number; listings: Listing[] };
+export type InboxEntry = { id: number; kind: string; text: string; createdAt: string; unread: boolean };
 export type Talent = {
   key: string;
   name: string;

@@ -15,13 +15,15 @@ import {
   raidPhase,
   raidRewards,
   raidStory,
+  itemName,
   rollStats,
   talentBonus,
   withBonus,
 } from "@dnd/shared";
 import type { Deps } from "./app.ts";
 import { equippedItems, requireCharacter } from "./characters.ts";
-import { guildBuffs } from "./guilds.ts";
+import { guildBuffs, guildMates } from "./guilds.ts";
+import { levelUpNote, notify } from "./inbox.ts";
 import type { Character, PrismaClient } from "./generated/prisma/client.ts";
 
 /** Talents and buffs in raids, as one percent: combat power and raid damage multiply. */
@@ -86,13 +88,17 @@ export function advanceRaid(db: PrismaClient, raidId: number, tick: number, rand
       fighters.push({ m, level, bonus, power });
     }
 
+    const boss = RAID_BOSSES[raid.tier].name;
+    const everyone = fighters.map((f) => f.m.characterId);
     if (tick === 0) {
       if (fighters.length < RAID_MIN_PLAYERS) {
         await tx.raid.update({ where: { id: raidId }, data: { state: "cancelled" } });
+        await notify(tx, everyone, "raid", `The raid against ${boss} was cancelled: ${fighters.length} of ${RAID_MIN_PLAYERS} raiders showed up.`);
         return { state: "cancelled", next: false };
       }
       const hp = raidBossHp(raid.tier, fighters.length);
       await tx.raid.update({ where: { id: raidId }, data: { state: "running", bossHp: hp, bossMaxHp: hp } });
+      await notify(tx, everyone, "raid", `The raid against ${boss} started with ${fighters.length} raiders. Stay present to deal damage.`);
       return { state: "running", next: true };
     }
 
@@ -110,11 +116,19 @@ export function advanceRaid(db: PrismaClient, raidId: number, tick: number, rand
     const state = hp === 0 ? "won" : tick === RAID_TICKS ? "failed" : "running";
     await tx.raid.update({ where: { id: raidId }, data: { bossHp: hp, tick, state } });
 
+    const damage = new Map((await tx.raidMember.findMany({ where: { raidId } })).map((m) => [m.characterId, m.damage]));
+    if (state === "failed") {
+      for (const f of fighters) {
+        await notify(tx, [f.m.characterId], "raid", `${boss} survived the raid with ${hp} HP left. You dealt ${damage.get(f.m.characterId)} damage.`);
+      }
+    }
     if (state === "won") {
-      const damage = new Map((await tx.raidMember.findMany({ where: { raidId } })).map((m) => [m.characterId, m.damage]));
       let guildXp = 0;
       for (const f of fighters) {
-        if (!damage.get(f.m.characterId)) continue;
+        if (!damage.get(f.m.characterId)) {
+          await notify(tx, [f.m.characterId], "raid", `${boss} was defeated, but you dealt no damage and get no rewards.`);
+          continue;
+        }
         const raw = raidRewards(f.level, raid.tier);
         const reward = { xp: withBonus(raw.xp, f.bonus.xp + f.bonus.raidRewards), gold: withBonus(raw.gold, f.bonus.raidRewards) };
         guildXp += reward.xp;
@@ -122,6 +136,9 @@ export function advanceRaid(db: PrismaClient, raidId: number, tick: number, rand
         const key = raidLoot(f.level, raid.tier, random);
         const loot = await tx.item.create({ data: { characterId: f.m.characterId, key, ...rollStats(key, random) } });
         await tx.raidMember.update({ where: { raidId_characterId: { raidId, characterId: f.m.characterId } }, data: { lootItemId: loot.id } });
+        await notify(tx, [f.m.characterId], "raid",
+          `${boss} was defeated! You dealt ${damage.get(f.m.characterId)} damage and earned ${reward.xp} XP, ${reward.gold} gold and ${itemName(key, loot)}.` +
+            levelUpNote(f.m.character.xp, f.m.character.xp + reward.xp));
       }
       const guild = await tx.guild.findUniqueOrThrow({ where: { id: raid.guildId } });
       // Beating the strongest unlocked boss unlocks the next one.
@@ -177,6 +194,8 @@ export function raidRoutes(app: FastifyInstance, { db, now, scheduleRaid }: Requ
         await db.raid.delete({ where: { id: raid.id } });
         throw err;
       });
+      await notify(db, await guildMates(db, membership.guildId, character.id), "raid",
+        `${character.name} scheduled a raid against ${RAID_BOSSES[tier].name} in ${req.body.startsInMinutes} minutes. Join it in the raid panel or with quest raid join.`);
       return reply.code(201).send({ raid: await raidView(db, membership.guildId) });
     },
   );

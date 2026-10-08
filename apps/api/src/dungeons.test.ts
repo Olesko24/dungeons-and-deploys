@@ -11,6 +11,9 @@ let db: PrismaClient;
 before(async () => { db = await testDb(); });
 after(() => db.$disconnect());
 
+const inbox = async (characterId: number, kind: string) =>
+  (await db.notification.findMany({ where: { characterId, kind }, orderBy: { id: "asc" } })).map((n) => n.text);
+
 const T0 = new Date("2026-01-01T12:00:00Z").getTime();
 let clock = T0;
 const stages: { dungeonId: number; stage: number; at: Date }[] = [];
@@ -68,6 +71,7 @@ test("a solo run: stages and boss loot", async () => {
   assert.ok(view.you.xp > 0);
   assert.equal((await db.dungeonMember.findFirstOrThrow({ where: { characterId: p.characterId } })).lootItemId !== null, true, "the boss drops loot");
   assert.equal((await p.call("POST", "/dungeons")).statusCode, 201, "a finished run frees the player");
+  assert.match((await inbox(p.characterId, "dungeon"))[0], new RegExp(`^Dungeon ${code} cleared! You earned \\d+ XP, \\d+ gold and `));
 });
 
 test("a failed stage ends the run", async () => {
@@ -77,6 +81,7 @@ test("a failed stage ends the run", async () => {
   assert.equal((await resolveStage(db, dungeon.id, 0, () => 0.99))?.cleared, false);
   const view = (await p.call("GET", "/dungeons/current")).json().dungeon;
   assert.deepEqual([view.state, view.cleared, view.you.xp], ["failed", 0, 0]);
+  assert.deepEqual(await inbox(p.characterId, "dungeon"), [`Dungeon ${code} failed at ${view.stages[0]}. You keep 0 XP and 0 gold from the cleared stages.`]);
 });
 
 test("a 3-player run completes with scaled rewards", async () => {

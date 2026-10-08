@@ -11,6 +11,9 @@ let db: PrismaClient;
 before(async () => { db = await testDb(); });
 after(() => db.$disconnect());
 
+const inbox = async (characterId: number, kind: string) =>
+  (await db.notification.findMany({ where: { characterId, kind }, orderBy: { id: "asc" } })).map((n) => n.text);
+
 const T0 = new Date("2026-01-01T18:00:00Z").getTime();
 let clock = T0;
 const ticks: { raidId: number; tick: number; at: Date }[] = [];
@@ -67,6 +70,9 @@ test("five raiders beat the boss in good phases and all get loot", async () => {
   const guild = await db.guild.findFirstOrThrow({ where: { name: "win guild" } });
   assert.ok(guild.xp > 0, "raid feeds guild XP");
   assert.equal(guild.raidTier, 1, "the win unlocks the next boss");
+  const news = await inbox(players[1].characterId, "raid");
+  assert.match(news[0], /^win0 scheduled a raid against The Monolith in \d+ minutes/);
+  assert.match(news.at(-1)!, /^The Monolith was defeated! You dealt \d+ damage and earned/);
 });
 
 test("bosses unlock one by one and need more power", async () => {
@@ -93,6 +99,8 @@ test("a raid fails when the boss rolls tough phases", async () => {
 });
 
 test("a raid below the minimum is cancelled", async () => {
-  const { view } = await runRaid(await guildWith("few", 3), 0.9);
+  const players = await guildWith("few", 3);
+  const { view } = await runRaid(players, 0.9);
   assert.equal(view.state, "cancelled");
+  assert.match((await inbox(players[0].characterId, "raid")).at(-1)!, /cancelled: 3 of 5 raiders showed up/);
 });

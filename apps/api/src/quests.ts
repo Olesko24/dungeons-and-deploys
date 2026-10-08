@@ -22,6 +22,7 @@ import { equippedItems, itemView, requireCharacter } from "./characters.ts";
 import { SESSION_COOKIE } from "./auth.ts";
 import { dungeonView } from "./dungeons.ts";
 import { encounterView, maybeSpawnEncounter } from "./encounters.ts";
+import { unreadCount } from "./inbox.ts";
 import { guildBuffs } from "./guilds.ts";
 import { type Character, type Item, Prisma, type PrismaClient, type Quest } from "./generated/prisma/client.ts";
 
@@ -122,6 +123,7 @@ export function questRoutes(app: FastifyInstance, { db, now, random }: Required<
       ...levelFromXp(character.xp),
       ...equipmentBonus(equipped),
       power: playerPower(level, bonus.gear, bonus.power),
+      unread: await unreadCount(db, character.id, character.inboxSeenAt),
     };
   });
 }

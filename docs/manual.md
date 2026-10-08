@@ -16,14 +16,15 @@ Rewards depend on time, gear and dice, never on how much or how well you work. Y
 6. [Random encounters](#random-encounters)
 7. [Shop](#shop)
 8. [Market](#market)
-9. [Dungeons](#dungeons)
-10. [Guilds](#guilds)
-11. [Raids](#raids)
-12. [Achievements, statistics and leaderboards](#achievements-statistics-and-leaderboards)
-13. [Website](#website)
-14. [Account and devices](#account-and-devices)
-15. [What is sent to the server](#what-is-sent-to-the-server)
-16. [Command reference](#command-reference)
+9. [Inbox](#inbox)
+10. [Dungeons](#dungeons)
+11. [Guilds](#guilds)
+12. [Raids](#raids)
+13. [Achievements, statistics and leaderboards](#achievements-statistics-and-leaderboards)
+14. [Website](#website)
+15. [Account and devices](#account-and-devices)
+16. [What is sent to the server](#what-is-sent-to-the-server)
+17. [Command reference](#command-reference)
 
 ## Getting started
 
@@ -300,28 +301,48 @@ quest shop buy <1-3>
 
 ## Market
 
-Players trade items on the market, but nobody picks or bids. Prices are fixed by rarity, and a purchase is a **draw**: you pay for a rarity and receive a random listed item of it.
+Players sell items to each other on the market. The seller picks the price, buyers see every listing with its stats.
 
-| Rarity | Price | Draws unlock |
-|---|---|---|
-| Common | 20 gold | level 1 |
-| Uncommon | 35 gold | level 1 |
-| Rare | 60 gold | level 5 |
-| Epic | 120 gold | level 10 |
-| Legendary | 250 gold | level 20 |
-| Mythic | 500 gold | level 30 |
-| Ancient | 900 gold | level 45 |
-| Divine | 1600 gold | level 60 |
-| Celestial | 2800 gold | level 75 |
-| Eternal | 5000 gold | level 90 |
+**Selling.** Pick an item from your bag and set a price. The form suggests the item's value: the base price of its rarity, from 75% for the weakest roll up to 125% for the best one. When the item sells you get the price minus a 10% fee. Listed items cannot be equipped. You can take a listing back as long as nobody is in line for it.
 
-You get one draw per day (UTC). When your item is drawn, you receive the price minus a 10% fee. Listed items cannot be equipped, unlist them to take them back.
+| Rarity | Base price |
+|---|---|
+| Common | 20 gold |
+| Uncommon | 35 gold |
+| Rare | 60 gold |
+| Epic | 120 gold |
+| Legendary | 250 gold |
+| Mythic | 500 gold |
+| Ancient | 900 gold |
+| Divine | 1600 gold |
+| Celestial | 2800 gold |
+| Eternal | 5000 gold |
+
+**Price tags.** Every listing compares its price with the item's value: **Loot** below 85%, **Fair trade** up to 115%, **Rip-off** above.
+
+**Buying.** A new listing collects buyers for **30 minutes**. Joining the line takes the price from your gold right away, leaving the line before the draw gives it back. When the 30 minutes are over, one buyer is drawn at random and gets the item, everyone else gets their gold back. If nobody joined, the item stays on the market and the first player to buy it gets it at once. Your inbox tells you how a draw went.
+
+Filter the listings by rarity and slot, show only open lines, items to buy at once or your own listings, and sort by age or price.
 
 ```sh
-quest market
-quest market draw <rarity>
-quest market list <#id>
+quest market                                # every listing
+quest market --rarity epic --slot ring      # filters, --show line|buy|mine, --sort price
+quest market buy <#id>                      # join the line, or buy at once when there is none
+quest market leave <#id>                    # leave a line, your gold comes back
+quest market sell <#id> [price]             # without a price it goes up at its value
 quest market unlist <#id>
+```
+
+## Inbox
+
+The inbox collects what happened to you, also while you were away: market sales and draws, dungeon and raid results with their rewards and level-ups, scheduled raids, guild members joining and leaving, buffs your leader bought and achievements. The website shows the number of new entries on **Inbox** at the top, `quest char` mentions them too.
+
+Delete single entries or clear the whole inbox, deleted entries are gone for good. Entries older than 30 days are deleted automatically.
+
+```sh
+quest inbox                 # newest first, ● marks new entries
+quest inbox delete <#id>
+quest inbox clear
 ```
 
 ## Dungeons
@@ -412,7 +433,7 @@ least their loot level, so their average loot is better.
 
 ## Website
 
-The website shows your character, equipment, bag, quest history, guild, talents, shop, market, statistics and leaderboards. Everything the terminal can do in the game works there too: start or join a dungeon in the status panel, sell items from your bag and draw them under **market**, schedule a raid in the guild hall (leader) and join it in the raid panel. New players can create their character there with an access code. Players who started in the terminal run `quest pair` and enter the code it shows. **Terminal** at the top does the opposite: it shows a pair code to log in the terminal, or another browser such as your phone.
+The website shows your character, equipment, bag, quest history, guild, talents, shop, market, inbox, statistics and leaderboards. Everything the terminal can do in the game works there too: start or join a dungeon in the status panel, sell items from your bag and buy them under **market**, schedule a raid in the guild hall (leader) and join it in the raid panel. New players can create their character there with an access code. Players who started in the terminal run `quest pair` and enter the code it shows. **Terminal** at the top does the opposite: it shows a pair code to log in the terminal, or another browser such as your phone.
 
 An open tab plays short sounds when a quest is ready, a monster shows up, or a dungeon or raid starts and ends. Browsers only allow sound after your first click on the page. **Sound on** at the top mutes them, the choice is remembered in that browser.
 
@@ -444,7 +465,10 @@ Dungeons & Deploys has no email and no password. Your login token on your device
 | `quest unequip <#id>` | Take an item off |
 | `quest fight` | Fight a monster that showed up |
 | `quest shop [buy <1-3>]` | Daily shop |
-| `quest market [draw <rarity>\|list <#id>\|unlist <#id>]` | Market |
+| `quest market [--rarity r] [--slot s] [--show line\|buy\|mine] [--sort price]` | Market listings |
+| `quest market buy\|leave <#id>` | Join a line or buy at once, leave a line |
+| `quest market sell <#id> [price]` / `quest market unlist <#id>` | Sell from your bag, take it back |
+| `quest inbox [delete <#id>\|clear]` | What happened while you were away |
 | `quest dungeon [start\|join <code>]` | Dungeons |
 | `quest guild [create <name>\|join <code>\|leave]` | Guilds |
 | `quest guild donate <gold>` / `quest guild buff <key>` | Guild bank and buffs |

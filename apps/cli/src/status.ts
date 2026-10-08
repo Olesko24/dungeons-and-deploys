@@ -55,7 +55,7 @@ export function rarityColor(text: string, rarity: string, enabled = !process.env
 
 type Stats = { attack: number; defense: number; luck: number; fortune: number };
 
-export type InventoryItem = { id: number; name: string; rarity: string; stats: Stats; equippedSlot: string | null; listed?: boolean };
+export type InventoryItem = { id: number; name: string; rarity: string; stats: Stats; equippedSlot: string | null; listed?: boolean; price?: number | null };
 
 /** Non-zero stats in a fixed order, e.g. `ATK 5 · LCK +2`. */
 export const statsText = (s: Stats) =>
@@ -70,7 +70,7 @@ export const statsText = (s: Stats) =>
 
 export function inventoryLines(items: InventoryItem[], bonus: Stats, color = rarityColor) {
   const line = (i: InventoryItem, prefix: string) =>
-    `  ${prefix}${`#${i.id}`.padEnd(6)}${color(i.name.padEnd(40), i.rarity)}${i.rarity.padEnd(11)}${statsText(i.stats)}${i.listed ? " · on market" : ""}`;
+    `  ${prefix}${`#${i.id}`.padEnd(6)}${color(i.name.padEnd(40), i.rarity)}${i.rarity.padEnd(11)}${statsText(i.stats)}${i.listed ? ` · on market for ${i.price}g` : ""}`;
   const equipped = items.filter((i) => i.equippedSlot);
   const bag = items.filter((i) => !i.equippedSlot);
   return [

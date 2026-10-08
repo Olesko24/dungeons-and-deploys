@@ -168,27 +168,93 @@ async function fightMonster() {
   await refresh();
 }
 
-async function market(action: string | undefined, arg: string | undefined) {
-  if (action === "list" || action === "unlist") {
-    if (!arg) throw new Error(`Usage: quest market ${action} <#id>`);
-    const res = await authed(`/market/${action}/${arg.replace("#", "")}`, "POST");
-    if (res.status >= 400) throw new Error(res.data.error ?? `Failed (${res.status})`);
-    return console.log(action === "list" ? "Listed. You get the price minus 10% when someone draws it." : "Taken off the market.");
+const TAGS: Record<string, string> = { loot: "Loot", fair: "Fair trade", ripoff: "Rip-off" };
+const SLOTS = ["helm", "chest", "legs", "gloves", "boots", "weapon", "twoHanded", "shield", "ring", "necklace", "earrings"];
+const SHOW: Record<string, Record<string, string>> = { line: { phase: "draw" }, buy: { phase: "buy" }, mine: { mine: "true" } };
+
+const fail = (res: { status: number; data: { error?: string; message?: string } }) => {
+  if (res.status >= 400) throw new Error(res.data.error ?? res.data.message ?? `Failed (${res.status})`);
+};
+
+type Listing = {
+  item: InventoryItem;
+  seller: string;
+  price: number;
+  value: number;
+  tag: string;
+  drawAt: string;
+  phase: "draw" | "drawing" | "buy";
+  bidders: number;
+  joined: boolean;
+  mine: boolean;
+};
+
+async function market([action, arg, price]: string[], filter: { rarity?: string; slot?: string; show?: string; sort?: string }) {
+  const id = arg?.replace("#", "");
+  if (action && action !== "list" && action !== "sell" && !id) throw new Error(`Usage: quest market ${action} <#id>`);
+  if (action === "sell" || action === "list") {
+    if (!id) throw new Error("Usage: quest market sell <#id> [price]");
+    const res = await authed(`/market/list/${id}`, "POST", price ? { price: Number(price) } : {});
+    fail(res);
+    return console.log(`Listed for ${res.data.price}g. Buyers line up for 30 minutes, then one is drawn. You get the price minus 10%.`);
   }
-  if (action === "draw" && !arg) throw new Error("Usage: quest market draw <rarity>, see quest market for the rarities");
-  if (action === "draw") {
-    const res = await authed("/market/draw", "POST", { rarity: arg });
-    if (res.status >= 400) throw new Error(res.data.error ?? res.data.message ?? `Draw failed (${res.status})`);
-    const i = res.data.item;
-    return console.log(`You paid ${res.data.price}g and drew: ${rarityColor(i.name, i.rarity)} (${i.rarity}) · ${statsText(i.stats)}`);
+  if (action === "unlist") {
+    fail(await authed(`/market/unlist/${id}`, "POST"));
+    return console.log("Taken off the market.");
   }
-  const { data } = await authed("/market");
-  console.log(`Market · ${data.gold}g · ${data.drawsLeft ? "1 draw left today" : "daily draw used"}`);
-  for (const o of data.offers) {
-    const lock = o.unlocked ? "" : ` · unlocks at Lv ${o.unlockLevel}`;
-    console.log(`  ${rarityColor(o.rarity.padEnd(10), o.rarity)} ${String(o.price).padStart(4)}g  ${String(o.available).padStart(3)} listed${lock}`);
+  if (action === "buy") {
+    const res = await authed(`/market/buy/${id}`, "POST");
+    fail(res);
+    if (res.data.state === "bought") return console.log(`Bought ${rarityColor(res.data.item.name, res.data.item.rarity)}. It is in your bag.`);
+    return console.log(`In line, ${res.data.bidders} so far. The draw is in ${minutesUntil(res.data.drawAt)}m, your gold is reserved until then.`);
   }
-  console.log("\nquest market draw <rarity> · quest market list <#id> · quest market unlist <#id>");
+  if (action === "leave") {
+    fail(await authed(`/market/leave/${id}`, "POST"));
+    return console.log("Left the line, your gold is back.");
+  }
+  if (action) throw new Error("Usage: quest market [buy|leave|sell|unlist <#id>], see quest help");
+
+  if (filter.show && !SHOW[filter.show]) throw new Error("--show takes line, buy or mine");
+  if (filter.slot && !SLOTS.includes(filter.slot)) throw new Error(`--slot takes ${SLOTS.join(", ")}`);
+  const query = new URLSearchParams({
+    sort: filter.sort ?? "ending",
+    ...(filter.rarity && { rarity: filter.rarity }),
+    ...(filter.slot && { type: filter.slot }),
+    ...(filter.show && SHOW[filter.show]),
+  });
+  const res = await authed(`/market?${query}`);
+  fail(res);
+  const listings = res.data.listings as Listing[];
+  console.log(`Market · ${res.data.gold}g · ${listings.length} listing${listings.length === 1 ? "" : "s"}`);
+  for (const l of listings) {
+    const phase = l.phase === "draw" ? `draw in ${minutesUntil(l.drawAt)}m, ${l.bidders} in line` : l.phase === "drawing" ? "drawing" : "buy now";
+    const who = l.mine ? " · yours" : l.joined ? " · you are in line" : "";
+    console.log(
+      `  ${`#${l.item.id}`.padEnd(7)}${rarityColor(l.item.name.padEnd(40), l.item.rarity)}${statsText(l.item.stats).padEnd(28)}` +
+        `${String(l.price).padStart(6)}g ${TAGS[l.tag].padEnd(10)} ${phase}${who}`,
+    );
+  }
+  console.log("\nquest market buy|leave <#id> · quest market sell <#id> [price] · quest market unlist <#id>");
+  console.log("Filters: --rarity epic · --slot ring · --show line|buy|mine · --sort price");
+}
+
+async function inbox([action, arg]: string[]) {
+  if (action === "delete") {
+    if (!arg) throw new Error("Usage: quest inbox delete <#id>");
+    fail(await authed(`/inbox/delete/${arg.replace("#", "")}`, "POST"));
+    return console.log("Deleted.");
+  }
+  if (action === "clear") {
+    fail(await authed("/inbox/clear", "POST"));
+    return console.log("Inbox cleared.");
+  }
+  const { data } = await authed("/inbox");
+  if (!data.notifications.length) return console.log("Inbox empty.");
+  for (const n of data.notifications as { id: number; text: string; createdAt: string; unread: boolean }[]) {
+    const at = new Date(n.createdAt).toLocaleString([], { dateStyle: "short", timeStyle: "short" });
+    console.log(`${n.unread ? "●" : " "} ${`#${n.id}`.padEnd(7)}${at.padEnd(18)}${n.text}`);
+  }
+  console.log("\nquest inbox delete <#id> · quest inbox clear");
 }
 
 async function dungeon(action: string | undefined, code: string | undefined) {
@@ -358,6 +424,7 @@ async function character() {
   console.log(`${c.name} · Lv ${c.level} · Power ${c.power} · ${c.gold}g`);
   console.log(`XP ${bar(Math.floor((c.xpIntoLevel / c.xpForNext) * 10), 10)} ${c.xpIntoLevel}/${c.xpForNext}`);
   console.log(statsText(c) || "No equipment yet. See: quest inv");
+  if (c.unread) console.log(`Inbox: ${c.unread} unread. See: quest inbox`);
 }
 
 async function inventory() {
@@ -395,7 +462,10 @@ const USAGE = `Usage: quest [command]
   quest equip <#id> [--slot ring2]               equip an item
   quest unequip <#id>                            take an item off
   quest fight                                    fight a monster that showed up
-  quest market                                   draw a random item of a rarity, list your own
+  quest market [--rarity r] [--slot s]           every listing, --show line|buy|mine, --sort price
+  quest market buy|leave <#id>                   join a line or buy at once, leave a line
+  quest market sell <#id> [price] | unlist <#id> sell from your bag, 10% fee
+  quest inbox [delete <#id>|clear]               what happened while you were away
   quest shop [buy <1-3>]                         three new offers every day
   quest stats                                    statistics and achievements
   quest talents [learn <key>|reset]              one talent point per level, reset costs 10g per point
@@ -423,6 +493,9 @@ try {
       code: { type: "string" },
       pair: { type: "string" },
       slot: { type: "string" },
+      rarity: { type: "string" },
+      show: { type: "string" },
+      sort: { type: "string" },
       short: { type: "boolean" },
       send: { type: "boolean" },
       help: { type: "boolean", short: "h" },
@@ -469,7 +542,10 @@ try {
       await stats();
       break;
     case "market":
-      await market(positionals[1], positionals[2]);
+      await market(positionals.slice(1), values);
+      break;
+    case "inbox":
+      await inbox(positionals.slice(1));
       break;
     case "inv":
       await inventory();

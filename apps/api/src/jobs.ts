@@ -1,6 +1,8 @@
 import { PgBoss } from "pg-boss";
 import type { PrismaClient } from "./generated/prisma/client.ts";
 import { resolveStage, stageEndsAt } from "./dungeons.ts";
+import { INBOX_KEEP_MS } from "./inbox.ts";
+import { resolveMarketDraw } from "./market.ts";
 import { resolveQuest } from "./quests.ts";
 import { advanceRaid, raidTickAt } from "./raids.ts";
 import { trySyncProgress } from "./stats.ts";
@@ -19,6 +21,8 @@ export async function startJobs(boss: PgBoss, db: PrismaClient) {
   await boss.createQueue("pair-codes.cleanup");
   await boss.createQueue("dungeon.stage");
   await boss.createQueue("raid.tick");
+  await boss.createQueue("market.draw");
+  await boss.createQueue("inbox.cleanup");
 
   // ponytail: only drains quests started before quests resolved at once, remove once none are left unresolved
   await boss.work<{ questId: number }>("quest.resolve", async (jobs) => {
@@ -30,6 +34,17 @@ export async function startJobs(boss: PgBoss, db: PrismaClient) {
   });
   await boss.work("pair-codes.cleanup", () => db.pairCode.deleteMany({ where: { expiresAt: { lt: new Date() } } }));
   await boss.schedule("pair-codes.cleanup", "0 * * * *");
+  await boss.work("inbox.cleanup", () => db.notification.deleteMany({ where: { createdAt: { lt: new Date(Date.now() - INBOX_KEEP_MS) } } }));
+  await boss.schedule("inbox.cleanup", "30 3 * * *");
+
+  const scheduleDraw = (itemId: number, at: Date) =>
+    boss.upsert("market.draw", { itemId }, { startAfter: at, singletonKey: `market-${itemId}-${at.getTime()}` });
+  await boss.work<{ itemId: number }>("market.draw", async (jobs) => {
+    for (const { data } of jobs) {
+      const drawn = await resolveMarketDraw(db, data.itemId);
+      if (drawn) await syncMembers([{ characterId: drawn.sellerId }, { characterId: drawn.winnerId }]);
+    }
+  });
 
   const scheduleStage = (dungeonId: number, stage: number, at: Date) =>
     boss.upsert("dungeon.stage", { dungeonId, stage }, { startAfter: at, singletonKey: `dungeon-${dungeonId}-${stage}` });
@@ -60,6 +75,7 @@ export async function startJobs(boss: PgBoss, db: PrismaClient) {
   });
 
   return {
+    scheduleDraw,
     scheduleRaid,
     scheduleStage,
   };

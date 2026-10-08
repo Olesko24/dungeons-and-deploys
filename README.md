@@ -28,7 +28,7 @@ New here? Read the [player manual](docs/manual.md).
 | Random encounter | 1 | 2% chance per heartbeat (terminal, Claude Code or open website). Fight within 5 min |
 | Dungeon | 1–5 | Three stages and a boss, 15 min each. Difficulty and loot scale with party size |
 | Raid | 5+ | Guild only, scheduled by the leader. Ten bosses unlocked one by one, each needs more combat power and drops better loot |
-| Market | – | Fixed prices by rarity, buyers draw a random listing, one draw per day |
+| Market | – | Sellers set the price, buyers line up for 30 min and one is drawn, or buy at once without a line |
 | Shop | – | Three new offers every day, each once per player |
 | Talents | – | One point per level up to 100, four trees of 8 talents with 36 ranks each, reset for 10 gold per point |
 | Achievements | – | 19 achievements and a statistics page, just for fun |
@@ -63,7 +63,8 @@ quest status
 quest char                         # character sheet
 quest inv / quest equip <item>
 quest fight                        # random encounter
-quest market                       # draw a random item of a rarity, list your own
+quest market                       # every listing, buy <#id>, sell <#id> [price]
+quest inbox                        # what happened while you were away
 quest shop                         # three new offers every day
 quest stats                        # statistics and achievements
 quest top [xp|power|achievements|guilds] # leaderboards

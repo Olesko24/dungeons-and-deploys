@@ -1,103 +1,211 @@
 import type { FastifyInstance } from "fastify";
 import {
-  MARKET_DAILY_DRAWS,
-  MARKET_PRICES,
-  MARKET_UNLOCK_LEVEL,
+  ITEM_BASES,
+  ITEM_TYPES,
+  MARKET_DRAW_MS,
+  MARKET_MAX_PRICE,
   RARITIES,
-  type Rarity,
-  levelFromXp,
+  item,
+  itemName,
+  marketValue,
+  priceTag,
   sellerPayout,
 } from "@dnd/shared";
 import type { Deps } from "./app.ts";
 import { itemView, requireCharacter } from "./characters.ts";
+import { notify } from "./inbox.ts";
 import { trySyncProgress } from "./stats.ts";
-import type { Prisma } from "./generated/prisma/client.ts";
+import type { Prisma, PrismaClient } from "./generated/prisma/client.ts";
 
-const startOfDay = (t: Date) => new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate()));
+export const drawAt = (listedAt: Date) => new Date(listedAt.getTime() + MARKET_DRAW_MS);
 
-const listedOfRarity = (rarity: Rarity, buyerId: number): Prisma.ItemWhereInput => ({
-  listedAt: { not: null },
-  key: { endsWith: `.${rarity}` },
-  characterId: { not: buyerId },
-});
+/** Locks the item row, so buying, joining, leaving and the draw of one listing run one after another. */
+const lock = (tx: Prisma.TransactionClient, itemId: number) => tx.$queryRaw`SELECT id FROM items WHERE id = ${itemId} FOR UPDATE`;
 
-export function marketRoutes(app: FastifyInstance, { db, now, random }: Required<Deps>) {
-  app.get("/market", async (req, reply) => {
-    const character = await requireCharacter(db, req, reply);
-    if (!character) return;
-    const level = levelFromXp(character.xp).level;
-    const drawsToday = await db.marketDraw.count({ where: { buyerId: character.id, createdAt: { gte: startOfDay(now()) } } });
-    const offers = await Promise.all(
-      RARITIES.map(async (rarity) => ({
-        rarity,
-        price: MARKET_PRICES[rarity],
-        available: await db.item.count({ where: listedOfRarity(rarity, character.id) }),
-        unlockLevel: MARKET_UNLOCK_LEVEL[rarity],
-        unlocked: level >= MARKET_UNLOCK_LEVEL[rarity],
-      })),
-    );
-    return { offers, drawsLeft: Math.max(0, MARKET_DAILY_DRAWS - drawsToday), gold: character.gold };
-  });
+/** Item bases per type, e.g. every one-handed weapon kind for `weapon`. */
+const basesOf = (type: string) => ITEM_BASES.filter((b) => item(`${b}.common`).type === type);
 
-  app.post<{ Params: { id: string } }>("/market/list/:id", async (req, reply) => {
-    const character = await requireCharacter(db, req, reply);
-    if (!character) return;
-    const listed = await db.item.updateMany({
-      where: { id: Number(req.params.id), characterId: character.id, equippedSlot: null, listedAt: null },
-      data: { listedAt: now() },
-    });
-    if (listed.count === 0) return reply.code(400).send({ error: "item not found, equipped or already listed" });
-    return reply.code(204).send();
-  });
+type BuyResult = { code: number; error: string } | { body: object; sellerId: number | null };
 
+type Query = { rarity?: string; type?: string; phase?: "draw" | "buy"; sort?: "price" | "ending"; mine?: boolean };
+
+export function marketRoutes(app: FastifyInstance, { db, now, scheduleDraw }: Required<Deps>) {
+  app.get<{ Querystring: Query }>(
+    "/market",
+    {
+      schema: {
+        querystring: {
+          type: "object",
+          properties: {
+            rarity: { type: "string", enum: [...RARITIES] },
+            type: { type: "string", enum: [...ITEM_TYPES] },
+            phase: { type: "string", enum: ["draw", "buy"] },
+            sort: { type: "string", enum: ["price", "ending"] },
+            mine: { type: "boolean" },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      const character = await requireCharacter(db, req, reply);
+      if (!character) return;
+      const { rarity, type, phase, sort, mine } = req.query;
+      const t = now();
+      const windowStart = new Date(t.getTime() - MARKET_DRAW_MS);
+      const rows = await db.item.findMany({
+        where: {
+          listedAt: phase === "draw" ? { gt: windowStart } : phase === "buy" ? { lte: windowStart } : { not: null },
+          ...(phase === "buy" ? { bids: { none: {} } } : {}),
+          ...(mine ? { characterId: character.id } : {}),
+          AND: [
+            rarity ? { key: { endsWith: `.${rarity}` } } : {},
+            type ? { OR: basesOf(type).map((b) => ({ key: { startsWith: `${b}.` } })) } : {},
+          ],
+        },
+        orderBy: sort === "price" ? [{ price: "asc" }, { id: "asc" }] : [{ listedAt: "asc" }, { id: "asc" }],
+        take: 100,
+        include: { character: true, bids: { select: { characterId: true } } },
+      });
+      return {
+        gold: character.gold,
+        listings: rows.map((i) => {
+          const value = marketValue(i.key, i);
+          const at = drawAt(i.listedAt!);
+          return {
+            item: itemView(i),
+            seller: i.character.name,
+            price: i.price!,
+            value,
+            tag: priceTag(i.price!, value),
+            drawAt: at,
+            // "drawing": the window is over and the draw job has not run yet.
+            phase: t < at ? "draw" : i.bids.length ? "drawing" : "buy",
+            bidders: i.bids.length,
+            joined: i.bids.some((b) => b.characterId === character.id),
+            mine: i.characterId === character.id,
+          };
+        }),
+      };
+    },
+  );
+
+  /** Lists a bag item. Without a price it goes up at the suggested value. */
+  app.post<{ Params: { id: string }; Body: { price?: number } | undefined }>(
+    "/market/list/:id",
+    { schema: { body: { type: ["object", "null"], properties: { price: { type: "integer", minimum: 1, maximum: MARKET_MAX_PRICE } } } } },
+    async (req, reply) => {
+      const character = await requireCharacter(db, req, reply);
+      if (!character) return;
+      const target = await db.item.findFirst({ where: { id: Number(req.params.id) || 0, characterId: character.id, equippedSlot: null, listedAt: null } });
+      if (!target) return reply.code(400).send({ error: "item not found, equipped or already listed" });
+      const price = req.body?.price ?? marketValue(target.key, target);
+      const t = now();
+      const listed = await db.item.updateMany({ where: { id: target.id, equippedSlot: null, listedAt: null }, data: { listedAt: t, price } });
+      if (listed.count === 0) return reply.code(400).send({ error: "item not found, equipped or already listed" });
+      await scheduleDraw(target.id, drawAt(t)).catch(async (err) => {
+        await db.item.update({ where: { id: target.id }, data: { listedAt: null, price: null } });
+        throw err;
+      });
+      return reply.code(201).send({ price, drawAt: drawAt(t) });
+    },
+  );
+
+  /** Takes a listing back, as long as nobody is in line for it. */
   app.post<{ Params: { id: string } }>("/market/unlist/:id", async (req, reply) => {
     const character = await requireCharacter(db, req, reply);
     if (!character) return;
     const unlisted = await db.item.updateMany({
-      where: { id: Number(req.params.id), characterId: character.id, listedAt: { not: null } },
-      data: { listedAt: null },
+      where: { id: Number(req.params.id) || 0, characterId: character.id, listedAt: { not: null }, bids: { none: {} } },
+      data: { listedAt: null, price: null },
     });
-    if (unlisted.count === 0) return reply.code(400).send({ error: "item not listed" });
+    if (unlisted.count === 0) return reply.code(400).send({ error: "not listed, or buyers are already in line" });
     return reply.code(204).send();
   });
 
-  app.post<{ Body: { rarity: Rarity } }>(
-    "/market/draw",
-    { schema: { body: { type: "object", required: ["rarity"], properties: { rarity: { type: "string", enum: [...RARITIES] } } } } },
-    async (req, reply) => {
-      const character = await requireCharacter(db, req, reply);
-      if (!character) return;
-      const { rarity } = req.body;
-      const price = MARKET_PRICES[rarity];
-      const t = now();
+  /** During the draw window this joins the line and reserves the price. Afterwards, without a line, it buys at once. */
+  app.post<{ Params: { id: string } }>("/market/buy/:id", async (req, reply) => {
+    const character = await requireCharacter(db, req, reply);
+    if (!character) return;
+    const itemId = Number(req.params.id) || 0;
+    const t = now();
+    const result = await db.$transaction(async (tx): Promise<BuyResult> => {
+      await lock(tx, itemId);
+      const listing = await tx.item.findUnique({ where: { id: itemId }, include: { bids: true } });
+      if (!listing?.listedAt || listing.price === null) return { code: 404, error: "not on the market" };
+      if (listing.characterId === character.id) return { code: 400, error: "that is your own listing" };
+      const price = listing.price;
+      const at = drawAt(listing.listedAt);
+      if (t >= at && listing.bids.length) return { code: 409, error: "the draw for this item is running, try again in a moment" };
+      if (listing.bids.some((b) => b.characterId === character.id)) return { code: 409, error: "you are already in line" };
 
-      const result = await db.$transaction(async (tx) => {
-        if (levelFromXp(character.xp).level < MARKET_UNLOCK_LEVEL[rarity]) {
-          return { error: `${rarity} draws unlock at level ${MARKET_UNLOCK_LEVEL[rarity]}` };
-        }
-        const drawsToday = await tx.marketDraw.count({ where: { buyerId: character.id, createdAt: { gte: startOfDay(t) } } });
-        if (drawsToday >= MARKET_DAILY_DRAWS) return { error: "daily draw used, come back tomorrow" };
+      const paid = await tx.character.updateMany({ where: { id: character.id, gold: { gte: price } }, data: { gold: { decrement: price } } });
+      if (paid.count === 0) return { code: 400, error: `not enough gold, it costs ${price}` };
 
-        const where = listedOfRarity(rarity, character.id);
-        const available = await tx.item.count({ where });
-        if (available === 0) return { error: `no ${rarity} items on the market` };
-        const pick = await tx.item.findFirstOrThrow({ where, orderBy: { id: "asc" }, skip: Math.floor(random() * available) });
+      if (t < at) {
+        await tx.marketBid.create({ data: { itemId, characterId: character.id, price } });
+        return { body: { state: "queued", drawAt: at, bidders: listing.bids.length + 1 }, sellerId: null };
+      }
+      await tx.item.update({ where: { id: itemId }, data: { characterId: character.id, listedAt: null, price: null } });
+      await tx.character.update({ where: { id: listing.characterId }, data: { gold: { increment: sellerPayout(price) } } });
+      await tx.marketDraw.create({ data: { buyerId: character.id, sellerId: listing.characterId, itemId, rarity: item(listing.key).rarity, price, createdAt: t } });
+      await notify(tx, [listing.characterId], "market",
+        `${character.name} bought your ${itemName(listing.key, listing)} for ${price} gold. You got ${sellerPayout(price)} gold after the 10% fee.`);
+      const bought = await tx.item.findUniqueOrThrow({ where: { id: itemId } });
+      return { body: { state: "bought", item: itemView(bought) }, sellerId: listing.characterId };
+    });
+    if ("error" in result) return reply.code(result.code).send({ error: result.error });
+    if (result.sellerId) await trySyncProgress(db, result.sellerId);
+    return result.body;
+  });
 
-        const paid = await tx.character.updateMany({ where: { id: character.id, gold: { gte: price } }, data: { gold: { decrement: price } } });
-        if (paid.count === 0) return { error: `not enough gold, a ${rarity} draw costs ${price}` };
-        const moved = await tx.item.updateMany({
-          where: { id: pick.id, listedAt: { not: null } },
-          data: { characterId: character.id, listedAt: null },
-        });
-        if (moved.count === 0) throw new Error("listing taken by a parallel draw");
-        await tx.character.update({ where: { id: pick.characterId }, data: { gold: { increment: sellerPayout(rarity) } } });
-        await tx.marketDraw.create({ data: { buyerId: character.id, sellerId: pick.characterId, itemId: pick.id, rarity, price, createdAt: t } });
-        return { item: itemView({ ...pick, characterId: character.id, listedAt: null }), price, sellerId: pick.characterId };
-      });
+  /** Leaves the line before the draw and refunds the reserved price. */
+  app.post<{ Params: { id: string } }>("/market/leave/:id", async (req, reply) => {
+    const character = await requireCharacter(db, req, reply);
+    if (!character) return;
+    const itemId = Number(req.params.id) || 0;
+    const error = await db.$transaction(async (tx) => {
+      await lock(tx, itemId);
+      const listing = await tx.item.findUnique({ where: { id: itemId } });
+      const bid = await tx.marketBid.findUnique({ where: { itemId_characterId: { itemId, characterId: character.id } } });
+      if (!bid || !listing?.listedAt) return "you are not in line for this item";
+      if (now() >= drawAt(listing.listedAt)) return "the draw for this item is running";
+      await tx.marketBid.delete({ where: { itemId_characterId: { itemId, characterId: character.id } } });
+      await tx.character.update({ where: { id: character.id }, data: { gold: { increment: bid.price } } });
+      return null;
+    });
+    if (error) return reply.code(400).send({ error });
+    return reply.code(204).send();
+  });
+}
 
-      if ("error" in result) return reply.code(400).send(result);
-      await trySyncProgress(db, result.sellerId);
-      return { item: result.item, price: result.price };
-    },
-  );
+/**
+ * Draws one buyer from the line once the window is over. The winner gets the item, the seller the price minus the fee,
+ * everyone else their gold back. Safe to run twice: a drawn listing has no line left.
+ */
+export function resolveMarketDraw(db: PrismaClient, itemId: number, random = Math.random, t = new Date()) {
+  return db.$transaction(async (tx) => {
+    await lock(tx, itemId);
+    const listing = await tx.item.findUnique({
+      where: { id: itemId },
+      include: { bids: { include: { character: true }, orderBy: { createdAt: "asc" } } },
+    });
+    if (!listing?.listedAt || listing.price === null || t < drawAt(listing.listedAt) || !listing.bids.length) return null;
+    const { bids, price } = listing;
+    const winner = bids[Math.floor(random() * bids.length)];
+    const losers = bids.filter((b) => b !== winner);
+    const name = itemName(listing.key, listing);
+
+    await tx.item.update({ where: { id: itemId }, data: { characterId: winner.characterId, listedAt: null, price: null } });
+    await tx.character.update({ where: { id: listing.characterId }, data: { gold: { increment: sellerPayout(price) } } });
+    for (const b of losers) await tx.character.update({ where: { id: b.characterId }, data: { gold: { increment: b.price } } });
+    await tx.marketBid.deleteMany({ where: { itemId } });
+    await tx.marketDraw.create({ data: { buyerId: winner.characterId, sellerId: listing.characterId, itemId, rarity: item(listing.key).rarity, price, createdAt: t } });
+
+    const line = `${bids.length} in line`;
+    await notify(tx, [listing.characterId], "market",
+      `${winner.character.name} won the draw for your ${name} (${line}). You got ${sellerPayout(price)} gold after the 10% fee.`);
+    await notify(tx, [winner.characterId], "market", `You won the draw for ${name} (${line}) and paid ${price} gold. It is in your bag.`);
+    await notify(tx, losers.map((b) => b.characterId), "market", `${winner.character.name} won the draw for ${name}. Your ${price} gold are back.`);
+    return { sellerId: listing.characterId, winnerId: winner.characterId };
+  });
 }

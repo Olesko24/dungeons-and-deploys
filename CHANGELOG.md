@@ -9,14 +9,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). New
 
 ### Breaking
 
+- The market is new. Sellers set their own price, with a suggested value from rarity and roll. Every listing is
+  visible with its stats and a price tag (Loot, Fair trade, Rip-off). Buyers line up for 30 minutes, then one is
+  drawn and the others get their gold back. Without a line an item can be bought at once. Draws by rarity, the
+  daily limit and the level locks are gone. Items listed before get their rarity's base price.
 - Ten rarities instead of four: common, uncommon, rare, epic, legendary, mythic, ancient, divine, celestial and
   eternal. Higher rarities drop from higher levels, up to eternal from level 90, so gear keeps improving up to
   the level cap. **All items are reset.**
 - Four new raid bosses for the late game, up to The Final Migration at 120000 recommended power.
-- The shop offers an uncommon, an epic and a mythic item. Market draws exist for every rarity.
+- The shop offers an uncommon, an epic and a mythic item.
 
 ### Added
 
+- Inbox on the website and with `quest inbox`: market sales and draws, dungeon and raid results, guild news and
+  achievements, also from while you were away. Delete single entries or clear it.
 - A live countdown to the next quest at the top of the status, with a rest bar and the start button waiting
   next to it. The browser tab title shows the countdown too.
 - Short alert sounds on the website when a quest is ready, a monster shows up, or a dungeon or raid starts

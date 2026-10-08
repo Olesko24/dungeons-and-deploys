@@ -1,10 +1,13 @@
+import { MARKET_MAX_PRICE, PRICE_TAGS, type PriceTag, priceTag, sellerPayout } from "@dnd/shared";
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import {
   type Achievement,
   type Character,
   type Guild,
+  type InboxEntry,
   type Item,
   type Leaderboard,
+  type Listing,
   type Market,
   type RankRow,
   type PlayerStats,
@@ -339,8 +342,38 @@ function questProgress(q: Quest) {
   return Math.floor(Math.min(1, Math.max(0, share)) * 9);
 }
 
+/** Price form for listing a bag item, prefilled with its suggested value. */
+function SellForm({ item, onDone, onCancel }: { item: Item; onDone: () => void; onCancel: () => void }) {
+  const [price, setPrice] = useState(String(item.value));
+  const [error, setError] = useState("");
+  const amount = Number(price);
+  const tag = amount > 0 ? priceTag(amount, item.value) : null;
+  return (
+    <form
+      className="sell"
+      onSubmit={(e) => {
+        e.preventDefault();
+        api(`/market/list/${item.id}`, { price: amount }).then(onDone, (err: Error) => setError(err.message));
+      }}
+    >
+      <label htmlFor={`price-${item.id}`}>Price</label>
+      <input id={`price-${item.id}`} type="number" min={1} max={MARKET_MAX_PRICE} step={1} value={price} onChange={(e) => setPrice(e.target.value)} required />
+      {tag && <span className="dim">you get <Gold amount={sellerPayout(amount)} /> · <PriceTagLabel tag={tag} /></span>}
+      <button type="submit" className="small">List</button>
+      <button type="button" className="small ghost" onClick={onCancel}>Cancel</button>
+      <span className="dim">Suggested {item.value}g. Buyers line up for 30 minutes, then one is drawn.</span>
+      {error && <p className="error" role="alert">{error}</p>}
+    </form>
+  );
+}
+
+function PriceTagLabel({ tag }: { tag: PriceTag }) {
+  return <span className={`tag ${tag}`}>{PRICE_TAGS[tag]}</span>;
+}
+
 function Inventory({ items, onChange }: { items: Item[]; onChange: () => void }) {
   const [error, setError] = useState("");
+  const [selling, setSelling] = useState<number | null>(null);
   const act = (path: string) => api(path, {}).then(onChange, (err: Error) => setError(err.message));
   const bySlot = new Map(items.filter((i) => i.equippedSlot).map((i) => [i.equippedSlot, i]));
   const bag = items.filter((i) => !i.equippedSlot);
@@ -384,14 +417,19 @@ function Inventory({ items, onChange }: { items: Item[]; onChange: () => void })
               <ItemIcon item={item} />
               <div className="item-text">
                 <span className="name">{item.name}</span>
-                <span className="dim"><Rarity rarity={item.rarity} /> · <StatList stats={item.stats} />{item.listed ? " · on market" : ""}</span>
+                <span className="dim"><Rarity rarity={item.rarity} /> · <StatList stats={item.stats} />{item.listed ? <> · on market for <Gold amount={item.price ?? 0} /></> : ""}</span>
               </div>
               <span className="item-actions">
                 {!item.listed && <button type="button" className="small" onClick={() => act(`/inventory/${item.id}/equip`)}>Equip</button>}
-                <button type="button" className="small ghost" onClick={() => act(`/market/${item.listed ? "unlist" : "list"}/${item.id}`)}>
-                  {item.listed ? "Unlist" : "Sell"}
-                </button>
+                {item.listed ? (
+                  <button type="button" className="small ghost" onClick={() => act(`/market/unlist/${item.id}`)}>Unlist</button>
+                ) : (
+                  <button type="button" className="small ghost" aria-expanded={selling === item.id} onClick={() => setSelling(selling === item.id ? null : item.id)}>Sell</button>
+                )}
               </span>
+              {selling === item.id && (
+                <SellForm item={item} onCancel={() => setSelling(null)} onDone={() => { setSelling(null); onChange(); }} />
+              )}
             </li>
           ))}
         </ul>
@@ -641,40 +679,133 @@ function ShopView({ onChange }: { onChange: () => void }) {
   );
 }
 
+const ITEM_TYPE_LABELS: [string, string][] = [
+  ["helm", "Head"], ["chest", "Chest"], ["legs", "Legs"], ["gloves", "Hands"], ["boots", "Feet"], ["weapon", "One-handed"],
+  ["twoHanded", "Two-handed"], ["shield", "Shield"], ["ring", "Ring"], ["necklace", "Neck"], ["earrings", "Ears"],
+];
+
+function ListingCard({ listing: l, gold, now, onAct }: { listing: Listing; gold: number; now: number; onAct: (path: string, done: string) => void }) {
+  const left = new Date(l.drawAt).getTime() - now;
+  const phase = l.phase === "draw" && left <= 0 ? "drawing" : l.phase;
+  const line = `${l.bidders} in line`;
+  return (
+    <div className={`offer ${l.item.rarity}`}>
+      <ItemIcon item={l.item} />
+      <span className="name">{l.item.name}</span>
+      <span className="dim"><Rarity rarity={l.item.rarity} /> · <StatList stats={l.item.stats} /></span>
+      <span><Gold amount={l.price} /> <PriceTagLabel tag={l.tag} /></span>
+      <span className="dim">{l.mine ? "your listing" : `by ${l.seller}`} · worth about {l.value}g</span>
+      <span className="dim">{phase === "draw" ? `draw in ${clock(left)} · ${line}` : phase === "drawing" ? `drawing… · ${line}` : "no line · first come, first served"}</span>
+      {l.mine ? (
+        <button type="button" className="small ghost" disabled={l.bidders > 0} title={l.bidders ? "Buyers are in line, it gets drawn" : undefined} onClick={() => onAct(`/market/unlist/${l.item.id}`, "Taken off the market.")}>
+          Unlist
+        </button>
+      ) : phase === "draw" && l.joined ? (
+        <button type="button" className="small ghost" onClick={() => onAct(`/market/leave/${l.item.id}`, `You left the line for ${l.item.name}, your ${l.price} gold are back.`)}>Leave line</button>
+      ) : phase === "draw" ? (
+        <button type="button" className="small" disabled={gold < l.price} onClick={() => onAct(`/market/buy/${l.item.id}`, `You are in line for ${l.item.name}, ${l.price} gold are reserved until the draw.`)}>
+          Join line
+        </button>
+      ) : phase === "drawing" ? (
+        <button type="button" className="small" disabled>Drawing…</button>
+      ) : (
+        <button type="button" className="small" disabled={gold < l.price} onClick={() => onAct(`/market/buy/${l.item.id}`, `You bought ${l.item.name}. It is in your bag.`)}>Buy now</button>
+      )}
+    </div>
+  );
+}
+
 function MarketView({ onChange }: { onChange: () => void }) {
+  const [filter, setFilter] = useState({ rarity: "", type: "", show: "", sort: "ending" });
   const [market, setMarket] = useState<Market | null>(null);
   const [message, setMessage] = useState("");
-  const load = useCallback(() => api<Market>("/market").then(setMarket), []);
-  useEffect(() => void load(), [load]);
-  async function draw(rarity: string) {
+  const query = new URLSearchParams({
+    sort: filter.sort,
+    ...(filter.rarity && { rarity: filter.rarity }),
+    ...(filter.type && { type: filter.type }),
+    ...(filter.show === "mine" ? { mine: "true" } : filter.show ? { phase: filter.show } : {}),
+  }).toString();
+  const load = useCallback(() => api<Market>(`/market?${query}`).then(setMarket), [query]);
+  useEffect(() => {
+    void load();
+    const timer = setInterval(() => void load(), 30_000);
+    return () => clearInterval(timer);
+  }, [load]);
+  const now = useNow(!!market?.listings.some((l) => l.phase === "draw"));
+
+  async function act(path: string, done: string) {
     try {
-      const { item, price } = await api<{ item: Item; price: number }>("/market/draw", { rarity });
-      setMessage(`You paid ${price} gold and drew ${item.name} · ${statParts(item.stats).join(" · ")}`);
+      await api(path, {});
+      setMessage(done);
       onChange();
-      await load();
     } catch (err) {
       setMessage((err as Error).message);
     }
+    await load();
   }
-  if (!market) return <section className="panel"><p>Loading…</p></section>;
+  const select = (key: keyof typeof filter, label: string, options: [string, string][]) => (
+    <label>
+      {label}
+      <select value={filter[key]} onChange={(e) => setFilter({ ...filter, [key]: e.target.value })}>
+        {options.map(([value, text]) => <option key={value} value={value}>{text}</option>)}
+      </select>
+    </label>
+  );
+
   return (
     <section className="panel">
-      <h2><UiIcon name="bag" />Market · <Gold amount={market.gold} /></h2>
+      <h2><UiIcon name="bag" />Market{market && <> · <Gold amount={market.gold} /></>}</h2>
       <p className="dim">
-        Draw a random item of a rarity from what other players listed, {market.drawsLeft ? "1 draw left today" : "daily draw used"}.
-        Sell items from your bag, you get the price minus 10% when someone draws it.
+        New listings collect buyers for 30 minutes, then one of them is drawn. Joining the line reserves the price, the others get it back.
+        Without a line an item can be bought at once. Sell from your bag, the seller pays a 10% fee.
       </p>
+      <div className="filters">
+        {select("rarity", "Rarity", [["", "All"], ...Object.keys(RARITY_SHAPES).map((r): [string, string] => [r, r])])}
+        {select("type", "Slot", [["", "All"], ...ITEM_TYPE_LABELS])}
+        {select("show", "Show", [["", "All listings"], ["draw", "Line open"], ["buy", "Buy now"], ["mine", "My listings"]])}
+        {select("sort", "Sort", [["ending", "Oldest first"], ["price", "Cheapest first"]])}
+      </div>
       {message && <p role="status">{message}</p>}
-      <ul className="buffs">
-        {market.offers.map((o) => (
-          <li key={o.rarity} className={o.unlocked ? "" : "locked"}>
-            <span><Rarity rarity={o.rarity} /> · <Gold amount={o.price} /> · {o.available} listed</span>
-            <button type="button" className="small" disabled={!o.unlocked || !o.available || !market.drawsLeft || market.gold < o.price} onClick={() => draw(o.rarity)}>
-              {o.unlocked ? "Draw" : `Lv ${o.unlockLevel}`}
-            </button>
-          </li>
-        ))}
-      </ul>
+      {!market ? <p>Loading…</p> : market.listings.length === 0 ? <p className="dim">Nothing listed that matches.</p> : (
+        <div className="offers">
+          {market.listings.map((l) => <ListingCard key={l.item.id} listing={l} gold={market.gold} now={now} onAct={act} />)}
+        </div>
+      )}
+    </section>
+  );
+}
+
+const INBOX_ICONS: Record<string, string> = { market: "bag", dungeon: "hourglass", raid: "raid", guild: "guild", achievement: "star" };
+
+/** What happened to the character, newest first. Opening it marks everything read. */
+function InboxView({ onChange }: { onChange: () => void }) {
+  const [entries, setEntries] = useState<InboxEntry[] | null>(null);
+  const load = useCallback(() => api<{ notifications: InboxEntry[] }>("/inbox").then((r) => setEntries(r.notifications)), []);
+  useEffect(() => void load().then(onChange), [load, onChange]);
+  const remove = (path: string) => void api(path, {}).then(load);
+  if (!entries) return <section className="panel"><p>Loading…</p></section>;
+  return (
+    <section className="panel">
+      <div className="row">
+        <h2><UiIcon name="scroll" />Inbox · {entries.length}</h2>
+        {entries.length > 0 && (
+          <button type="button" className="small ghost" onClick={() => confirm("Delete every entry? This cannot be undone.") && remove("/inbox/clear")}>Clear all</button>
+        )}
+      </div>
+      {entries.length === 0 ? <p className="dim">Nothing new. Sales, draws, dungeons, raids, guild news and achievements show up here.</p> : (
+        <ul className="inbox">
+          {entries.map((n) => (
+            <li key={n.id} className={n.unread ? "unread" : ""}>
+              <UiIcon name={INBOX_ICONS[n.kind] ?? "scroll"} />
+              <span>
+                {n.text}
+                <span className="dim"> · {new Date(n.createdAt).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}</span>
+              </span>
+              <button type="button" className="small ghost" onClick={() => remove(`/inbox/delete/${n.id}`)}>Delete</button>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
@@ -763,7 +894,7 @@ const STAT_LABELS: [string, string][] = [
   ["questsWon", "Quests won"], ["questsFailed", "Quests failed"], ["longestStreak", "Longest win streak"],
   ["goldEarned", "Gold earned"], ["monstersSlain", "Monsters slain"], ["fightsLost", "Fights lost"], ["itemsFound", "Items found"],
   ["legendariesFound", "Legendaries found"], ["dungeonsCleared", "Dungeons cleared"], ["raidsWon", "Raids won"], ["marketSold", "Items sold"],
-  ["marketBought", "Market draws"], ["shopBought", "Shop purchases"],
+  ["marketBought", "Items bought"], ["shopBought", "Shop purchases"],
 ];
 
 function StatsView() {
@@ -839,7 +970,7 @@ function RanksView() {
   );
 }
 
-type View = "character" | "talents" | "shop" | "market" | "stats" | "ranks" | "ideas" | DocName;
+type View = "character" | "talents" | "shop" | "market" | "stats" | "ranks" | "ideas" | "inbox" | DocName;
 
 type Data = { character: Character; status: Status; items: Item[]; history: Quest[]; guild: Guild | null; raids: Raids };
 
@@ -895,6 +1026,8 @@ export function App() {
       if (err instanceof Unauthorized) setLoggedOut(true);
     }
   }, []);
+
+  const reload = useCallback(() => void load(), [load]);
 
   // An open tab counts as a heartbeat once a minute, so monsters can show up here too.
   useEffect(() => {
@@ -973,6 +1106,9 @@ export function App() {
           >
             {muted ? "Sound off" : "Sound on"}
           </button>
+          <button type="button" className={`small ${c.unread ? "" : "ghost"}`} onClick={() => setView("inbox")}>
+            Inbox{c.unread ? ` · ${c.unread}` : ""}
+          </button>
           <button type="button" className="small ghost" onClick={() => setTouring(true)}>Tour</button>
           <button type="button" className="small ghost" data-tour="terminal" onClick={() => setPairing(true)}>Terminal</button>
           <button type="button" className="small ghost" onClick={() => api("/auth/logout", {}).then(() => setLoggedOut(true))}>Log out</button>
@@ -999,6 +1135,7 @@ export function App() {
       {view === "talents" && <TalentsView onChange={() => void load()} />}
       {view === "shop" && <ShopView onChange={() => void load()} />}
       {view === "market" && <MarketView onChange={() => void load()} />}
+      {view === "inbox" && <InboxView onChange={reload} />}
       {view === "stats" && <StatsView />}
       {view === "ranks" && <RanksView />}
       {(view === "manual" || view === "changelog") && <Doc name={view} onOpen={setView} />}

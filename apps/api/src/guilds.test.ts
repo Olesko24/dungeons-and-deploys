@@ -10,6 +10,9 @@ let db: PrismaClient;
 before(async () => { db = await testDb(); });
 after(() => db.$disconnect());
 
+const inbox = async (characterId: number, kind: string) =>
+  (await db.notification.findMany({ where: { characterId, kind }, orderBy: { id: "asc" } })).map((n) => n.text);
+
 async function player(name: string) {
   const token = `tq_${name}`;
   const user = await db.user.create({
@@ -37,6 +40,8 @@ test("create, join, leave and hand over leadership", async () => {
   assert.equal((await a.call("POST", "/guild/leave")).statusCode, 204);
   const members = (await b.call("GET", "/guild")).json().guild.members;
   assert.deepEqual(members.map((m: { name: string; role: string }) => [m.name, m.role]), [["beta", "leader"], ["gamma", "member"]]);
+
+  assert.deepEqual(await inbox(b.characterId, "guild"), ["gamma joined Night Shift.", "alpha left the guild.", "alpha left, you lead the guild now."]);
 
   await b.call("POST", "/guild/leave");
   await c.call("POST", "/guild/leave");

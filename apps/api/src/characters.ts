@@ -1,5 +1,5 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { item, itemName } from "@dnd/shared";
+import { item, itemName, marketValue } from "@dnd/shared";
 import { requireUser } from "./auth.ts";
 import type { Item, PrismaClient } from "./generated/prisma/client.ts";
 
@@ -30,6 +30,10 @@ export const itemView = (i: Item) => ({
   stats: { attack: i.attack, defense: i.defense, luck: i.luck, fortune: i.fortune },
   equippedSlot: i.equippedSlot,
   listed: !!i.listedAt,
+  /** The listing price while on the market. */
+  price: i.price,
+  /** Suggested market price for this roll. */
+  value: marketValue(i.key, i),
 });
 
 export const equippedItems = (db: Pick<PrismaClient, "item">, characterId: number) =>

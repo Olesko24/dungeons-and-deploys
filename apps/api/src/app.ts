@@ -9,6 +9,7 @@ import { dungeonRoutes } from "./dungeons.ts";
 import { encounterRoutes } from "./encounters.ts";
 import { guildRoutes } from "./guilds.ts";
 import { ideaRoutes } from "./ideas.ts";
+import { inboxRoutes } from "./inbox.ts";
 import { inventoryRoutes } from "./inventory.ts";
 import { leaderboardRoutes } from "./leaderboard.ts";
 import { marketRoutes } from "./market.ts";
@@ -22,6 +23,7 @@ export type Deps = {
   db: PrismaClient;
   scheduleStage?: (dungeonId: number, stage: number, at: Date) => Promise<unknown>;
   scheduleRaid?: (raidId: number, tick: number, at: Date) => Promise<unknown>;
+  scheduleDraw?: (itemId: number, at: Date) => Promise<unknown>;
   now?: () => Date;
   random?: () => number;
 };
@@ -55,7 +57,7 @@ export async function buildApp(deps: Deps, opts: FastifyServerOptions = {}) {
   });
 
   authRoutes(app, db);
-  const full = { now: () => new Date(), random: Math.random, scheduleStage: async () => {}, scheduleRaid: async () => {}, ...deps };
+  const full = { now: () => new Date(), random: Math.random, scheduleStage: async () => {}, scheduleRaid: async () => {}, scheduleDraw: async () => {}, ...deps };
   questRoutes(app, full);
   inventoryRoutes(app, db);
   encounterRoutes(app, full);
@@ -68,6 +70,7 @@ export async function buildApp(deps: Deps, opts: FastifyServerOptions = {}) {
   leaderboardRoutes(app, db);
   talentRoutes(app, db);
   ideaRoutes(app, full);
+  inboxRoutes(app, full);
 
   // Every successful player action may unlock achievements. Heartbeats are skipped: they are frequent and change little.
   app.addHook("onResponse", async (req, reply) => {
