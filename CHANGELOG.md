@@ -17,6 +17,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). New
 
 ### Added
 
+- Short alert sounds on the website when a quest is ready, a monster shows up, or a dungeon or raid starts
+  and ends. **Sound on** at the top mutes them.
 - Stats with icons on the website: the character header shows level, power, gold and every stat as tiles, and
   equipped items show their stats in the equipment slots.
 - Bad luck protection: after three successful quests without loot, the next successful quest always drops an

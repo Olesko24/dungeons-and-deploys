@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import {
   type Achievement,
   type Character,
@@ -20,6 +20,7 @@ import {
 } from "./api.ts";
 import { Doc, type DocName } from "./Doc.tsx";
 import { Ideas } from "./Ideas.tsx";
+import { isMuted, play, setMuted } from "./sound.ts";
 import { Tour } from "./Tour.tsx";
 
 const SLOTS = [
@@ -802,12 +803,38 @@ type View = "character" | "talents" | "shop" | "market" | "stats" | "ranks" | "i
 
 type Data = { character: Character; status: Status; items: Item[]; history: Quest[]; guild: Guild | null; raids: Raids };
 
+const questReady = (s: Status) => !s.quest || (s.quest.resolved && !minutesUntil(s.readyAt));
+
+/** Plays a short sound for what changed since the last refresh. */
+function announce(prev: Data, next: Data) {
+  if (!questReady(prev.status) && questReady(next.status)) play("questReady");
+  if (!prev.status.encounter && next.status.encounter) play("monster");
+
+  const dungeonWas = prev.status.dungeon?.state;
+  const dungeonIs = next.status.dungeon?.state;
+  if (dungeonWas === "lobby" && dungeonIs === "running") play("start");
+  // A finished dungeon drops out of the status, its result comes from the dungeon route.
+  if (dungeonWas === "running" && !dungeonIs) {
+    void api<{ dungeon: { state: string } | null }>("/dungeons/current").then(({ dungeon }) => play(dungeon?.state === "won" ? "won" : "lost"));
+  }
+
+  const raidWas = prev.raids.raid?.state;
+  const raidIs = next.raids.raid?.state;
+  if (raidWas !== raidIs) {
+    if (raidIs === "running") play("start");
+    if (raidIs === "won") play("won");
+    if (raidIs === "failed") play("lost");
+  }
+}
+
 export function App() {
   const [data, setData] = useState<Data | null>(null);
   const [loggedOut, setLoggedOut] = useState(false);
   const [view, setView] = useState<View>("character");
   const [touring, setTouring] = useState(false);
   const [pairing, setPairing] = useState(false);
+  const [muted, setMutedState] = useState(isMuted);
+  const last = useRef<Data | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -819,7 +846,10 @@ export function App() {
         api<{ guild: Guild | null }>("/guild"),
         api<Raids>("/raids/current"),
       ]);
-      setData({ character, status, items: inventory.items, history, guild: guild.guild, raids: raid });
+      const next = { character, status, items: inventory.items, history, guild: guild.guild, raids: raid };
+      if (last.current) announce(last.current, next);
+      last.current = next;
+      setData(next);
       setLoggedOut(false);
     } catch (err) {
       if (err instanceof Unauthorized) setLoggedOut(true);
@@ -890,6 +920,19 @@ export function App() {
           <p className="dim">XP {c.xpIntoLevel}/{c.xpForNext}</p>
         </div>
         <div className="hero-actions">
+          <button
+            type="button"
+            className="small ghost"
+            aria-pressed={!muted}
+            title="Short sounds when a quest is ready, a monster shows up or a dungeon or raid starts and ends"
+            onClick={() => {
+              setMuted(!muted);
+              setMutedState(!muted);
+              if (muted) play("questReady");
+            }}
+          >
+            {muted ? "Sound off" : "Sound on"}
+          </button>
           <button type="button" className="small ghost" onClick={() => setTouring(true)}>Tour</button>
           <button type="button" className="small ghost" data-tour="terminal" onClick={() => setPairing(true)}>Terminal</button>
           <button type="button" className="small ghost" onClick={() => api("/auth/logout", {}).then(() => setLoggedOut(true))}>Log out</button>
