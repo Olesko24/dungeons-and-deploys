@@ -457,6 +457,8 @@ least their loot level, so their average loot is better.
 
 `quest top` shows leaderboards: by level, by combat power, by achievements and by guild level. The power board counts level, gear and talents, not temporary guild buffs. You see the top 20 and your own rank. The guild board lists every guild with its members and their average combat power, so you can compare guilds before joining. There is no gold leaderboard.
 
+On the website, click a name on a leaderboard to see that player's public profile: level, combat power, stats, guild, achievements and equipment. **Profile** at the top shows your own. Gold and the bag stay private.
+
 ## Website
 
 The website shows your character, equipment, bag, quest history, guild, talents, shop, market, inbox, statistics and leaderboards. Everything the terminal can do in the game works there too: start or join a dungeon in the status panel, sell items from your bag and buy them under **market**, schedule a raid in the guild hall (leader) and join it in the raid panel. New players can create their character there with an access code. Players who started in the terminal run `quest pair` and enter the code it shows. **Terminal** at the top does the opposite: it shows a pair code to log in the terminal, or another browser such as your phone.

@@ -24,6 +24,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). New
 
 ### Added
 
+- Public profiles on the website: click a name on a leaderboard to see the player's level, combat power, stats,
+  guild, achievements and equipment. **Profile** at the top shows your own. Gold and the bag stay private.
 - Auto-scrap: loot below a rarity you pick is scrapped on arrival and paid out in gold. Set it above your bag on
   the website or with `quest autoscrap <rarity>|off`.
 - The market shows the average sale price per rarity over the last 7 days, in `quest market` and when you sell

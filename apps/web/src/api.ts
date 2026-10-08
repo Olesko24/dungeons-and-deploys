@@ -88,6 +88,19 @@ export type PlayerStats = Record<string, number | boolean>;
 
 export type RankRow = { rank: number; name: string; value: number; level?: number; members?: number; power?: number };
 export type Leaderboard = { board: string; top: RankRow[]; you: RankRow | null };
+export type Profile = {
+  name: string;
+  level: number;
+  xp: number;
+  xpIntoLevel: number;
+  xpForNext: number;
+  power: number;
+  stats: Stats;
+  equipment: Item[];
+  guild: string | null;
+  achievements: number;
+  mine: boolean;
+};
 
 export class Unauthorized extends Error {}
 

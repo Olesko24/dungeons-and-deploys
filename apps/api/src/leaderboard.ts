@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
-import { guildLevel, levelFromXp } from "@dnd/shared";
-import { requireCharacter } from "./characters.ts";
+import { equipmentBonus, guildLevel, levelFromXp } from "@dnd/shared";
+import { equippedItems, itemView, requireCharacter } from "./characters.ts";
 import type { PrismaClient } from "./generated/prisma/client.ts";
 
 const BOARDS = ["xp", "power", "achievements", "guilds"] as const;
@@ -66,4 +66,27 @@ export function leaderboardRoutes(app: FastifyInstance, db: PrismaClient) {
       return { board: name, ...(await board(db, name, character.id)) };
     },
   );
+
+  /** What every player can see of another: level, combat power, stats and equipment. Gold and the bag stay private. */
+  app.get<{ Params: { name: string } }>("/profile/:name", async (req, reply) => {
+    const character = await requireCharacter(db, req, reply);
+    if (!character) return;
+    const target = await db.character.findFirst({
+      where: { name: req.params.name, ...notBanned },
+      include: { guild: { include: { guild: true } }, _count: { select: { achievements: true } } },
+    });
+    if (!target) return reply.code(404).send({ error: "no player with that name" });
+    const equipped = await equippedItems(db, target.id);
+    return {
+      name: target.name,
+      ...levelFromXp(target.xp),
+      xp: target.xp,
+      power: target.power,
+      stats: equipmentBonus(equipped),
+      equipment: equipped.map(itemView),
+      guild: target.guild?.guild.name ?? null,
+      achievements: target._count.achievements,
+      mine: target.id === character.id,
+    };
+  });
 }

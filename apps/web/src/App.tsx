@@ -7,6 +7,7 @@ import {
   type InboxEntry,
   type Item,
   type Leaderboard,
+  type Profile,
   type Listing,
   type Market,
   type RankRow,
@@ -127,6 +128,39 @@ function Rarity({ rarity }: { rarity: string }) {
 
 function ItemIcon({ item }: { item: Item }) {
   return <img className="icon" src={`/items/${item.key}.svg`} alt="" width={48} height={48} />;
+}
+
+/** The eleven equipment slots. With `onTakeOff` a click on an item takes it off, without it the grid is read-only. */
+function EquipmentSlots({ items, onTakeOff }: { items: Item[]; onTakeOff?: (item: Item) => void }) {
+  const bySlot = new Map(items.filter((i) => i.equippedSlot).map((i) => [i.equippedSlot, i]));
+  return (
+    <div className="slots">
+      {SLOTS.map(([slot, label]) => {
+        const item = bySlot.get(slot);
+        const twoHander = slot === "offHand" && bySlot.get("mainHand")?.type === "twoHanded" ? bySlot.get("mainHand") : undefined;
+        if (twoHander) {
+          return (
+            <div key={slot} className={`slot blocked ${twoHander.rarity}`} title="Blocked by a two-handed weapon">
+              <span className="slot-label">2-hand <RarityIcon rarity={twoHander.rarity} /></span>
+              <ItemIcon item={twoHander} />
+            </div>
+          );
+        }
+        return (
+          <div key={slot} className={`slot ${item?.rarity ?? "empty"}`}>
+            <span className="slot-label">{label} {item && <RarityIcon rarity={item.rarity} />}</span>
+            {item && onTakeOff ? (
+              <button type="button" className="slot-item" onClick={() => onTakeOff(item)} title={`${item.name}, click to take off`}>
+                <ItemIcon item={item} />
+              </button>
+            ) : item ? <span className="slot-item" title={item.name}><ItemIcon item={item} /></span> : <span className="slot-empty" />}
+            {item && <span className="slot-name">{item.name}</span>}
+            {item && <StatList stats={item.stats} />}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 const INSTALL = "npm install -g dungeons-and-deploys";
@@ -388,7 +422,6 @@ function Inventory({ items, shards, autoScrap, onChange }: { items: Item[]; shar
   const act = (path: string) => api(path, {}).then(onChange, (err: Error) => setError(err.message));
   const make = (path: string, body: object = {}) =>
     api<{ item: Item }>(path, body).then(({ item }) => { setPicked([]); setMessage(`You got ${item.name} (${item.rarity}).`); onChange(); }, (err: Error) => setError(err.message));
-  const bySlot = new Map(items.filter((i) => i.equippedSlot).map((i) => [i.equippedSlot, i]));
   const bag = items.filter((i) => !i.equippedSlot);
   // Drops picks that were scrapped, equipped or listed meanwhile.
   const picked = picks.filter((id) => bag.some((i) => i.id === id && !i.listed));
@@ -401,32 +434,7 @@ function Inventory({ items, shards, autoScrap, onChange }: { items: Item[]; shar
       <section className="panel" data-tour="equipment">
         <h2><UiIcon name="equipment" />Equipment</h2>
         {error && <p className="error" role="alert">{error}</p>}
-        <div className="slots">
-          {SLOTS.map(([slot, label]) => {
-            const item = bySlot.get(slot);
-            const twoHander = slot === "offHand" && bySlot.get("mainHand")?.type === "twoHanded" ? bySlot.get("mainHand") : undefined;
-            if (twoHander) {
-              return (
-                <div key={slot} className={`slot blocked ${twoHander.rarity}`} title="Blocked by a two-handed weapon">
-                  <span className="slot-label">2-hand <RarityIcon rarity={twoHander.rarity} /></span>
-                  <ItemIcon item={twoHander} />
-                </div>
-              );
-            }
-            return (
-              <div key={slot} className={`slot ${item?.rarity ?? "empty"}`}>
-                <span className="slot-label">{label} {item && <RarityIcon rarity={item.rarity} />}</span>
-                {item ? (
-                  <button type="button" className="slot-item" onClick={() => act(`/inventory/${item.id}/unequip`)} title={`${item.name}, click to take off`}>
-                    <ItemIcon item={item} />
-                  </button>
-                ) : <span className="slot-empty" />}
-                {item && <span className="slot-name">{item.name}</span>}
-                {item && <StatList stats={item.stats} />}
-              </div>
-            );
-          })}
-        </div>
+        <EquipmentSlots items={items} onTakeOff={(item) => act(`/inventory/${item.id}/unequip`)} />
       </section>
       <section className="panel">
         <h2><UiIcon name="bag" />Bag · {bag.length} <span className="dim">· {items.length} of {BAG_LIMIT} items</span></h2>
@@ -1005,7 +1013,7 @@ function StatsView() {
 
 const BOARDS = [["xp", "Level"], ["power", "Power"], ["achievements", "Achievements"], ["guilds", "Guilds"]] as const;
 
-function RanksView() {
+function RanksView({ onProfile }: { onProfile: (name: string) => void }) {
   const [board, setBoard] = useState<(typeof BOARDS)[number][0]>("xp");
   const [data, setData] = useState<Leaderboard | null>(null);
   useEffect(() => void api<Leaderboard>(`/leaderboard?board=${board}`).then(setData), [board]);
@@ -1028,7 +1036,9 @@ function RanksView() {
             <tbody>
               {[...data.top, ...(showYou && data.you ? [data.you] : [])].map((r) => (
                 <tr key={`${r.rank}-${r.name}`} className={r.name === data.you?.name ? "you" : ""}>
-                  <td>{r.rank}</td><td>{r.name}</td>{board !== "achievements" && <td>{r.level}</td>}<td>{r.value}</td>
+                  <td>{r.rank}</td>
+                  <td>{board === "guilds" ? r.name : <button type="button" className="link" title={`Profile of ${r.name}`} onClick={() => onProfile(r.name)}>{r.name}</button>}</td>
+                  {board !== "achievements" && <td>{r.level}</td>}<td>{r.value}</td>
                   {board === "guilds" && <><td>{r.members}</td><td>{r.power}</td></>}
                 </tr>
               ))}
@@ -1041,7 +1051,50 @@ function RanksView() {
   );
 }
 
-type View = "character" | "talents" | "shop" | "market" | "stats" | "ranks" | "ideas" | DocName;
+type View = "character" | "talents" | "shop" | "market" | "stats" | "ranks" | "ideas" | "profile" | DocName;
+
+/** A player's public profile: level, combat power, stats and equipment. */
+function ProfileView({ name, onBack }: { name: string; onBack: () => void }) {
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    setProfile(null);
+    setError("");
+    void api<Profile>(`/profile/${encodeURIComponent(name)}`).then(setProfile, (err: Error) => setError(err.message));
+  }, [name]);
+  return (
+    <>
+      <button type="button" className="small ghost back" onClick={onBack}>← Back</button>
+      {error ? <section className="panel"><p className="error" role="alert">{error}</p></section> : !profile ? <section className="panel"><p>Loading…</p></section> : (
+        <>
+          <section className="panel">
+            <h2><UiIcon name="star" />{profile.name}{profile.mine && <span className="dim"> · your public profile</span>}</h2>
+            <dl className="stats hero-stats">
+              {[
+                { icon: "star", label: "Level", value: profile.level },
+                { icon: "power", label: "Power", value: profile.power },
+                ...STAT_KEYS.map((k) => ({ icon: k, label: STAT_NAMES[k], value: statValue(profile.stats, k) })),
+                { icon: "guild", label: "Guild", value: profile.guild ?? "–" },
+                { icon: "crown", label: "Achievements", value: profile.achievements },
+              ].map(({ icon, label, value }) => (
+                <div key={label}>
+                  <dt><img className="icon" src={`/ui/${icon}.svg`} alt="" width={16} height={16} />{label}</dt>
+                  <dd>{value}</dd>
+                </div>
+              ))}
+            </dl>
+            <Bar filled={Math.floor((profile.xpIntoLevel / profile.xpForNext) * 10)} total={10} label={`${profile.xpIntoLevel} of ${profile.xpForNext} XP`} />
+            <p className="dim">XP {profile.xpIntoLevel}/{profile.xpForNext} · {profile.xp} total</p>
+          </section>
+          <section className="panel">
+            <h2><UiIcon name="equipment" />Equipment</h2>
+            <EquipmentSlots items={profile.equipment} />
+          </section>
+        </>
+      )}
+    </>
+  );
+}
 
 type Data = { character: Character; status: Status; items: Item[]; shards: Record<string, number>; autoScrap: string | null; history: Quest[]; guild: Guild | null; raids: Raids };
 
@@ -1073,6 +1126,8 @@ export function App() {
   const [data, setData] = useState<Data | null>(null);
   const [loggedOut, setLoggedOut] = useState(false);
   const [view, setView] = useState<View>("character");
+  const [profileName, setProfileName] = useState("");
+  const [profileFrom, setProfileFrom] = useState<View>("ranks");
   const [inboxOpen, setInboxOpen] = useState(false);
   const [touring, setTouring] = useState(false);
   const [pairing, setPairing] = useState(false);
@@ -1159,6 +1214,12 @@ export function App() {
   if (!data) return <main className="loading">Loading…</main>;
 
   const c = data.character;
+  const showProfile = (name: string) => {
+    if (view !== "profile") setProfileFrom(view);
+    setProfileName(name);
+    setView("profile");
+    window.scrollTo(0, 0);
+  };
   return (
     <main>
       <header className="panel hero" data-tour="hero">
@@ -1204,6 +1265,7 @@ export function App() {
             >
               <UiIcon name={muted ? "soundOff" : "soundOn"} />{muted ? "Sound off" : "Sound on"}
             </button>
+            <button type="button" className="small ghost" onClick={() => showProfile(c.name)}><UiIcon name="star" />Profile</button>
             <button type="button" className="small ghost" onClick={() => setTouring(true)}><UiIcon name="help" />Tour</button>
             <button type="button" className="small ghost" data-tour="terminal" onClick={() => setPairing(true)}><UiIcon name="terminal" />Terminal</button>
             <button type="button" className="small ghost" onClick={() => api("/auth/logout", {}).then(() => setLoggedOut(true))}><UiIcon name="logout" />Log out</button>
@@ -1232,7 +1294,8 @@ export function App() {
       {view === "shop" && <ShopView onChange={() => void load()} />}
       {view === "market" && <MarketView onChange={() => void load()} />}
       {view === "stats" && <StatsView />}
-      {view === "ranks" && <RanksView />}
+      {view === "ranks" && <RanksView onProfile={showProfile} />}
+      {view === "profile" && <ProfileView name={profileName} onBack={() => setView(profileFrom)} />}
       {(view === "manual" || view === "changelog") && <Doc name={view} onOpen={setView} />}
       {view === "ideas" && <Ideas />}
       <footer className="footer">

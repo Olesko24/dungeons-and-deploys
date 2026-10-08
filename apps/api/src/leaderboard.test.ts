@@ -56,3 +56,23 @@ test("xp, achievements and guild boards with your own rank", async () => {
   const ace = await db.character.findUniqueOrThrow({ where: { name: "ace" } });
   assert.deepEqual([guilds.top[0].members, guilds.top[0].power], [1, ace.power], "size and average power");
 });
+
+test("public profiles show level, power, stats and equipment, not gold or the bag", async () => {
+  const viewer = "onlooker";
+  await player(viewer, 0);
+  const id = await player("showoff", 5000);
+  await player("hidden", 5000, true);
+  await db.character.update({ where: { id }, data: { gold: 999, power: 321 } });
+  await db.item.create({ data: { characterId: id, key: "helm.epic", defense: 10, equippedSlot: "head" } });
+  await db.item.create({ data: { characterId: id, key: "ring.rare", luck: 2 } });
+  const profile = async (name: string) =>
+    (await (await buildApp({ db })).inject({ url: `/profile/${name}`, headers: { authorization: `Bearer tq_${viewer}` } }));
+
+  const p = (await profile("showoff")).json();
+  assert.deepEqual([p.name, p.power, p.stats.defense, p.mine, p.guild], ["showoff", 321, 10, false, null]);
+  assert.deepEqual(p.equipment.map((i: { key: string }) => i.key), ["helm.epic"], "only what is worn");
+  assert.equal(p.gold, undefined);
+  assert.equal((await profile(viewer)).json().mine, true, "your own profile");
+  assert.equal((await profile("hidden")).statusCode, 404, "banned players have no profile");
+  assert.equal((await profile("nobody")).statusCode, 404);
+});
