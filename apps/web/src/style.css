@@ -136,6 +136,10 @@ input {
 
 .tabs { display: flex; gap: 12px; flex-wrap: wrap; }
 .row { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+/* An icon next to a short stack of facts, one per line. */
+.entity { display: flex; gap: 12px; align-items: center; min-width: 0; }
+.facts { display: grid; gap: 2px; min-width: 0; }
+.facts > * { justify-self: start; }
 .beta { font-size: 18px; color: var(--ink-dim); border-left: var(--pixel) solid var(--warn); padding-left: 12px; }
 .beta strong { font: 8px var(--display); color: var(--warn); text-transform: uppercase; }
 a { color: var(--gold); }
@@ -218,6 +222,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 h3.sub { margin: 4px 0 0; font: 10px/1.6 var(--display); color: var(--gold); text-transform: uppercase; }
 .buffs { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .buffs li { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--panel-deep); padding: 8px 12px; }
+.buffs li > .icon + .facts { flex: 1; }
 .buffs li.active { box-shadow: inset var(--pixel) 0 0 var(--good); }
 .buffs li.locked { opacity: .55; }
 .buffs strong { font-weight: normal; color: var(--ink); }
@@ -240,7 +245,6 @@ h3.sub { margin: 4px 0 0; font: 10px/1.6 var(--display); color: var(--gold); tex
 .achievements { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr)); gap: 8px; }
 .achievements li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; background: var(--panel-deep); padding: 8px 12px; opacity: .55; }
 .achievements li.unlocked { opacity: 1; box-shadow: inset var(--pixel) 0 0 var(--gold); }
-.achievements .star { font-size: 28px; color: var(--gold); }
 .achievements strong { display: block; font-weight: normal; }
 .achievements .dim { font-size: 18px; }
 

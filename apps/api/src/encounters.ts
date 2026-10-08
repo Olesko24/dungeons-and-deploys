@@ -49,6 +49,7 @@ export async function encounterView(db: PrismaClient, character: Character, t: D
   const { level } = levelFromXp(character.xp);
   const percent = bonus.power + bonus.fightPower;
   return {
+    key: monster,
     name: MONSTERS[monster].name,
     level: encounter.level,
     expiresAt: encounter.expiresAt,

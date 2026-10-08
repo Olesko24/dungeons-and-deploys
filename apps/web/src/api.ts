@@ -16,7 +16,7 @@ export type Status = {
   quest: Quest | null;
   readyAt: string;
   rested: number;
-  encounter: { name: string; level: number; expiresAt: string; winChance: number; power: number; recommended: number } | null;
+  encounter: { key: string; name: string; level: number; expiresAt: string; winChance: number; power: number; recommended: number } | null;
   dungeon: { code: string; state: string; story: string; startsAt: string; cleared: number; current: string | null; stageEndsAt: string | null; members: string[]; power: number[]; recommended: number[] } | null;
 };
 

@@ -24,6 +24,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). New
 
 ### Added
 
+- Pixel-art icons for every monster, dungeon stage, raid boss, guild buff and achievement on the website.
 - **Devices** at the top of the website (was **Terminal**) explains how to log in this character on another
   browser, your phone, the terminal or Claude Code, with the pair code shown large and a button for a new one.
   The manual has a step-by-step section under Account and devices.
@@ -78,6 +79,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). New
 
 ### Changed
 
+- The website shows market and shop cards, the bag, the status panel, raids, the guild hall and achievements with
+  one detail per line instead of long lines joined by dots.
 - The shop has no level locks anymore. Epic and mythic offers only need the gold, like items on the market.
 - The quest history on the website shows the last 5 quests, **Show last 20** opens the rest.
 - **Breaking:** Tokenquest is now called **Dungeons & Deploys**. The npm package and the Claude Code plugin are

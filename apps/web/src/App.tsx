@@ -1,4 +1,4 @@
-import { BAG_LIMIT, MARKET_MAX_PRICE, PRICE_TAGS, type PriceTag, RARITIES, RESTED_BONUS, type Rarity as RarityName, UPGRADE_COST, priceTag, sellerPayout } from "@dnd/shared";
+import { BAG_LIMIT, DUNGEON_STAGES, MARKET_MAX_PRICE, PRICE_TAGS, type PriceTag, RARITIES, RESTED_BONUS, type Rarity as RarityName, UPGRADE_COST, priceTag, sellerPayout } from "@dnd/shared";
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import {
   type Achievement,
@@ -124,6 +124,11 @@ function RarityIcon({ rarity }: { rarity: string }) {
 
 function Rarity({ rarity }: { rarity: string }) {
   return <span className={`rarity ${rarity}`}><RarityIcon rarity={rarity} />{rarity}</span>;
+}
+
+/** Pixel-art icon of a monster, raid boss, guild buff or achievement from public/<kind>, drawn at `size` px. */
+function Sprite({ kind, name, size = 48 }: { kind: "monsters" | "bosses" | "buffs" | "achievements"; name: string | number; size?: number }) {
+  return <img className="icon" src={`/${kind}/${name}.svg`} alt="" width={size} height={size} />;
 }
 
 function ItemIcon({ item }: { item: Item }) {
@@ -335,7 +340,14 @@ function QuestStatus({ status, onChange }: { status: Status; onChange: () => voi
       <h2><UiIcon name="hourglass" />Status</h2>
       {e && (
         <div className="row">
-          <p className="alert">⚠ {e.name} (Lv {e.level}) appeared · {Math.round(e.winChance * 100)}% odds · <Power yours={e.power} recommended={e.recommended} /> · leaves in {minutesUntil(e.expiresAt)}m</p>
+          <div className="entity">
+            <Sprite kind="monsters" name={e.key} />
+            <div className="facts">
+              <span className="alert">⚠ {e.name} (Lv {e.level}) appeared</span>
+              <span>{Math.round(e.winChance * 100)}% odds · <Power yours={e.power} recommended={e.recommended} /></span>
+              <span className="dim">leaves in {minutesUntil(e.expiresAt)}m</span>
+            </div>
+          </div>
           <button type="button" className="small" onClick={() => act("/fight", fightResult)}>Fight</button>
         </div>
       )}
@@ -362,20 +374,28 @@ function QuestStatus({ status, onChange }: { status: Status; onChange: () => voi
       )}
       {status.rested > 0 && <p>Rested: the next {status.rested} quests give +{RESTED_BONUS}% XP and gold.</p>}
       {q?.resolved && (
-        <p>
-          Last quest: {q.name} · {q.success ? `✓ success · +${q.xp} XP · +${q.gold} gold` : `✗ failed · +${q.xp} XP`}
-          {q.loot && <> · found <span className={q.loot.rarity}><RarityIcon rarity={q.loot.rarity} />{q.loot.name}</span></>}
-        </p>
+        <div className="facts">
+          <span>Last quest: {q.name}</span>
+          <span>{q.success ? `✓ success · +${q.xp} XP · +${q.gold} gold` : `✗ failed · +${q.xp} XP`}</span>
+          {q.loot && <span>found <span className={q.loot.rarity}><RarityIcon rarity={q.loot.rarity} />{q.loot.name}</span></span>}
+        </div>
       )}
       {q?.story && <p className="dim">{q.story}</p>}
       {status.dungeon?.state === "lobby" && (
-        <p>Dungeon <code>{status.dungeon.code}</code> starts in {minutesUntil(status.dungeon.startsAt)}m · party: {status.dungeon.members.join(", ")}</p>
+        <div className="facts">
+          <span>Dungeon <code>{status.dungeon.code}</code> starts in {minutesUntil(status.dungeon.startsAt)}m</span>
+          <span className="dim">party: {status.dungeon.members.join(", ")}</span>
+        </div>
       )}
       {status.dungeon?.state === "running" && (
-        <p>
-          Dungeon stage {status.dungeon.cleared + 1}/4 · {status.dungeon.current} ·{" "}
-          <Power yours={status.dungeon.power[status.dungeon.cleared]} recommended={status.dungeon.recommended[status.dungeon.cleared]} /> · {minutesUntil(status.dungeon.stageEndsAt ?? "")}m left
-        </p>
+        <div className="entity">
+          <Sprite kind="monsters" name={DUNGEON_STAGES[status.dungeon.cleared].monster} />
+          <div className="facts">
+            <span>Dungeon stage {status.dungeon.cleared + 1}/{DUNGEON_STAGES.length} · {status.dungeon.current}</span>
+            <Power yours={status.dungeon.power[status.dungeon.cleared]} recommended={status.dungeon.recommended[status.dungeon.cleared]} />
+            <span className="dim">{minutesUntil(status.dungeon.stageEndsAt ?? "")}m left</span>
+          </div>
+        </div>
       )}
       {status.dungeon && <p className="dim">{status.dungeon.story}</p>}
       {!status.dungeon && (
@@ -492,7 +512,9 @@ function Inventory({ items, shards, autoScrap, onChange }: { items: Item[]; shar
               <ItemIcon item={item} />
               <div className="item-text">
                 <span className="name">{item.name}</span>
-                <span className="dim"><Rarity rarity={item.rarity} /> · <StatList stats={item.stats} />{item.listed ? <> · on market for <Gold amount={item.price ?? 0} /></> : ""}</span>
+                <span className="dim"><Rarity rarity={item.rarity} /></span>
+                <StatList stats={item.stats} />
+                {item.listed && <span className="dim">on market for <Gold amount={item.price ?? 0} /></span>}
               </div>
               <span className="item-actions">
                 {!item.listed && <button type="button" className="small" onClick={() => act(`/inventory/${item.id}/equip`)}>Equip</button>}
@@ -623,7 +645,11 @@ function GuildHall({ guild, raids, me, onChange }: { guild: Guild | null; raids:
         </>
       ) : (
         <>
-          <p>{guild.name} · Lv {guild.level} · {guild.members.length} members · join code <code>{guild.code}</code></p>
+          <div className="facts">
+            <strong>{guild.name}</strong>
+            <span>Lv {guild.level} · {guild.members.length} {guild.members.length === 1 ? "member" : "members"}</span>
+            <span>join code <code>{guild.code}</code></span>
+          </div>
           <Bar filled={Math.floor((guild.xpIntoLevel / guild.xpForNext) * 10)} total={10} label={`${guild.xpIntoLevel} of ${guild.xpForNext} guild XP`} />
           <ul className="members">
             {guild.members.map((m) => (
@@ -654,7 +680,8 @@ function GuildHall({ guild, raids, me, onChange }: { guild: Guild | null; raids:
           <ul className="buffs">
             {guild.buffs.map((b) => (
               <li key={b.key} className={b.endsAt ? "active" : b.unlocked ? "" : "locked"}>
-                <span><strong>{b.name}</strong> · {b.text}<br /><em className="dim">{b.flavor}</em></span>
+                <Sprite kind="buffs" name={b.key} size={32} />
+                <span className="facts"><strong>{b.name}</strong><span>{b.text}</span><em className="dim">{b.flavor}</em></span>
                 {b.endsAt ? (
                   <span className="good">active · {Math.ceil(minutesUntil(b.endsAt) / 60)}h left</span>
                 ) : !b.unlocked ? (
@@ -680,7 +707,8 @@ function GuildHall({ guild, raids, me, onChange }: { guild: Guild | null; raids:
           <ul className="buffs">
             {raids.bosses.map((b) => (
               <li key={b.tier} className={b.unlocked ? "" : "locked"}>
-                <span><strong>{b.tier + 1}. {b.name}</strong><br /><em className="dim">{b.flavor}</em></span>
+                <Sprite kind="bosses" name={b.tier} size={32} />
+                <span className="facts"><strong>{b.tier + 1}. {b.name}</strong><em className="dim">{b.flavor}</em></span>
                 {b.unlocked ? (
                   <span className="item-actions">
                     <Power yours={raids.power} recommended={b.recommended} warn={0.9} />
@@ -688,7 +716,7 @@ function GuildHall({ guild, raids, me, onChange }: { guild: Guild | null; raids:
                       <button type="button" className="small" onClick={() => act("/raids", { startsInMinutes: Number(minutes), tier: b.tier })}>Schedule</button>
                     )}
                   </span>
-                ) : <span className="dim">beat the boss before · ⚔ {b.recommended}</span>}
+                ) : <span className="facts dim"><span>beat the boss before</span><span>⚔ {b.recommended}</span></span>}
               </li>
             ))}
           </ul>
@@ -703,18 +731,24 @@ function RaidView({ raid, power, me, onChange }: { raid: Raid; power: number; me
   const join = () => api("/raids/join", {}).then(onChange, (err: Error) => setError(err.message));
   const joined = raid.members.some((m) => m.name === me);
   const label = {
-    scheduled: `starts in ${minutesUntil(raid.startsAt)}m · ${raid.members.length}/${raid.minPlayers} raiders needed`,
-    running: `tick ${raid.tick}/${raid.ticks} · ends in ${minutesUntil(raid.endsAt)}m · stay present to deal damage`,
-    won: "defeated · loot for every raider",
-    failed: "the boss survived",
-    cancelled: `cancelled, fewer than ${raid.minPlayers} raiders`,
+    scheduled: [`starts in ${minutesUntil(raid.startsAt)}m`, `${raid.members.length}/${raid.minPlayers} raiders needed`],
+    running: [`tick ${raid.tick}/${raid.ticks} · ends in ${minutesUntil(raid.endsAt)}m`, "stay present to deal damage"],
+    won: ["defeated", "loot for every raider"],
+    failed: ["the boss survived"],
+    cancelled: [`cancelled, fewer than ${raid.minPlayers} raiders`],
   }[raid.state];
   const top = Math.max(1, ...raid.members.map((m) => m.damage));
   return (
     <section className={`panel raid ${raid.state}`}>
       <h2><UiIcon name="raid" />Raid · {raid.boss}</h2>
       <div className="row">
-        <p>{label} · <Power yours={power} recommended={raid.recommended} warn={0.9} /></p>
+        <div className="entity">
+          <Sprite kind="bosses" name={raid.tier} />
+          <div className="facts">
+            {label.map((l) => <span key={l}>{l}</span>)}
+            <Power yours={power} recommended={raid.recommended} warn={0.9} />
+          </div>
+        </div>
         {raid.state === "scheduled" && !joined && <button type="button" className="small" onClick={join}>Join raid</button>}
       </div>
       {error && <p className="error" role="alert">{error}</p>}
@@ -1019,12 +1053,11 @@ function StatsView() {
         <ul className="achievements">
           {data.achievements.map((a) => (
             <li key={a.key} className={a.unlockedAt ? "unlocked" : ""}>
-              <span className="star" aria-hidden="true">{a.unlockedAt ? "★" : "☆"}</span>
-              <span>
+              <Sprite kind="achievements" name={a.key} size={40} />
+              <span className="facts">
                 <strong>{a.name}</strong>
-                <span className="dim">
-                  {a.description} · {a.unlockedAt ? new Date(a.unlockedAt).toLocaleDateString() : "locked"}
-                </span>
+                <span className="dim">{a.description}</span>
+                <span className="dim">{a.unlockedAt ? new Date(a.unlockedAt).toLocaleDateString() : "locked"}</span>
               </span>
             </li>
           ))}

@@ -1,6 +1,7 @@
-// Generates 16x16 pixel-art SVG icons for every item in the catalog, every talent and the UI: node scripts/item-icons.ts
+// Generates 16x16 pixel-art SVG icons for every item, talent, monster, raid boss, guild buff, achievement and the UI:
+// node scripts/item-icons.ts
 import { mkdirSync, writeFileSync } from "node:fs";
-import { ITEM_BASES, RARITIES, type Rarity, TALENTS, type TalentTree } from "@dnd/shared";
+import { ACHIEVEMENTS, GUILD_BUFFS, ITEM_BASES, MONSTERS, RAID_BOSSES, RARITIES, type Rarity, TALENTS, type TalentTree } from "@dnd/shared";
 
 // Material shades per rarity, derived from the rarity colors in docs/style.md.
 const MATERIAL: Record<Rarity, { l: string; m: string; d: string }> = {
@@ -294,3 +295,163 @@ const STAT_SPRITES: Record<string, [string[], Material]> = {
 };
 for (const [name, [rows, material]] of Object.entries(STAT_SPRITES)) writeFileSync(new URL(`${name}.svg`, ui), svg(rows, material));
 console.log(`Wrote ${Object.keys(STAT_SPRITES).length} stat icons to ${ui.pathname}`);
+
+const STONE = { l: "#b8bec8", m: "#7a808a", d: "#4a4e56" };
+const SHADOW = { l: "#7a7490", m: "#4a4560", d: "#2a2638" };
+
+/** Writes one icon per key into `dir`, failing on a missing or malformed sprite. */
+function writeIcons(dir: string, keys: string[], sprites: Record<string, [string[], Material]>) {
+  const url = new URL(`../public/${dir}/`, import.meta.url);
+  mkdirSync(url, { recursive: true });
+  for (const key of keys) {
+    const sprite = sprites[key];
+    if (!sprite || sprite[0].length !== 16 || sprite[0].some((r) => r.length !== 16)) throw new Error(`${dir}/${key}: sprite must be 16x16`);
+    writeFileSync(new URL(`${key}.svg`, url), svg(...sprite));
+  }
+  console.log(`Wrote ${keys.length} icons to ${url.pathname}`);
+}
+
+const MONSTER_SPRITES: Record<string, [string[], Material]> = {
+  bugSwarm: [pad([
+    "................", ".d.d............", "..lmw......d.d..", ".dlmmd......lmw.", "..lmm......dlmmd", ".d.dd.......lmm.",
+    "...........d.dd.", "................", "......d.d.......", ".......lmw......", "......dlmmd.....", ".......lmm......",
+    "......d.dd......",
+  ]), TREE.offense],
+  memoryLeakSlime: [sym([
+    "........", "........", "........", "........", ".......l", ".....llm", "....lmmm", "...lmwmm", "..lmmoom", "..lmmoom",
+    ".lmmmmmm", ".lmmmmmm", ".ddddddd", "...d....", "...d....",
+  ]), MATERIAL.ancient],
+  flakyTestGoblin: [sym([
+    "........", "........", "........", "l.......", "lm...lll", ".lm.lmmm", "..lmmmmm", "...lmmmm", "...leemm", "...lmmmm",
+    "...lmwow", "....lmmm", ".....ddd",
+  ]), TREE.luck],
+  nullPointerWraith: [sym([
+    "........", "........", ".....lll", "....lmmm", "...lmmmm", "...lmmmm", "...lmoom", "...lmoom", "...lmmmm", "...lmmmm",
+    "...lmmmm", "...lmmmm", "...lm.mm", "...l...m",
+  ]), BONE],
+  raceConditionTwins: [sym([
+    "........", "........", "........", "..lmmm..", "..lomo..", "..lmmm..", "...mm...", ".lmmmmm.", ".l.mmm.m", "...mmm..",
+    "...m.m..", "...m.m..", "..dd.dd.",
+  ]), MATERIAL.rare],
+  legacyCodeGolem: [sym([
+    "........", "........", "....llll", "....lmmm", "....leem", "....lmmm", ".llllmmm", ".lmmmmmm", ".lmmdmmm", ".lm.lmmm",
+    ".lm.lmmm", ".dd.lmmm", "....lmm.", "....lmm.", "...dddd.",
+  ]), STONE],
+  mergeConflictHydra: [sym([
+    "......ll", ".ll...lm", "lmem..le", "lmmm..lm", ".lm...lm", "..lm..lm", "...lm.lm", "....lmlm", "....lmmm", "...lmmmm",
+    "..lmmmmm", "..lmmmmm", "...ddddd",
+  ]), MATERIAL.epic],
+  dependencyDragon: [pad([
+    "................", "..l....l........", "..lm...lm.......", "...lmmmmmm......", "...lmmmmmmmm....", "..lmmmemmmmmmm..",
+    "..lmmmmmmmmmmmm.", "..lmmmmmmwwwwww.", "..lmmmmmmmmmmmd.", "...lmmmmmddddd..", "...lmmmm........", "..lmmmmm........",
+    ".lmmmmmm........", ".ddddddd........",
+  ]), TREE.offense],
+};
+writeIcons("monsters", Object.keys(MONSTERS), MONSTER_SPRITES);
+
+const BOSS_SPRITES: Record<string, [string[], Material]> = {
+  // The Monolith
+  0: [sym([
+    "........", ".....lll", ".....lmm", ".....lwm", ".....lmm", ".....lme", ".....lmm", ".....lmm", ".....lmm", ".....lmm",
+    ".....lmm", ".....lmm", ".....lmm", ".....lmm", "...ddddd",
+  ]), SHADOW],
+  // The Legacy Mainframe
+  1: [sym([
+    "........", "..llllll", "..lmmmmm", "..lmddmm", "..ldwwdm", "..ldwwdm", "..lmddmm", "..lmmmmm", "..dddddd", "..lmmmmm",
+    "..lmemem", "..lmmmmm", "..dddddd", "..lm....",
+  ]), MATERIAL.common],
+  // The Kubernetes Kraken
+  2: [sym([
+    "........", "........", ".....lll", "....lmmm", "...lmmmm", "...lmwmm", "...lmoom", "...lmmmm", "..lmmmmm", ".lm.m.mm",
+    "lm.m..m.", "m..m..m.", ".m..m..m",
+  ]), MATERIAL.rare],
+  // The Infinite Loop
+  3: [pad([
+    "................", "................", "................", "................", "..lmm......mmd..", ".lm..m....m..md.",
+    ".l....m..m....d.", ".l.....mm.....d.", ".l.....mm.....d.", ".l....m..m....d.", ".lm..m....m..md.", "..lmm......mmd..",
+  ]), MATERIAL.ancient],
+  // The Production Outage
+  4: [sym([
+    "........", ".w.....l", "..w...lm", ".....lwm", "w...lmwm", "....lmmm", "....lmmm", "....lmmm", "...ddddd", "..lmmmmm",
+    "..dddddd",
+  ]), TREE.offense],
+  // The Big Rewrite
+  5: [pad([
+    "................", "................", "..llllllllll....", "..lmmmmmmmmd....", "..lmddddddmd..e.", "..lmmmmmmmmd.eee",
+    "..lmdddddmmdeee.", "..lmmmmmmmmeee..", "..lmddddddeeed..", "..lmmmmmmeeemd..", "..lmdddd.eemmd..", "..lmmmmmwemmmd..",
+    "..lmmmmmmmmmmd..", "..dddddddddddd..",
+  ]), PARCHMENT],
+  // The Debt Collector
+  6: [sym([
+    "........", ".....lll", "....lmmm", "...lmmmm", "...lmooo", "...lmoeo", "...lmooo", "..lmmmmm", "..lmmmmm", ".lmmmmmm",
+    ".lmmmmmm", "lmmmmmmm", "dddddddd",
+  ]), SHADOW],
+  // The Distributed Monolith
+  7: [pad([
+    "................", ".lll.......lll..", ".lmm.......lmm..", ".lem.......lem..", ".lmmwwwwwwwlmm..", ".lmm...w...lmm..",
+    ".ddd...w...ddd..", ".......w........", "......lll.......", "......lem.......", "......lmm.......", "......lmm.......",
+    "......ddd.......",
+  ]), SHADOW],
+  // The Halting Problem
+  8: [sym([
+    "........", ".....lll", "....lmmm", "...lmmmm", "..lmmmmm", "..lmmmmm", "..lwwwww", "..lwwwww", "..lmmmmm", "..lmmmmm",
+    "...lmmmm", "....lmmm", ".....ddd", ".......H", ".......H", ".......H",
+  ]), TREE.offense],
+  // The Final Migration
+  9: [pad([
+    "................", "................", "....llllllll....", "...lwwwwwwwwd...", "...lmmmmmmmmd...", "...dddddddddd...",
+    "...lmmmmmmmmd...", "...dddddddddd...", "...lmmmmmmmmd...", "...dddddddddd...", "....dddddddd....", "................",
+    "...........e....", "..eeeeeeeeeee...", "...........e....",
+  ]), MATERIAL.divine],
+};
+writeIcons("bosses", RAID_BOSSES.map((_, tier) => String(tier)), BOSS_SPRITES);
+
+const BUFF_SPRITES: Record<string, [string[], Material]> = {
+  standupSnacks: [sym([
+    "........", "........", "........", ".....lll", "...llmmm", "..lmwmme", ".lmemm..", ".lmm....", ".lmm....", ".lmmm...",
+    "..lmmmmm", "...ddmmm", ".....ddd",
+  ]), MATERIAL.mythic],
+  bonusRound: [UI_SPRITES.bag[0], GOLD],
+  warRoom: [sym([
+    "........", ".w......", "..wl....", "...lm...", "....lm..", ".....lm.", "......lm", ".......l", "......m.", ".....m..",
+    "...dhd..", "....h...", "...h....", "..H.....",
+  ]), MATERIAL.common],
+  sharedCache: [sym([
+    "........", "........", "........", "........", "...lllll", "..lmmmmm", "..lmmmmm", "..ddddde", "..lmmmme", "..lmmmmm",
+    "..lmmmmm", "..dddddd",
+  ]), LEATHER],
+  asyncStandup: [pad([
+    "................", "................", ".....llllll.....", "...llmmmmmmdd...", "..lmmmmoommmmd..", "..lmmmmoommmmd..",
+    ".lmmmmmoommmmmd.", ".lmmmmmooooommd.", ".lmmmmmooooommd.", ".lmmmmmmmmmmmmd.", "..lmmmmmmmmmmd..", "..lmmmmmmmmmmd..",
+    "...ddmmmmmmdd...", ".....dddddd.....",
+  ]), PARCHMENT],
+};
+writeIcons("buffs", Object.keys(GUILD_BUFFS), BUFF_SPRITES);
+
+const DOOR = sym([
+  "........", "........", "....llll", "...lmmmm", "..lmmHHH", "..lmHHHH", "..lmHhHH", "..lmHhHH", "..lmHhHH", "..lmHHHe",
+  "..lmHhHH", "..lmHhHH", "..lmHhHH", "..dddddd",
+]);
+/** Achievements reuse the sprites of what they are about. */
+const ACHIEVEMENT_SPRITES: Record<string, [string[], Material]> = {
+  firstQuest: [UI_SPRITES.scroll[0], PARCHMENT],
+  quests10: [UI_SPRITES.book[0], MATERIAL.rare],
+  quests100: [UI_SPRITES.star[0], MATERIAL.epic],
+  quests500: [UI_SPRITES.terminal[0], GOLD],
+  streak: [TALENT_SPRITES.flame, TREE.offense],
+  firstBlood: [SPRITES.sword, TREE.offense],
+  bugHunter: [TALENT_SPRITES.bug, TREE.luck],
+  dragon: MONSTER_SPRITES.dependencyDragon,
+  legendary: [SPRITES.ring, MATERIAL.legendary],
+  fullSet: [SPRITES.chest, GOLD],
+  dungeon: [DOOR, STONE],
+  party: [MONSTER_SPRITES.raceConditionTwins[0], GOLD],
+  raid: UI_SPRITES.raid,
+  merchant: [UI_SPRITES.gold[0], GOLD],
+  shopper: UI_SPRITES.shop,
+  founder: UI_SPRITES.guild,
+  senior: [UI_SPRITES.star[0], GOLD],
+  principal: UI_SPRITES.crown,
+  tour: UI_SPRITES.help,
+};
+writeIcons("achievements", ACHIEVEMENTS.map((a) => a.key), ACHIEVEMENT_SPRITES);
