@@ -24,6 +24,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). New
 
 ### Added
 
+- Quest and fight results on the website show up in a box above the status, with XP, gold, loot and the story,
+  until you close it.
 - Pixel-art icons for every monster, dungeon stage, raid boss, guild buff and achievement on the website.
 - **Devices** at the top of the website (was **Terminal**) explains how to log in this character on another
   browser, your phone, the terminal or Claude Code, with the pair code shown large and a button for a new one.

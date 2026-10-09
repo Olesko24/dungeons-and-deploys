@@ -307,12 +307,34 @@ function TabTitle({ status }: { status: Status | null }) {
   return null;
 }
 
-const lootText = (i: Item) => (i.scrapped ? `${i.name} (scrapped for ${i.scrap} gold)` : i.name);
+type Outcome = { title: string; success: boolean; lines: string[]; loot: Item | null; story: string | null };
+
+/** The latest quest or fight result, shown above the status until it is closed. */
+function OutcomeBox({ outcome: o, onClose }: { outcome: Outcome; onClose: () => void }) {
+  return (
+    <section className={`panel outcome ${o.success ? "won" : "lost"}`} role="status">
+      <div className="row">
+        <h2>{o.success ? "✓" : "✗"} {o.title}</h2>
+        <button type="button" className="small ghost" onClick={onClose}>Close</button>
+      </div>
+      <div className="entity">
+        {o.loot && <ItemIcon item={o.loot} />}
+        <div className="facts">
+          {o.lines.map((l) => <span key={l}>{l}</span>)}
+          {o.loot && <span className={o.loot.rarity}>found <RarityIcon rarity={o.loot.rarity} />{o.loot.name}</span>}
+          {o.loot?.scrapped && <span className="dim">scrapped for {o.loot.scrap} gold</span>}
+        </div>
+      </div>
+      {o.story && <p className="dim">{o.story}</p>}
+    </section>
+  );
+}
 
 function QuestStatus({ status, onChange }: { status: Status; onChange: () => void }) {
   const q = status.quest;
   const e = status.encounter;
   const [message, setMessage] = useState("");
+  const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [code, setCode] = useState("");
   const now = useNow(cooling(status));
   const left = new Date(status.readyAt).getTime() - now;
@@ -327,89 +349,113 @@ function QuestStatus({ status, onChange }: { status: Status; onChange: () => voi
     }
     onChange();
   }
-  const questResult = (r: Quest & { readyAt: string; rested: boolean }) => {
-    const rested = r.rested ? ` · rested +${RESTED_BONUS}%` : "";
-    return `${r.name}: ${r.success ? `✓ success · +${r.xp} XP · +${r.gold} gold${rested}${r.loot ? ` · found ${lootText(r.loot)}` : ""}` : `✗ failed · +${r.xp} XP${rested}`}`;
-  };
-  const fightResult = (f: { won: boolean; story: string; xp: number; gold: number; loot: Item | null }) =>
-    `${f.won ? `Victory · +${f.xp} XP · +${f.gold} gold${f.loot ? ` · found ${lootText(f.loot)}` : ""}` : "Defeated. It got away, nothing lost."} ${f.story}`;
+  /** Runs a quest or fight and shows its result in the box above the status. */
+  async function resolve<T>(path: string, toOutcome: (data: T) => Outcome) {
+    try {
+      const o = toOutcome(await api<T>(path, {}));
+      setOutcome(o);
+      setMessage("");
+      play(o.success ? "won" : "lost");
+    } catch (err) {
+      setMessage((err as Error).message);
+    }
+    onChange();
+  }
+  const rewards = (xp: number, gold: number) => [...(xp ? [`+${xp} XP`] : []), ...(gold ? [`+${gold} gold`] : [])];
+  const questOutcome = (r: Quest & { rested: boolean }): Outcome => ({
+    title: `${r.success ? "Quest complete" : "Quest failed"}: ${r.name}`,
+    success: !!r.success,
+    lines: [...rewards(r.xp, r.gold), ...(r.rested ? [`rested bonus +${RESTED_BONUS}%`] : [])],
+    loot: r.loot,
+    story: r.story,
+  });
+  const fightOutcome = (f: { monster: string; won: boolean; story: string; xp: number; gold: number; loot: Item | null }): Outcome => ({
+    title: f.won ? `Victory over the ${f.monster}` : `The ${f.monster} got away`,
+    success: f.won,
+    lines: f.won ? rewards(f.xp, f.gold) : [...rewards(f.xp, 0), "nothing lost"],
+    loot: f.loot,
+    story: f.story,
+  });
   const dungeonResult = (d: { code: string }) => `In dungeon ${d.code}. Share the code, others can join until it starts.`;
 
   return (
-    <section className="panel" data-tour="status">
-      <h2><UiIcon name="hourglass" />Status</h2>
-      {e && (
-        <div className="row">
+    <>
+      {outcome && <OutcomeBox outcome={outcome} onClose={() => setOutcome(null)} />}
+      <section className="panel" data-tour="status">
+        <h2><UiIcon name="hourglass" />Status</h2>
+        {e && (
+          <div className="row">
+            <div className="entity">
+              <Sprite kind="monsters" name={e.key} />
+              <div className="facts">
+                <span className="alert">⚠ {e.name} (Lv {e.level}) appeared</span>
+                <span>{Math.round(e.winChance * 100)}% odds · <Power yours={e.power} recommended={e.recommended} /></span>
+                <span className="dim">leaves in {minutesUntil(e.expiresAt)}m</span>
+              </div>
+            </div>
+            <button type="button" className="small" onClick={() => resolve("/fight", fightOutcome)}>Fight</button>
+          </div>
+        )}
+        {q && !q.resolved && (
+          <>
+            <p>⚔ Quest running · {minutesUntil(q.endsAt) ? `${minutesUntil(q.endsAt)}m left` : "rolling the dice"}</p>
+            <Bar filled={questProgress(q)} total={9} label="Quest progress" />
+          </>
+        )}
+        {q?.resolved && !ready && (
+          <div className="row">
+            <div className="cooldown">
+              <p className="countdown">Next quest in <strong>{clock(left)}</strong></p>
+              <Bar filled={Math.floor((1 - left / rest) * 10)} total={10} label={`Resting, next quest in ${clock(left)}`} />
+            </div>
+            <button type="button" disabled>Start quest</button>
+          </div>
+        )}
+        {ready && (
+          <div className="row">
+            <p className="countdown"><strong>{q ? "Quest ready!" : "No quest yet."}</strong> The result comes at once, then 45 minutes rest.</p>
+            <button type="button" data-tour="quest" onClick={() => resolve("/quests", questOutcome)}>Start quest</button>
+          </div>
+        )}
+        {status.rested > 0 && <p>Rested: the next {status.rested} quests give +{RESTED_BONUS}% XP and gold.</p>}
+        {q?.resolved && (
+          <div className="facts">
+            <span>Last quest: {q.name}</span>
+            <span>{q.success ? `✓ success · +${q.xp} XP · +${q.gold} gold` : `✗ failed · +${q.xp} XP`}</span>
+            {q.loot && <span>found <span className={q.loot.rarity}><RarityIcon rarity={q.loot.rarity} />{q.loot.name}</span></span>}
+          </div>
+        )}
+        {q?.story && <p className="dim">{q.story}</p>}
+        {status.dungeon?.state === "lobby" && (
+          <div className="facts">
+            <span>Dungeon <code>{status.dungeon.code}</code> starts in {minutesUntil(status.dungeon.startsAt)}m</span>
+            <span className="dim">party: {status.dungeon.members.join(", ")}</span>
+          </div>
+        )}
+        {status.dungeon?.state === "running" && (
           <div className="entity">
-            <Sprite kind="monsters" name={e.key} />
+            <Sprite kind="monsters" name={DUNGEON_STAGES[status.dungeon.cleared].monster} />
             <div className="facts">
-              <span className="alert">⚠ {e.name} (Lv {e.level}) appeared</span>
-              <span>{Math.round(e.winChance * 100)}% odds · <Power yours={e.power} recommended={e.recommended} /></span>
-              <span className="dim">leaves in {minutesUntil(e.expiresAt)}m</span>
+              <span>Dungeon stage {status.dungeon.cleared + 1}/{DUNGEON_STAGES.length} · {status.dungeon.current}</span>
+              <Power yours={status.dungeon.power[status.dungeon.cleared]} recommended={status.dungeon.recommended[status.dungeon.cleared]} />
+              <span className="dim">{minutesUntil(status.dungeon.stageEndsAt ?? "")}m left</span>
             </div>
           </div>
-          <button type="button" className="small" onClick={() => act("/fight", fightResult)}>Fight</button>
-        </div>
-      )}
-      {q && !q.resolved && (
-        <>
-          <p>⚔ Quest running · {minutesUntil(q.endsAt) ? `${minutesUntil(q.endsAt)}m left` : "rolling the dice"}</p>
-          <Bar filled={questProgress(q)} total={9} label="Quest progress" />
-        </>
-      )}
-      {q?.resolved && !ready && (
-        <div className="row">
-          <div className="cooldown">
-            <p className="countdown">Next quest in <strong>{clock(left)}</strong></p>
-            <Bar filled={Math.floor((1 - left / rest) * 10)} total={10} label={`Resting, next quest in ${clock(left)}`} />
+        )}
+        {status.dungeon && <p className="dim">{status.dungeon.story}</p>}
+        {!status.dungeon && (
+          <div className="row">
+            <p>No dungeon. Open a lobby for up to 5 players, or join one with a code.</p>
+            <form className="donate" onSubmit={(e) => { e.preventDefault(); void act("/dungeons/join", dungeonResult, { code }); }}>
+              <button type="button" className="small" onClick={() => act("/dungeons", dungeonResult)}>Start dungeon</button>
+              <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Dungeon code" aria-label="Dungeon code" required />
+              <button type="submit" className="small">Join</button>
+            </form>
           </div>
-          <button type="button" disabled>Start quest</button>
-        </div>
-      )}
-      {ready && (
-        <div className="row">
-          <p className="countdown"><strong>{q ? "Quest ready!" : "No quest yet."}</strong> The result comes at once, then 45 minutes rest.</p>
-          <button type="button" data-tour="quest" onClick={() => act("/quests", questResult)}>Start quest</button>
-        </div>
-      )}
-      {status.rested > 0 && <p>Rested: the next {status.rested} quests give +{RESTED_BONUS}% XP and gold.</p>}
-      {q?.resolved && (
-        <div className="facts">
-          <span>Last quest: {q.name}</span>
-          <span>{q.success ? `✓ success · +${q.xp} XP · +${q.gold} gold` : `✗ failed · +${q.xp} XP`}</span>
-          {q.loot && <span>found <span className={q.loot.rarity}><RarityIcon rarity={q.loot.rarity} />{q.loot.name}</span></span>}
-        </div>
-      )}
-      {q?.story && <p className="dim">{q.story}</p>}
-      {status.dungeon?.state === "lobby" && (
-        <div className="facts">
-          <span>Dungeon <code>{status.dungeon.code}</code> starts in {minutesUntil(status.dungeon.startsAt)}m</span>
-          <span className="dim">party: {status.dungeon.members.join(", ")}</span>
-        </div>
-      )}
-      {status.dungeon?.state === "running" && (
-        <div className="entity">
-          <Sprite kind="monsters" name={DUNGEON_STAGES[status.dungeon.cleared].monster} />
-          <div className="facts">
-            <span>Dungeon stage {status.dungeon.cleared + 1}/{DUNGEON_STAGES.length} · {status.dungeon.current}</span>
-            <Power yours={status.dungeon.power[status.dungeon.cleared]} recommended={status.dungeon.recommended[status.dungeon.cleared]} />
-            <span className="dim">{minutesUntil(status.dungeon.stageEndsAt ?? "")}m left</span>
-          </div>
-        </div>
-      )}
-      {status.dungeon && <p className="dim">{status.dungeon.story}</p>}
-      {!status.dungeon && (
-        <div className="row">
-          <p>No dungeon. Open a lobby for up to 5 players, or join one with a code.</p>
-          <form className="donate" onSubmit={(e) => { e.preventDefault(); void act("/dungeons/join", dungeonResult, { code }); }}>
-            <button type="button" className="small" onClick={() => act("/dungeons", dungeonResult)}>Start dungeon</button>
-            <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Dungeon code" aria-label="Dungeon code" required />
-            <button type="submit" className="small">Join</button>
-          </form>
-        </div>
-      )}
-      {message && <p role="status" className="dim">{message}</p>}
-    </section>
+        )}
+        {message && <p role="status" className="dim">{message}</p>}
+      </section>
+    </>
   );
 }
 

@@ -136,6 +136,10 @@ input {
 
 .tabs { display: flex; gap: 12px; flex-wrap: wrap; }
 .row { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.outcome.won { border-color: var(--good); }
+.outcome.lost { border-color: var(--bad); }
+.outcome.won h2 { color: var(--good); }
+.outcome.lost h2 { color: var(--bad); }
 /* An icon next to a short stack of facts, one per line. */
 .entity { display: flex; gap: 12px; align-items: center; min-width: 0; }
 .facts { display: grid; gap: 2px; min-width: 0; }
