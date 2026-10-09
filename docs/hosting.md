@@ -52,7 +52,8 @@ pnpm access-code --uses 10 --days 30
 pnpm ban --name <character>            # --unban to lift it
 ```
 
-Load test (seeds 10,000 `load_*` players, fires heartbeats, `--cleanup` removes them):
+Load test (seeds 10,000 `load:*` players with tokens secret to the run, fires heartbeats and removes the players
+again, `--cleanup` removes players a crashed run left behind):
 
 ```sh
 pnpm loadtest --url https://dnd.meiners-dev.de --seconds 60

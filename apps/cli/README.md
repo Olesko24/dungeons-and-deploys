@@ -48,8 +48,8 @@ Suggest what comes next and vote for other players' ideas under **Ideas & voting
 
 ## Security
 
-If you believe you have found a security problem, please do not post it as an idea or share it publicly. Tell the
-person who gave you your access code.
+If you believe you have found a security problem, please do not post it as an idea or share it publicly. Report it
+privately on [GitHub](https://github.com/Olesko24/dungeons-and-deploys/security/advisories/new).
 
 ---
 

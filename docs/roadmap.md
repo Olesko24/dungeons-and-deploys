@@ -49,7 +49,7 @@ No email: the API token on the player's devices is the identity. Losing all devi
 - [x] Shell integration: `quest init zsh|bash` prints a `precmd` hook and a prompt segment
 - [x] Statusline reads local cache (`~/.dungeons-and-deploys/status.txt`), heartbeat and CLI refresh it
 - [x] CLI build for npm (`dungeons-and-deploys` package)
-- [ ] CLI published to npm
+- [x] CLI published to npm
 - [x] Dockerfile for the API (web follows in Phase 6)
 - [x] Deploy to Coolify, automatic on every push to `main` via GitHub webhook
 - [ ] Postgres backups to S3 enabled
