@@ -19,7 +19,7 @@ Rechtsgrundlage ist unser berechtigtes Interesse an einem sicheren und stabilen 
 
 ## Server-Logs
 
-Bei jedem Aufruf protokolliert der Server Zeitpunkt, aufgerufene Adresse, Statuscode und die IP-Adresse. Die Logs dienen der Fehlersuche und der Abwehr von Missbrauch und werden nach spätestens 14 Tagen gelöscht.
+Bei jedem Aufruf protokolliert der Server Zeitpunkt, aufgerufene Adresse und Statuscode zur Fehlersuche. IP-Adressen werden nicht protokolliert.
 
 Zur Begrenzung von Anfragen (Rate Limiting) wird die IP-Adresse nicht eingeloggter Besucher für eine Minute im Arbeitsspeicher gehalten.
 
