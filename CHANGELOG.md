@@ -5,7 +5,7 @@ versions, and progress may be reset. Entries marked **Breaking** change how the 
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Newest versions and entries come first.
 
-## [Unreleased]
+## Unreleased
 
 ### Breaking
 
@@ -16,11 +16,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). New
   visible with its stats and a price tag (Loot, Fair trade, Rip-off). Buyers line up for 30 minutes, then one is
   drawn and the others get their gold back. Without a line an item can be bought at once. Draws by rarity, the
   daily limit and the level locks are gone. Items listed before get their rarity's base price.
+- The shop offers an uncommon, an epic and a mythic item.
 - Ten rarities instead of four: common, uncommon, rare, epic, legendary, mythic, ancient, divine, celestial and
   eternal. Higher rarities drop from higher levels, up to eternal from level 90, so gear keeps improving up to
   the level cap. **All items are reset.**
 - Four new raid bosses for the late game, up to The Final Migration at 120000 recommended power.
-- The shop offers an uncommon, an epic and a mythic item.
 
 ### Added
 
@@ -103,7 +103,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). New
 - A player is in one dungeon and one raid at a time. Leaving a guild also leaves its planned raid.
 - Fixed a market bug where a listing taken back while a buyer joined the line kept the buyer's gold.
 
-## [0.1.0] – Beta
+## 0.1.0 – Beta
 
 First public beta.
 
@@ -126,6 +126,3 @@ First public beta.
 - Website with quest and fight buttons, character, equipment, quest history, guild, raid, shop, statistics and leaderboards, with pixel icons
   for gold and every section.
 - Player [manual](docs/manual.md) and this changelog, on the website and via `quest manual` and `quest changelog`.
-
-[Unreleased]: https://github.com/Olesko24/dungeons-and-deploys/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/Olesko24/dungeons-and-deploys/releases/tag/v0.1.0
