@@ -497,6 +497,10 @@ Log out with **Log out** on the website or `quest logout` in the terminal. `ques
 
 ## Command reference
 
+In a terminal with 24-bit color, monsters, raid bosses and loot come with a small pixel icon. Output that goes to a
+pipe or file stays plain text. `DND_ICONS=0` or `NO_COLOR=1` turns the icons off. The Claude Code status line shows
+an emoji for a monster that appeared.
+
 | Command | What it does |
 |---|---|
 | `quest` | Do a quest, result at once |

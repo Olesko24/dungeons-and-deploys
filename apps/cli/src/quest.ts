@@ -16,6 +16,7 @@ import {
   shortStatus,
   statsText,
 } from "./status.ts";
+import { beside, bossIcon, itemIcon, monsterIcon } from "./icons.ts";
 
 const DEFAULT_SERVER = "https://dnd.meiners-dev.de";
 const MANUAL = "https://github.com/Olesko24/dungeons-and-deploys/blob/main/docs/manual.md";
@@ -121,7 +122,7 @@ async function heartbeat(send: boolean) {
   spawn(process.execPath, [process.argv[1], "heartbeat", "--send"], { detached: true, stdio: "ignore" }).unref();
 }
 
-type Loot = { name: string; rarity: string; scrapped?: boolean; scrap?: number };
+type Loot = { key?: string; name: string; rarity: string; scrapped?: boolean; scrap?: number };
 type QuestResult = { name: string; story: string | null; success: boolean | null; xp: number; gold: number; loot: Loot | null; rested?: boolean };
 
 const lootText = (l: Loot) => `${rarityColor(l.name, l.rarity)} (${l.rarity})${l.scrapped ? `, scrapped for ${l.scrap}g` : ""}`;
@@ -135,9 +136,8 @@ function questResult(q: QuestResult) {
 async function startQuest() {
   const res = await authed("/quests", "POST");
   if (res.status === 201) {
-    console.log(`⚔ ${questResult(res.data)}`);
-    console.log(`  ${res.data.story}`);
-    console.log(`Next quest in ${minutesUntil(res.data.readyAt)}m.`);
+    const lines = [`⚔ ${questResult(res.data)}`, `  ${res.data.story}`, `Next quest in ${minutesUntil(res.data.readyAt)}m.`];
+    for (const line of beside(itemIcon(res.data.loot?.key), lines)) console.log(line);
     await refresh();
   } else if (res.data.error === "cooldown") {
     console.log(`Resting. Next quest in ${minutesUntil(res.data.readyAt)}m.`);
@@ -153,8 +153,8 @@ async function status() {
   const q = data.quest;
   const e = data.encounter;
   if (e) {
-    console.log(`⚠ ${e.name} appeared! quest fight within ${minutesUntil(e.expiresAt)}m · odds ${Math.round(e.winChance * 100)}%`);
-    console.log(`  your power ${e.power} · recommended ${e.recommended}`);
+    const lines = [`⚠ ${e.name} appeared!`, `quest fight within ${minutesUntil(e.expiresAt)}m`, `odds ${Math.round(e.winChance * 100)}%`, `your power ${e.power} · recommended ${e.recommended}`];
+    for (const line of beside(monsterIcon(e.key), lines)) console.log(line);
   }
   if (!q) return console.log("No quest yet. Start one: quest");
   if (!q.resolved) {
@@ -173,13 +173,13 @@ async function fightMonster() {
   if (res.status === 404) return console.log("No monster around. They show up while you work.");
   if (res.status >= 400) throw new Error(res.data.error ?? `Fight failed (${res.status})`);
   const f = res.data;
-  console.log(`⚔ ${f.monster} (Lv ${f.level}) · your odds ${Math.round(f.winChance * 100)}%`);
-  if (!f.won) console.log("✗ Defeated. It got away, nothing lost.");
-  else {
-    const loot = f.loot ? ` · Found: ${lootText(f.loot)}` : "";
-    console.log(`✓ Victory · +${f.xp} XP · +${f.gold} gold${loot}`);
-  }
-  console.log(`  ${f.story}`);
+  const lines = [
+    `⚔ ${f.monster} (Lv ${f.level}) · your odds ${Math.round(f.winChance * 100)}%`,
+    f.won ? `✓ Victory · +${f.xp} XP · +${f.gold} gold` : "✗ Defeated. It got away, nothing lost.",
+    ...(f.loot ? [`Found: ${lootText(f.loot)}`] : []),
+    `  ${f.story}`,
+  ];
+  for (const line of beside(monsterIcon(f.key), lines)) console.log(line);
   await refresh();
 }
 
@@ -343,8 +343,8 @@ async function raid(action: string | undefined, minutes: string | undefined, bos
   if (!r) console.log("No raid yet. Guild leaders plan one: quest raid schedule <minutes> [boss number]");
   else {
     const when = r.state === "scheduled" ? `starts in ${minutesUntil(r.startsAt)}m, needs ${r.minPlayers}` : r.state;
-    console.log(`Raid on ${r.boss} · ${when} · ${r.members.length} raiders · power ${data.power} / ${r.recommended} recommended`);
-    console.log(`  ${r.story}`);
+    const lines = [`Raid on ${r.boss}`, `${when} · ${r.members.length} raiders`, `power ${data.power} / ${r.recommended} recommended`, `  ${r.story}`];
+    for (const line of beside(bossIcon(r.tier), lines)) console.log(line);
     if (r.bossMaxHp) console.log(`HP ${bar(Math.ceil((r.bossHp / r.bossMaxHp) * 20), 20)} ${r.bossHp}/${r.bossMaxHp} · tick ${r.tick}/${r.ticks}`);
     for (const m of r.members) console.log(`  ${m.name.padEnd(20)} ${m.damage} damage`);
     if (r.state === "scheduled") console.log("Join with: quest raid join. Every raider deals damage each tick.");
@@ -361,7 +361,8 @@ async function shop(action: string | undefined, offer: string | undefined) {
     const res = await authed("/shop/buy", "POST", { offer: Number(offer) });
     if (res.status >= 400) throw new Error(res.data.error ?? res.data.message ?? `Failed (${res.status})`);
     const i = res.data.item;
-    return console.log(`Bought for ${res.data.price}g: ${rarityColor(i.name, i.rarity)} (${i.rarity}) · ${statsText(i.stats)}`);
+    for (const line of beside(itemIcon(i.key), [`Bought for ${res.data.price}g: ${rarityColor(i.name, i.rarity)} (${i.rarity})`, statsText(i.stats)])) console.log(line);
+    return;
   }
   const { data } = await authed("/shop");
   const hours = Math.ceil(minutesUntil(data.refreshesAt) / 60);
@@ -466,14 +467,14 @@ async function upgrade(ids: string[]) {
   if (!ids.length) throw new Error("Usage: quest upgrade <#id> <#id> <#id>");
   const res = await authed("/inventory/upgrade", "POST", { ids: ids.map((id) => Number(id.replace("#", ""))) });
   fail(res);
-  console.log(`Fused into ${lootText(res.data.item)}.`);
+  for (const line of beside(itemIcon(res.data.item.key), [`Fused into ${lootText(res.data.item)}.`])) console.log(line);
 }
 
 async function forge(rarity: string | undefined) {
   if (!rarity) throw new Error("Usage: quest forge <rarity>");
   const res = await authed(`/inventory/shards/${encodeURIComponent(rarity)}/forge`, "POST");
   fail(res);
-  console.log(`Forged ${lootText(res.data.item)}.`);
+  for (const line of beside(itemIcon(res.data.item.key), [`Forged ${lootText(res.data.item)}.`])) console.log(line);
 }
 
 async function scrap(id: string | undefined) {

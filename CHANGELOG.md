@@ -24,6 +24,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). New
 
 ### Added
 
+- The terminal draws pixel icons for monsters, raid bosses and loot next to the text, in terminals with 24-bit
+  color. `DND_ICONS=0` or `NO_COLOR=1` turns them off. The status line shows an emoji for a monster. Needs the next
+  CLI release.
 - Quest and fight results on the website show up in a box above the status, with XP, gold, loot and the story,
   until you close it.
 - Pixel-art icons for every monster, dungeon stage, raid boss, guild buff and achievement on the website.

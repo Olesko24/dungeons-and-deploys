@@ -1,9 +1,11 @@
+import { monsterEmoji } from "./icons.ts";
+
 export type Status = {
   quest: { startedAt: string; endsAt: string; resolved: boolean } | null;
   readyAt: string;
   rested?: number;
   character: { name: string; level: number; gold: number };
-  encounter?: { name: string; expiresAt: string; winChance: number } | null;
+  encounter?: { key?: string; name: string; expiresAt: string; winChance: number } | null;
   dungeon?: { code: string; state: string; startsAt: string; cleared: number; stageEndsAt: string | null } | null;
 };
 
@@ -21,7 +23,7 @@ export function progress(quest: { startedAt: string; endsAt: string }, now = Dat
 export function shortStatus({ quest, readyAt, rested, character, encounter, dungeon }: Status, now = Date.now()) {
   const tail = `Lv ${character.level} · ${character.gold}g`;
   if (encounter && minutesUntil(encounter.expiresAt, now) > 0) {
-    return `⚠ ${encounter.name}! quest fight · ${minutesUntil(encounter.expiresAt, now)}m · ${tail}`;
+    return `${monsterEmoji(encounter.key)} ${encounter.name}! quest fight · ${minutesUntil(encounter.expiresAt, now)}m · ${tail}`;
   }
   if (dungeon?.state === "lobby") return `Dungeon ${dungeon.code} starts in ${minutesUntil(dungeon.startsAt, now)}m · ${tail}`;
   if (dungeon?.state === "running" && dungeon.stageEndsAt) {
