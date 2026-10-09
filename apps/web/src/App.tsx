@@ -42,6 +42,10 @@ function BetaNote({ onOpen }: { onOpen: (doc: DocName) => void }) {
   );
 }
 
+function PrivacyLink({ onOpen }: { onOpen: (doc: DocName) => void }) {
+  return <button type="button" className="link" onClick={() => { onOpen("privacy"); window.scrollTo(0, 0); }}>Datenschutz</button>;
+}
+
 const minutesUntil = (iso: string) => Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 60_000));
 
 function statParts(s: Stats) {
@@ -231,6 +235,7 @@ function Login({ onDone, onOpen }: { onDone: () => void; onOpen: (doc: DocName) 
           <button type="button" className="link" onClick={() => onOpen("manual")}>manual</button>.
         </p>
       </section>
+      <footer className="footer"><PrivacyLink onOpen={onOpen} /></footer>
     </main>
   );
 }
@@ -1303,8 +1308,8 @@ export function App() {
     return () => clearInterval(timer);
   }, [load, live]);
 
-  // Manual and changelog are readable without logging in.
-  if (loggedOut && (view === "manual" || view === "changelog")) {
+  // Manual, changelog and privacy notice are readable without logging in.
+  if (loggedOut && (view === "manual" || view === "changelog" || view === "privacy")) {
     return (
       <main>
         <button type="button" className="small ghost back" onClick={() => setView("character")}>← Log in</button>
@@ -1398,10 +1403,11 @@ export function App() {
       {view === "stats" && <StatsView />}
       {view === "ranks" && <RanksView onProfile={showProfile} />}
       {view === "profile" && <ProfileView name={profileName} onBack={() => setView(profileFrom)} />}
-      {(view === "manual" || view === "changelog") && <Doc name={view} onOpen={setView} />}
+      {(view === "manual" || view === "changelog" || view === "privacy") && <Doc name={view} onOpen={setView} />}
       {view === "ideas" && <Ideas />}
       <footer className="footer">
-        <button type="button" className="link" onClick={() => { setView("ideas"); window.scrollTo(0, 0); }}>Ideas &amp; voting</button>
+        <button type="button" className="link" onClick={() => { setView("ideas"); window.scrollTo(0, 0); }}>Ideas &amp; voting</button> ·{" "}
+        <PrivacyLink onOpen={setView} />
       </footer>
       {touring && <Tour name={c.name} onView={setView} onEnd={endTour} />}
       <TabTitle status={data.status} />

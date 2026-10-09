@@ -15,7 +15,7 @@
     "dev": "vite",
     "predev": "pnpm run copy-docs",
     "prebuild": "pnpm run copy-docs",
-    "copy-docs": "cp ../../docs/manual.md public/manual.md && cp ../../CHANGELOG.md public/changelog.md"
+    "copy-docs": "cp ../../docs/manual.md public/manual.md && cp ../../CHANGELOG.md public/changelog.md && cp ../../docs/legal/privacy.md public/privacy.md"
   },
   "dependencies": {
     "@fontsource/press-start-2p": "^5.3.0",

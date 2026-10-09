@@ -1,7 +1,7 @@
 import { Marked } from "marked";
 import { type MouseEvent, useEffect, useState } from "react";
 
-export type DocName = "manual" | "changelog";
+export type DocName = "manual" | "changelog" | "privacy";
 
 const slug = (text: string) => text.toLowerCase().replace(/[^a-z0-9 -]/g, "").trim().replace(/ +/g, "-");
 
@@ -21,7 +21,7 @@ const LINKS: [RegExp, string][] = [
   [/\]\((docs\/)?manual\.md\)/g, "](#manual)"],
 ];
 
-/** Renders docs/manual.md or CHANGELOG.md. Both are copied into the build and come from this repository only. */
+/** Renders docs/manual.md, CHANGELOG.md or docs/legal/privacy.md. They are copied into the build and come from this repository only. */
 export function Doc({ name, onOpen }: { name: DocName; onOpen: (doc: DocName) => void }) {
   const [html, setHtml] = useState("");
   useEffect(() => {
