@@ -18,6 +18,10 @@ On npmjs.com, open the package settings of `dungeons-and-deploys` and add a trus
 | Repository | `dungeons-and-deploys` |
 | Workflow filename | `release-cli.yml` |
 | Environment | leave empty |
+| Allowed actions | none besides the always allowed `npm stage publish` |
+
+The publisher can only stage. A version goes live once you approve it with 2FA, so a compromised workflow
+cannot publish on its own.
 
 ## Every release
 
@@ -32,13 +36,14 @@ On npmjs.com, open the package settings of `dungeons-and-deploys` and add a trus
    git push
    git tag cli-v0.2.0 && git push origin cli-v0.2.0
    ```
-3. The workflow checks that the tag matches the version and is on `main`, runs the CLI tests, builds, publishes
-   and creates the GitHub release. Follow it under **Actions → Release CLI**.
-4. If npm holds the upload as a staged release, approve it on npmjs.com with 2FA. Until then the package shows
-   the previous version. Check that it is live:
+3. The workflow checks that the tag matches the version and is on `main`, runs the CLI tests, builds, stages
+   the version on npm and creates a GitHub pre-release. Follow it under **Actions → Release CLI**.
+4. Approve the staged version on npmjs.com with 2FA (or `npm stage approve <stage-id>`). Until then the package
+   shows the previous version. Check that it is live:
    ```sh
    npm view dungeons-and-deploys dist-tags --registry https://registry.npmjs.org
    ```
+5. Mark the GitHub release as latest: `gh release edit cli-v0.2.0 --prerelease=false --latest`
 
 ## When something goes wrong
 

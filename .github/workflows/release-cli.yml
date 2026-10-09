@@ -1,6 +1,7 @@
 name: Release CLI
 
 # Push a tag like cli-v0.2.0 on main. npm trusted publishing needs no token, and npm shows the provenance.
+# The trusted publisher may only stage: every version goes live after a maintainer approves it with 2FA.
 on:
   push:
     tags: ["cli-v*"]
@@ -22,6 +23,7 @@ jobs:
           node-version: 24
           cache: pnpm
           registry-url: https://registry.npmjs.org
+      - run: npm install -g npm@^11.21.0 # npm stage needs 11.21 or later
       - name: Tag matches the CLI version and is on main
         run: |
           version=$(node -p "require('./apps/cli/package.json').version")
@@ -30,8 +32,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter dungeons-and-deploys test
       - run: pnpm --filter dungeons-and-deploys build
-      - run: npm publish --ignore-scripts
+      - run: npm stage publish --ignore-scripts
         working-directory: apps/cli
-      - run: gh release create "$GITHUB_REF_NAME" --title "CLI ${GITHUB_REF_NAME#cli-v}" --generate-notes --verify-tag
+      - run: gh release create "$GITHUB_REF_NAME" --title "CLI ${GITHUB_REF_NAME#cli-v}" --generate-notes --verify-tag --prerelease
         env:
           GH_TOKEN: ${{ github.token }}
