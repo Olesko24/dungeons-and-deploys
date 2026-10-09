@@ -4,3 +4,4 @@ apps/api/src/generated/
 dist/
 apps/web/public/manual.md
 apps/web/public/changelog.md
+apps/web/public/privacy.md

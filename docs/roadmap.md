@@ -204,7 +204,7 @@ by limits and `ban`, not by hand every day.
 ## Phase 15 – Release 1.0
 
 - [ ] Last progress reset, announced in the changelog, on the website and in the CLI. No resets afterwards
-- [ ] Imprint and privacy notice on the website (IP addresses are processed for rate limits)
+- [x] Privacy notice on the website (IP addresses are processed for rate limits). No imprint while the game is free and non-commercial, add one before money is involved
 - [ ] Beta notice removed from README, website and CLI
 - [ ] CLI 1.0.0 on npm, changelog entry 1.0.0
 - [ ] From here on, breaking changes keep existing characters playable

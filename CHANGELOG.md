@@ -24,6 +24,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). New
 
 ### Added
 
+- Privacy notice (German) on the website, linked in the footer and readable without logging in.
 - The terminal draws pixel icons for monsters, raid bosses and loot next to the text, in terminals with 24-bit
   color. `DND_ICONS=0` or `NO_COLOR=1` turns them off. The status line shows an emoji for a monster. Needs the next
   CLI release.
