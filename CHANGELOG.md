@@ -5,7 +5,7 @@ versions, and progress may be reset. Entries marked **Breaking** change how the 
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Newest versions and entries come first.
 
-## [Unreleased]
+## Unreleased
 
 ### Breaking
 
@@ -103,7 +103,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). New
 - A player is in one dungeon and one raid at a time. Leaving a guild also leaves its planned raid.
 - Fixed a market bug where a listing taken back while a buyer joined the line kept the buyer's gold.
 
-## [0.1.0] – Beta
+## 0.1.0 – Beta
 
 First public beta.
 
@@ -126,6 +126,3 @@ First public beta.
 - Website with quest and fight buttons, character, equipment, quest history, guild, raid, shop, statistics and leaderboards, with pixel icons
   for gold and every section.
 - Player [manual](docs/manual.md) and this changelog, on the website and via `quest manual` and `quest changelog`.
-
-[Unreleased]: https://github.com/Olesko24/dungeons-and-deploys/compare/cli-v0.1.0...HEAD
-[0.1.0]: https://github.com/Olesko24/dungeons-and-deploys/releases/tag/cli-v0.1.0
