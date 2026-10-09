@@ -19,7 +19,7 @@ import {
 import { beside, bossIcon, itemIcon, monsterIcon } from "./icons.ts";
 
 const DEFAULT_SERVER = "https://dnd.meiners-dev.de";
-const MANUAL = "https://github.com/Olesko24/dungeons-and-deploys/blob/main/docs/manual.md";
+const MANUAL = `${DEFAULT_SERVER}/manual.md`;
 const HEARTBEAT_INTERVAL_MS = 60_000;
 
 const dir = join(homedir(), ".dungeons-and-deploys");

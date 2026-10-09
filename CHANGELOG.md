@@ -84,6 +84,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). New
 
 ### Changed
 
+- `quest help` and login link the player manual on the website instead of GitHub, which players cannot open.
 - The website shows market and shop cards, the bag, the status panel, raids, the guild hall and achievements with
   one detail per line instead of long lines joined by dots.
 - The shop has no level locks anymore. Epic and mythic offers only need the gold, like items on the market.
