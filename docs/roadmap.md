@@ -51,7 +51,7 @@ No email: the API token on the player's devices is the identity. Losing all devi
 - [x] CLI build for npm (`dungeons-and-deploys` package)
 - [x] CLI published to npm
 - [x] Dockerfile for the API (web follows in Phase 6)
-- [x] Deploy to Coolify, automatic on every push to `main` via GitHub webhook
+- [x] Deploy to Coolify, automatic on every merge to `main` via GitHub webhook
 - [ ] Postgres backups to S3 enabled
 - [x] Install guide in README, deploy guide in [hosting.md](hosting.md)
 
@@ -59,13 +59,13 @@ No email: the API token on the player's devices is the identity. Losing all devi
 
 ## Phase 4 – Items and loot
 
-- [x] Item catalog in `packages/shared`: 9 armor and jewelry types plus 12 weapon kinds (dagger to crossbow), each in 4 rarities. Weapon kinds have their own attack weight and signature stat. Table `items` stores owned items by catalog key
-- [x] Rarities: common, rare, epic, legendary
+- [x] Item catalog in `packages/shared`: 9 armor and jewelry types plus 12 weapon kinds (dagger to crossbow), each in 10 rarities. Weapon kinds have their own attack weight and signature stat. Table `items` stores owned items by catalog key
+- [x] Rarities: common, uncommon, rare, epic, legendary, mythic, ancient, divine, celestial, eternal. Each opens at a higher level, up to eternal from level 90
 - [x] Slots: head, chest, legs, hands, feet, weapon + shield or two-handed, 2 rings, necklace, earrings
 - [x] Stats rolled on drop: primary stat by type (ATK weapons, DEF armor and shield, LCK rings, FOR necklace and earrings), random bonus stats from rare upward, name prefix from the strongest bonus. LCK raises success chance, FOR raises gold, ATK and DEF take effect in phase 5
 - [x] Loot table by character level, 40% drop chance on success, extra present slots add rarity rolls. No minimum level to equip
 - [x] CLI: `quest inv`, `quest equip <#id>`, `quest unequip <#id>`, rarity colors
-- [x] 16×16 pixel icons for all 84 items (`apps/web/scripts/item-icons.ts`)
+- [x] 16×16 pixel icons for all 210 items (`apps/web/scripts/item-icons.ts`)
 
 **Done when:** Tests show loot distribution matches rarity weights. Equipped items change quest odds.
 
@@ -83,14 +83,13 @@ No email: the API token on the player's devices is the identity. Losing all devi
 
 Fair by chance, not by bidding. More gold must not mean better equipment.
 
-- [x] Players list unequipped items, the price is fixed by rarity (20 / 60 / 200 / 800 gold)
-- [x] Buyers pay the fixed price for a draw from one rarity and get a random listed item of that rarity
-- [x] Daily draw limit per player (1 per UTC day)
-- [x] Epic draws from level 5, legendary draws from level 10
-- [x] 10% fee on sales as a gold sink
-- [x] CLI: `quest market`, `quest market draw <rarity>`, `quest market list|unlist <#id>`
+- [x] Sellers set the price, suggested from rarity and roll. Listings show stats and a price tag (Loot, Fair trade, Rip-off)
+- [x] A new listing collects buyers for 30 minutes, then one is drawn and the others get their gold back. Without a line an item can be bought at once
+- [x] 10% fee on sales as a gold sink, average sale price per rarity over 7 days
+- [x] Bag limit of 50 items, scrapping pays a quarter of the value
+- [x] CLI: `quest market`, `quest market buy <#id>`, `quest market sell <#id> [price]`
 
-**Done when:** A listed item reaches a random buyer, the seller gets the price minus the fee, the daily limit holds.
+**Done when:** A listed item with several buyers goes to a drawn one, the others are refunded, the seller gets the price minus the fee.
 
 ## Phase 6 – Website
 
@@ -167,6 +166,112 @@ Quests, dungeons and raids should not depend on keeping a terminal open.
 - [x] Website buttons to start a quest and fight a monster
 - [x] Achievement "Full Presence" replaced by "On a Roll" (5 quest wins in a row)
 
+## Phase 13 – Closed beta
+
+Invite-only with access codes. Find bugs, exploits and balancing problems while a reset is still acceptable.
+
+- [x] `main` only takes pull requests, `lint` and `build` must pass, a merge deploys
+- [ ] Open items from earlier phases: Postgres backups to S3 (phase 3), monitoring alerts and load test on the
+      deployed server (phase 10)
+- [ ] Restore a backup into a fresh database once
+- [ ] Wider invites with one shared access code (`pnpm access-code --uses 100 --days 14`), expired early on abuse
+
+What the beta tests, checked against the production database:
+
+- [ ] Economy: gold earned vs. gold removed by the market fee, shop and talent resets. Gold per player must not
+      grow without limit
+- [ ] Market: average prices per rarity stay stable, buyer lines and draws work with real players
+- [ ] Progression: time to level 10, 50 and 100. Higher rarities show up at the planned levels
+- [ ] Odds: real quest, fight, dungeon and raid success rates match the rules in `packages/shared`
+- [ ] Raids: guilds of real players beat the first bosses, the late bosses stay out of reach for a while
+- [ ] Exploits: second accounts feeding gold or items to a main character, filling raids alone
+- [ ] Integrations: heartbeats from Claude Code, zsh, bash and the website on macOS, Linux and Windows
+
+**Done when:** No known exploit is open, the numbers above are tuned, a backup has been restored once.
+
+## Phase 14 – Open beta
+
+Registration without an invite. Progress may still be reset.
+
+- [ ] Register without an access code, the rate limit on registration stays
+- [ ] Name filter: blocklist checked on registration, `ban` stays the fallback
+- [ ] Limits against second accounts, e.g. no market sales below a minimum level
+- [ ] Watch load and errors after the opening, scale the VPS per [hosting.md](hosting.md)
+
+**Done when:** A stranger installs the CLI from npm, registers without help and plays a quest. Abuse is handled
+by limits and `ban`, not by hand every day.
+
+## Phase 15 – Release 1.0
+
+- [ ] Last progress reset, announced in the changelog, on the website and in the CLI. No resets afterwards
+- [ ] Imprint and privacy notice on the website (IP addresses are processed for rate limits)
+- [ ] Beta notice removed from README, website and CLI
+- [ ] CLI 1.0.0 on npm, changelog entry 1.0.0
+- [ ] From here on, breaking changes keep existing characters playable
+
+**Done when:** The game is public, progress is permanent, and the changelog no longer warns about resets.
+
+## Ideas
+
+Not scheduled. An idea can land during the beta or after 1.0. Every idea has to keep the principles: no presence required, solo-friendly, server decides, power
+helps but never guarantees.
+
+### Professions
+
+- One profession per character, switching resets its level: e.g. blacksmith, alchemist, enchanter
+- Materials drop from quests, fights and scrapped items
+- Crafting runs like a quest: start it, come back later. Costs gold as a sink
+- Blacksmith rerolls a bonus stat, alchemist brews buffs for the next quest or dungeon, enchanter adds a small
+  extra stat to one item
+- Crafted goods can be sold on the market, so professions depend on each other
+
+### Events
+
+- Travelling merchant: appears a few times a day at random, stays for 2 hours, offers items one or two rarities
+  above the shop. One purchase per visit. Announced in the inbox and the status line, so nobody has to watch
+- Treasure hour: 1 hour of more gold or loot for everyone, announced ahead
+- Seasonal events with their own monsters and cosmetic achievements
+- Events add chances, they never become the only way to good loot
+
+### World bosses
+
+- One boss for the whole server, with HP for several days
+- Every player attacks once every few hours, damage from combat power and dice, resolved like a quest
+- When the boss falls, everyone who hit it gets loot. Rewards depend on taking part, not on rank
+- A boss that survives its time leaves, a small consolation reward for everyone who joined
+
+### Guild buildings
+
+- The guild builds and upgrades buildings with gold from the guild bank, each upgrade takes hours to days like in
+  Clash of Clans. Donations pay for buildings, nothing speeds up the build time
+- Buildings give permanent bonuses, buffs stay the short-term option. Examples: forge (cheaper fusing), tavern
+  (shorter rest), barracks (raid damage), watchtower (defense against sieges), vault (protects bank gold)
+- Building levels are capped by the guild level, so active guilds grow faster without a race for gold
+- Shown in the guild hall on the website as a small pixel-art village
+
+### Guild sieges
+
+- A guild attacks another guild of similar level, the defenders do not need to be online
+- Attackers sign up like for a raid, the siege resolves after a fixed time from their combat power against the
+  defenders' power and the watchtower
+- A win takes a capped share of the defender's unprotected bank gold, never items or buildings
+- After a siege the defender gets a shield for a day, every guild can be sieged only a few times a week
+- Own guild leaderboard for siege wins
+
+### Arena (1v1)
+
+- Fight another character asynchronously: the defender does not need to be online and loses nothing
+- Win chance from both combat powers, capped at 10–90%, so the weaker side always has a chance
+- Rating with Elo, opponents drawn near your rating, a few fights per day
+- Own leaderboard, small gold and achievement rewards. No item loss, no gear from the arena
+
 ## Open decisions
 
 - Game content: quest texts, item names, monsters
+- Reset at 1.0: full reset, or keep characters from the open beta
+- Second accounts: forbid, or only limit what they can pass on
+- Release date: fixed date, or when phase 14 is done
+- Professions: which ones, and can a character have more than one
+- Arena: does the defender lose rating, or only the attacker
+- Guild sieges: on for every guild, or only for guilds that opt in. Losing gold while away bends the principle
+  that nothing is lost without being there
