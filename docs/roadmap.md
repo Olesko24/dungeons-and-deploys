@@ -243,7 +243,7 @@ helps but never guarantees.
 ### Guild buildings
 
 - The guild builds and upgrades buildings with gold from the guild bank, each upgrade takes hours to days like in
-  Clash of Clans. Members can donate to speed nothing up, only to pay
+  Clash of Clans. Donations pay for buildings, nothing speeds up the build time
 - Buildings give permanent bonuses, buffs stay the short-term option. Examples: forge (cheaper fusing), tavern
   (shorter rest), barracks (raid damage), watchtower (defense against sieges), vault (protects bank gold)
 - Building levels are capped by the guild level, so active guilds grow faster without a race for gold
