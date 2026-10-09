@@ -10,6 +10,7 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --filter @dnd/web...
 COPY tsconfig.base.json CHANGELOG.md ./
 COPY docs/manual.md docs/
+COPY docs/legal/privacy.md docs/legal/
 COPY packages/shared packages/shared
 COPY apps/web apps/web
 RUN pnpm --filter @dnd/web build
