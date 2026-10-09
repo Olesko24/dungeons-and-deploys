@@ -211,9 +211,9 @@ by limits and `ban`, not by hand every day.
 
 **Done when:** The game is public, progress is permanent, and the changelog no longer warns about resets.
 
-## Ideas after 1.0
+## Ideas
 
-Not planned yet. Every idea has to keep the principles: no presence required, solo-friendly, server decides, power
+Not scheduled. An idea can land during the beta or after 1.0. Every idea has to keep the principles: no presence required, solo-friendly, server decides, power
 helps but never guarantees.
 
 ### Professions
@@ -240,6 +240,24 @@ helps but never guarantees.
 - When the boss falls, everyone who hit it gets loot. Rewards depend on taking part, not on rank
 - A boss that survives its time leaves, a small consolation reward for everyone who joined
 
+### Guild buildings
+
+- The guild builds and upgrades buildings with gold from the guild bank, each upgrade takes hours to days like in
+  Clash of Clans. Members can donate to speed nothing up, only to pay
+- Buildings give permanent bonuses, buffs stay the short-term option. Examples: forge (cheaper fusing), tavern
+  (shorter rest), barracks (raid damage), watchtower (defense against sieges), vault (protects bank gold)
+- Building levels are capped by the guild level, so active guilds grow faster without a race for gold
+- Shown in the guild hall on the website as a small pixel-art village
+
+### Guild sieges
+
+- A guild attacks another guild of similar level, the defenders do not need to be online
+- Attackers sign up like for a raid, the siege resolves after a fixed time from their combat power against the
+  defenders' power and the watchtower
+- A win takes a capped share of the defender's unprotected bank gold, never items or buildings
+- After a siege the defender gets a shield for a day, every guild can be sieged only a few times a week
+- Own guild leaderboard for siege wins
+
 ### Arena (1v1)
 
 - Fight another character asynchronously: the defender does not need to be online and loses nothing
@@ -255,3 +273,5 @@ helps but never guarantees.
 - Release date: fixed date, or when phase 14 is done
 - Professions: which ones, and can a character have more than one
 - Arena: does the defender lose rating, or only the attacker
+- Guild sieges: on for every guild, or only for guilds that opt in. Losing gold while away bends the principle
+  that nothing is lost without being there
