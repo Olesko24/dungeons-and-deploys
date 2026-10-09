@@ -30,10 +30,15 @@ cannot publish on its own.
    cd apps/cli
    npm version minor --no-git-tag-version   # or: patch
    ```
-2. Commit, push to `main` and tag:
+2. `main` only takes pull requests. Open one for the version bump, squash-merge it once CI passes, then tag the
+   merged commit:
    ```sh
+   git switch -c release/cli-0.2.0
    git commit -am "chore(cli): release 0.2.0"
-   git push
+   git push -u origin release/cli-0.2.0
+   gh pr create --fill
+   gh pr checks --watch && gh pr merge --squash --delete-branch
+   git switch main && git pull
    git tag cli-v0.2.0 && git push origin cli-v0.2.0
    ```
 3. The workflow checks that the tag matches the version and is on `main`, runs the CLI tests, builds, stages
