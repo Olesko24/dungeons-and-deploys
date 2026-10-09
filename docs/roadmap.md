@@ -51,7 +51,7 @@ No email: the API token on the player's devices is the identity. Losing all devi
 - [x] CLI build for npm (`dungeons-and-deploys` package)
 - [x] CLI published to npm
 - [x] Dockerfile for the API (web follows in Phase 6)
-- [x] Deploy to Coolify, automatic on every push to `main` via GitHub webhook
+- [x] Deploy to Coolify, automatic on every merge to `main` via GitHub webhook
 - [ ] Postgres backups to S3 enabled
 - [x] Install guide in README, deploy guide in [hosting.md](hosting.md)
 
@@ -59,13 +59,13 @@ No email: the API token on the player's devices is the identity. Losing all devi
 
 ## Phase 4 – Items and loot
 
-- [x] Item catalog in `packages/shared`: 9 armor and jewelry types plus 12 weapon kinds (dagger to crossbow), each in 4 rarities. Weapon kinds have their own attack weight and signature stat. Table `items` stores owned items by catalog key
-- [x] Rarities: common, rare, epic, legendary
+- [x] Item catalog in `packages/shared`: 9 armor and jewelry types plus 12 weapon kinds (dagger to crossbow), each in 10 rarities. Weapon kinds have their own attack weight and signature stat. Table `items` stores owned items by catalog key
+- [x] Rarities: common, uncommon, rare, epic, legendary, mythic, ancient, divine, celestial, eternal. Each opens at a higher level, up to eternal from level 90
 - [x] Slots: head, chest, legs, hands, feet, weapon + shield or two-handed, 2 rings, necklace, earrings
 - [x] Stats rolled on drop: primary stat by type (ATK weapons, DEF armor and shield, LCK rings, FOR necklace and earrings), random bonus stats from rare upward, name prefix from the strongest bonus. LCK raises success chance, FOR raises gold, ATK and DEF take effect in phase 5
 - [x] Loot table by character level, 40% drop chance on success, extra present slots add rarity rolls. No minimum level to equip
 - [x] CLI: `quest inv`, `quest equip <#id>`, `quest unequip <#id>`, rarity colors
-- [x] 16×16 pixel icons for all 84 items (`apps/web/scripts/item-icons.ts`)
+- [x] 16×16 pixel icons for all 210 items (`apps/web/scripts/item-icons.ts`)
 
 **Done when:** Tests show loot distribution matches rarity weights. Equipped items change quest odds.
 
@@ -83,14 +83,13 @@ No email: the API token on the player's devices is the identity. Losing all devi
 
 Fair by chance, not by bidding. More gold must not mean better equipment.
 
-- [x] Players list unequipped items, the price is fixed by rarity (20 / 60 / 200 / 800 gold)
-- [x] Buyers pay the fixed price for a draw from one rarity and get a random listed item of that rarity
-- [x] Daily draw limit per player (1 per UTC day)
-- [x] Epic draws from level 5, legendary draws from level 10
-- [x] 10% fee on sales as a gold sink
-- [x] CLI: `quest market`, `quest market draw <rarity>`, `quest market list|unlist <#id>`
+- [x] Sellers set the price, suggested from rarity and roll. Listings show stats and a price tag (Loot, Fair trade, Rip-off)
+- [x] A new listing collects buyers for 30 minutes, then one is drawn and the others get their gold back. Without a line an item can be bought at once
+- [x] 10% fee on sales as a gold sink, average sale price per rarity over 7 days
+- [x] Bag limit of 50 items, scrapping pays a quarter of the value
+- [x] CLI: `quest market`, `quest market buy <#id>`, `quest market sell <#id> [price]`
 
-**Done when:** A listed item reaches a random buyer, the seller gets the price minus the fee, the daily limit holds.
+**Done when:** A listed item with several buyers goes to a drawn one, the others are refunded, the seller gets the price minus the fee.
 
 ## Phase 6 – Website
 
@@ -212,9 +211,47 @@ by limits and `ban`, not by hand every day.
 
 **Done when:** The game is public, progress is permanent, and the changelog no longer warns about resets.
 
+## Ideas after 1.0
+
+Not planned yet. Every idea has to keep the principles: no presence required, solo-friendly, server decides, power
+helps but never guarantees.
+
+### Professions
+
+- One profession per character, switching resets its level: e.g. blacksmith, alchemist, enchanter
+- Materials drop from quests, fights and scrapped items
+- Crafting runs like a quest: start it, come back later. Costs gold as a sink
+- Blacksmith rerolls a bonus stat, alchemist brews buffs for the next quest or dungeon, enchanter adds a small
+  extra stat to one item
+- Crafted goods can be sold on the market, so professions depend on each other
+
+### Events
+
+- Travelling merchant: appears a few times a day at random, stays for 2 hours, offers items one or two rarities
+  above the shop. One purchase per visit. Announced in the inbox and the status line, so nobody has to watch
+- Treasure hour: 1 hour of more gold or loot for everyone, announced ahead
+- Seasonal events with their own monsters and cosmetic achievements
+- Events add chances, they never become the only way to good loot
+
+### World bosses
+
+- One boss for the whole server, with HP for several days
+- Every player attacks once every few hours, damage from combat power and dice, resolved like a quest
+- When the boss falls, everyone who hit it gets loot. Rewards depend on taking part, not on rank
+- A boss that survives its time leaves, a small consolation reward for everyone who joined
+
+### Arena (1v1)
+
+- Fight another character asynchronously: the defender does not need to be online and loses nothing
+- Win chance from both combat powers, capped at 10–90%, so the weaker side always has a chance
+- Rating with Elo, opponents drawn near your rating, a few fights per day
+- Own leaderboard, small gold and achievement rewards. No item loss, no gear from the arena
+
 ## Open decisions
 
 - Game content: quest texts, item names, monsters
 - Reset at 1.0: full reset, or keep characters from the open beta
 - Second accounts: forbid, or only limit what they can pass on
 - Release date: fixed date, or when phase 14 is done
+- Professions: which ones, and can a character have more than one
+- Arena: does the defender lose rating, or only the attacker
