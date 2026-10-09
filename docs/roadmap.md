@@ -167,6 +167,54 @@ Quests, dungeons and raids should not depend on keeping a terminal open.
 - [x] Website buttons to start a quest and fight a monster
 - [x] Achievement "Full Presence" replaced by "On a Roll" (5 quest wins in a row)
 
+## Phase 13 – Closed beta
+
+Invite-only with access codes. Find bugs, exploits and balancing problems while a reset is still acceptable.
+
+- [x] `main` only takes pull requests, `lint` and `build` must pass, a merge deploys
+- [ ] Open items from earlier phases: Postgres backups to S3 (phase 3), monitoring alerts and load test on the
+      deployed server (phase 10)
+- [ ] Restore a backup into a fresh database once
+- [ ] Wider invites with one shared access code (`pnpm access-code --uses 100 --days 14`), expired early on abuse
+
+What the beta tests, checked against the production database:
+
+- [ ] Economy: gold earned vs. gold removed by the market fee, shop and talent resets. Gold per player must not
+      grow without limit
+- [ ] Market: average prices per rarity stay stable, buyer lines and draws work with real players
+- [ ] Progression: time to level 10, 50 and 100. Higher rarities show up at the planned levels
+- [ ] Odds: real quest, fight, dungeon and raid success rates match the rules in `packages/shared`
+- [ ] Raids: guilds of real players beat the first bosses, the late bosses stay out of reach for a while
+- [ ] Exploits: second accounts feeding gold or items to a main character, filling raids alone
+- [ ] Integrations: heartbeats from Claude Code, zsh, bash and the website on macOS, Linux and Windows
+
+**Done when:** No known exploit is open, the numbers above are tuned, a backup has been restored once.
+
+## Phase 14 – Open beta
+
+Registration without an invite. Progress may still be reset.
+
+- [ ] Register without an access code, the rate limit on registration stays
+- [ ] Name filter: blocklist checked on registration, `ban` stays the fallback
+- [ ] Limits against second accounts, e.g. no market sales below a minimum level
+- [ ] Watch load and errors after the opening, scale the VPS per [hosting.md](hosting.md)
+
+**Done when:** A stranger installs the CLI from npm, registers without help and plays a quest. Abuse is handled
+by limits and `ban`, not by hand every day.
+
+## Phase 15 – Release 1.0
+
+- [ ] Last progress reset, announced in the changelog, on the website and in the CLI. No resets afterwards
+- [ ] Imprint and privacy notice on the website (IP addresses are processed for rate limits)
+- [ ] Beta notice removed from README, website and CLI
+- [ ] CLI 1.0.0 on npm, changelog entry 1.0.0
+- [ ] From here on, breaking changes keep existing characters playable
+
+**Done when:** The game is public, progress is permanent, and the changelog no longer warns about resets.
+
 ## Open decisions
 
 - Game content: quest texts, item names, monsters
+- Reset at 1.0: full reset, or keep characters from the open beta
+- Second accounts: forbid, or only limit what they can pass on
+- Release date: fixed date, or when phase 14 is done
