@@ -12,6 +12,7 @@ import {
   rarityIndex,
   rollStats,
   scrapValue,
+  upgradeWeight,
 } from "@dnd/shared";
 import type { PrismaClient } from "./generated/prisma/client.ts";
 import { BAG_FULL, bagFull, itemView, requireCharacter } from "./characters.ts";
@@ -99,7 +100,7 @@ export function inventoryRoutes(app: FastifyInstance, db: PrismaClient, random: 
     return { gold };
   });
 
-  /** Fuses UPGRADE_COST bag items of one rarity into a random item of the next rarity. */
+  /** Fuses bag items of one rarity worth UPGRADE_COST into a random item of the next rarity. */
   app.post<{ Body: { ids: number[] } }>(
     "/inventory/upgrade",
     {
@@ -107,7 +108,7 @@ export function inventoryRoutes(app: FastifyInstance, db: PrismaClient, random: 
         body: {
           type: "object",
           required: ["ids"],
-          properties: { ids: { type: "array", items: { type: "integer" }, minItems: UPGRADE_COST, maxItems: UPGRADE_COST, uniqueItems: true } },
+          properties: { ids: { type: "array", items: { type: "integer" }, minItems: 2, maxItems: UPGRADE_COST, uniqueItems: true } },
         },
       },
     },
@@ -117,13 +118,14 @@ export function inventoryRoutes(app: FastifyInstance, db: PrismaClient, random: 
       const free = { id: { in: req.body.ids }, characterId: character.id, equippedSlot: null, listedAt: null, scrappedAt: null };
       const result = await db.$transaction(async (tx) => {
         const items = await tx.item.findMany({ where: free });
-        if (items.length !== UPGRADE_COST) return `pick ${UPGRADE_COST} bag items that are not equipped or listed`;
+        if (items.length !== req.body.ids.length) return "pick bag items that are not equipped or listed";
+        if (items.reduce((sum, i) => sum + upgradeWeight(i.key), 0) !== UPGRADE_COST) return `pick ${UPGRADE_COST} items, a two-handed weapon counts as two`;
         const { rarity } = item(items[0].key);
         if (items.some((i) => item(i.key).rarity !== rarity)) return "the items must have the same rarity";
         const next = RARITIES[rarityIndex(rarity) + 1];
         if (!next) return `${rarity} is the highest rarity`;
         const used = await tx.item.updateMany({ where: free, data: { scrappedAt: new Date() } });
-        if (used.count !== UPGRADE_COST) throw new Error("items changed");
+        if (used.count !== items.length) throw new Error("items changed");
         const key = randomItemOf(next, random);
         return tx.item.create({ data: { characterId: character.id, key, ...rollStats(key, random) } });
       }).catch((err) => {

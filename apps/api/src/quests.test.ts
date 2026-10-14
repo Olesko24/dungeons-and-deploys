@@ -200,12 +200,18 @@ test("three items of a rarity fuse into one of the next, shards forge items", as
 
   const upgrade = (ids: number[]) => p.call("POST", "/inventory/upgrade", { ids });
   assert.equal((await upgrade([a.id, b.id, rare.id])).json().error, "the items must have the same rarity");
-  assert.equal((await upgrade([a.id, b.id, worn.id])).json().error, "pick 3 bag items that are not equipped or listed");
-  assert.equal((await upgrade([a.id, b.id])).statusCode, 400, "exactly three");
+  assert.equal((await upgrade([a.id, b.id, worn.id])).json().error, "pick bag items that are not equipped or listed");
+  assert.equal((await upgrade([a.id, b.id])).json().error, "pick 3 items, a two-handed weapon counts as two");
+  assert.equal((await upgrade([a.id])).statusCode, 400, "at least two");
   const fused = await upgrade([a.id, b.id, c.id]);
   assert.equal(fused.json().item.rarity, "legendary");
   assert.equal((await upgrade([a.id, b.id, c.id])).statusCode, 400, "fused items are gone");
   assert.deepEqual((await p.call("GET", "/inventory")).json().items.map((i: { id: number }) => i.id), [rare.id, worn.id, fused.json().item.id]);
+
+  const [bow, axe, mace, ring] = await Promise.all(["bow.rare", "battleAxe.rare", "mace.rare", "ring.rare"].map((key) => db.item.create({ data: { characterId, key } })));
+  assert.equal((await upgrade([bow.id, axe.id])).json().error, "pick 3 items, a two-handed weapon counts as two", "two two-handers are four");
+  assert.equal((await upgrade([bow.id, rare.id])).json().item.rarity, "epic", "a two-hander and one more item");
+  assert.equal((await upgrade([axe.id, mace.id, ring.id])).statusCode, 400, "four is too many");
 
   const top = await Promise.all([0, 1, 2].map(() => db.item.create({ data: { characterId, key: "ring.eternal" } })));
   assert.equal((await upgrade(top.map((i) => i.id))).json().error, "eternal is the highest rarity");

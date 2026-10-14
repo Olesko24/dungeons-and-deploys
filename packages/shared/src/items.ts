@@ -228,8 +228,9 @@ export function randomItemBase(random: () => number) {
   return kinds[Math.floor(random() * kinds.length)];
 }
 
-/** Bag items of one rarity that fuse into one random item of the next rarity. */
+/** Bag items of one rarity that fuse into one random item of the next rarity. A two-handed weapon counts as two. */
 export const UPGRADE_COST = 3;
+export const upgradeWeight = (key: string) => (item(key).type === "twoHanded" ? 2 : 1);
 /** Chance per player for a shard on top of dungeon and raid boss loot. A shard forges into a random item of its rarity. */
 export const SHARD_CHANCE = 0.3;
 

@@ -1,4 +1,4 @@
-import { BAG_LIMIT, DUNGEON_STAGES, MARKET_MAX_PRICE, PRICE_TAGS, type PriceTag, RARITIES, RESTED_BONUS, type Rarity as RarityName, UPGRADE_COST, priceTag, sellerPayout } from "@dnd/shared";
+import { BAG_LIMIT, DUNGEON_STAGES, MARKET_MAX_PRICE, PRICE_TAGS, type PriceTag, RARITIES, RESTED_BONUS, type Rarity as RarityName, UPGRADE_COST, priceTag, sellerPayout, upgradeWeight } from "@dnd/shared";
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import {
   type Achievement,
@@ -518,7 +518,9 @@ function Inventory({ items, shards, autoScrap, onChange }: { items: Item[]; shar
   const pickedRarity = bag.find((i) => i.id === picked[0])?.rarity;
   const nextRarity = pickedRarity && RARITIES[RARITIES.indexOf(pickedRarity as RarityName) + 1];
   const canPick = (i: Item) => !i.listed && i.rarity !== "eternal" && (!pickedRarity || i.rarity === pickedRarity);
-  const togglePick = (id: number) => setPicked(picked.includes(id) ? picked.filter((p) => p !== id) : picked.length < UPGRADE_COST ? [...picked, id] : picked);
+  const pickedWeight = picked.reduce((sum, id) => sum + upgradeWeight(bag.find((i) => i.id === id)!.key), 0);
+  const togglePick = (i: Item) =>
+    setPicked(picked.includes(i.id) ? picked.filter((p) => p !== i.id) : pickedWeight + upgradeWeight(i.key) <= UPGRADE_COST ? [...picked, i.id] : picked);
   return (
     <>
       <section className="panel" data-tour="equipment">
@@ -550,8 +552,8 @@ function Inventory({ items, shards, autoScrap, onChange }: { items: Item[]; shar
         )}
         {picked.length > 0 && (
           <p className="item-actions">
-            {picked.length} of {UPGRADE_COST} {pickedRarity} picked
-            <button type="button" className="small" disabled={picked.length < UPGRADE_COST} onClick={() => make("/inventory/upgrade", { ids: picked })}>
+            {pickedWeight} of {UPGRADE_COST} {pickedRarity} picked
+            <button type="button" className="small" disabled={pickedWeight < UPGRADE_COST} onClick={() => make("/inventory/upgrade", { ids: picked })}>
               Fuse into a random {nextRarity} item
             </button>
             <button type="button" className="small ghost" onClick={() => setPicked([])}>Cancel</button>
@@ -563,14 +565,17 @@ function Inventory({ items, shards, autoScrap, onChange }: { items: Item[]; shar
               <ItemIcon item={item} />
               <div className="item-text">
                 <span className="name">{item.name}</span>
-                <span className="dim"><Rarity rarity={item.rarity} /></span>
+                <span className="dim">
+                  <Rarity rarity={item.rarity} />
+                  {item.type === "twoHanded" ? " · Two-handed" : item.type === "weapon" ? " · One-handed" : ""}
+                </span>
                 <StatList stats={item.stats} />
                 {item.listed && <span className="dim">on market for <Gold amount={item.price ?? 0} /></span>}
               </div>
               <span className="item-actions">
                 {!item.listed && <button type="button" className="small" onClick={() => act(`/inventory/${item.id}/equip`)}>Equip</button>}
                 {canPick(item) && (
-                  <button type="button" className="small ghost" aria-pressed={picked.includes(item.id)} title={`Fuse ${UPGRADE_COST} items of one rarity into a random item of the next`} onClick={() => togglePick(item.id)}>
+                  <button type="button" className="small ghost" aria-pressed={picked.includes(item.id)} title={`Fuse ${UPGRADE_COST} items of one rarity into a random item of the next, a two-handed weapon counts as two`} onClick={() => togglePick(item)}>
                     {picked.includes(item.id) ? "Picked" : "Upgrade"}
                   </button>
                 )}
