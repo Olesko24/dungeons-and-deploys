@@ -274,7 +274,7 @@ quest autoscrap rare              # scrap loot below rare on arrival, quest auto
 
 ### Upgrading and shards
 
-Fuse **3 bag items of the same rarity** into one random item of the next rarity, with freshly rolled stats. Equipped and listed items cannot be fused, eternal items are already the highest rarity. On the website pick three items with **Upgrade** in your bag.
+Fuse **3 bag items of the same rarity** into one random item of the next rarity, with freshly rolled stats. A two-handed weapon counts as two items, so it fuses with one more item. Equipped and listed items cannot be fused, eternal items are already the highest rarity. On the website pick the items with **Upgrade** in your bag, which also shows whether a weapon is one- or two-handed.
 
 Dungeon and raid bosses have a **30% chance** per player to drop a shard on top of their loot. A shard rolls its rarity like the boss loot. Forge it into a random item of that rarity whenever you have room in your bag. Shards stack and do not count against the bag limit. On the website they show above your bag, each with a **Forge** button.
 

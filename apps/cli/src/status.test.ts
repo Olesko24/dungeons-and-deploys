@@ -24,11 +24,13 @@ test("short status", () => {
 test("inventory lines", () => {
   const items = [
     { id: 3, name: "Slaughterer's Iron Helm", rarity: "rare", stats: { attack: 2, defense: 5, luck: 0, fortune: 0 }, equippedSlot: "head" },
+    { id: 5, name: "Iron Greatsword", type: "twoHanded", rarity: "common", stats: { attack: 4, defense: 0, luck: 0, fortune: 0 }, equippedSlot: null },
     { id: 7, name: "Copper Ring", rarity: "common", stats: { attack: 0, defense: 0, luck: 1, fortune: 0 }, equippedSlot: null },
   ];
   const lines = inventoryLines(items, { attack: 2, defense: 5, luck: 0, fortune: 0 }, (t) => t);
   assert.equal(lines[0], "Equipped · ATK 2 · DEF 5");
   assert.match(lines[1], /^ {2}head {6}#3 {4}Slaughterer's Iron Helm +rare +ATK 2 · DEF 5$/);
+  assert.match(lines.at(-2)!, /#5 +Iron Greatsword +common +two-handed · ATK 4$/);
   assert.match(lines.at(-1)!, /#7 +Copper Ring +common +LCK \+1$/);
   assert.equal(statsText({ attack: 0, defense: 0, luck: 0, fortune: 12 }), "FOR +12%");
   assert.equal(rarityColor("x", "epic", true), "\x1b[38;2;180;140;255mx\x1b[0m");
