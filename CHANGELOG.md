@@ -9,6 +9,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). New
 
 ### Breaking
 
+- Balancing:
+  - Quests pay more with your level: 60 + 10 × level XP and 13–18 + level gold. Level 1 stays at 70 XP.
+  - Monsters and dungeon stages are measured against the gear players of your level typically wear, not against
+    an unequipped player. Good gear no longer wins every fight, gear better than usual still raises your odds.
+  - Luck has diminishing returns: about one percentage point per luck at first, never more than 25 points.
+    Lucky Guess and Heisenbug Whisperer now give +1 luck per rank.
+  - Dungeon rewards come at most once every 4 hours, raid rewards once every 20 hours. You can still join and
+    help, you just earn nothing during that time.
+  - Raid loot rolls on your own level's loot table, not on the boss's loot level. Fortune now adds to raid gold.
+  - Sword gets defense and greatsword fortune as signature stat. Mace and spear (attack ×0.75), staff and bow
+    roll their signature stat twice as high. Items you already own keep their stats.
+  - Only one heartbeat per minute can spawn a monster, however many sources send them.
 - A character can own 50 items. Scrap items for a quarter of their value with the **Scrap** button or
   `quest scrap <#id>`. With a full bag new loot is scrapped right away and paid out in gold, purchases wait
   until you make room.

@@ -1,3 +1,4 @@
+import { luckPoints } from "./combat.ts";
 import { MAX_LEVEL } from "./talents.ts";
 
 /** Rest after a quest. The quest itself resolves at once. */
@@ -37,14 +38,14 @@ export * from "./stories.ts";
 export * from "./talents.ts";
 
 /**
- * A quest resolves the moment it starts, the dice decide.
- * `luck` adds percentage points to the success chance, `fortune` adds percent to the gold reward.
+ * A quest resolves the moment it starts, the dice decide. Rewards grow with `level`.
+ * `luck` adds luck points to the success chance, `questLuck` percentage points, `fortune` percent to the gold reward.
  */
-export function questOutcome(random: () => number, luck = 0, fortune = 0) {
-  const chance = Math.min(QUEST_BASE_CHANCE + luck / 100, 0.95);
-  if (random() >= chance) return { success: false, xp: 10, gold: 0 };
-  const gold = 14 + Math.floor(random() * 6);
-  return { success: true, xp: 70, gold: Math.floor(gold * (1 + fortune / 100)) };
+export function questOutcome(random: () => number, level: number, luck = 0, fortune = 0, questLuck = 0) {
+  const chance = Math.min(QUEST_BASE_CHANCE + (luckPoints(luck) + questLuck) / 100, 0.95);
+  if (random() >= chance) return { success: false, xp: 9 + level, gold: 0 };
+  const gold = 13 + level + Math.floor(random() * 6);
+  return { success: true, xp: 60 + 10 * level, gold: Math.floor(gold * (1 + fortune / 100)) };
 }
 
 export const GUILD_MAX_MEMBERS = 50;

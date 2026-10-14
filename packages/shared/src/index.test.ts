@@ -11,8 +11,11 @@ test("level curve", () => {
 });
 
 test("quest outcome", () => {
-  assert.deepEqual(questOutcome(() => 0), { success: true, xp: 70, gold: 14 });
-  assert.deepEqual(questOutcome(() => 0.75), { success: false, xp: 10, gold: 0 }, "75% base chance");
-  assert.equal(questOutcome(() => 0.8, 10).success, true, "luck adds percentage points");
-  assert.equal(questOutcome(() => 0.95, 50).success, false, "capped at 95%");
+  assert.deepEqual(questOutcome(() => 0, 1), { success: true, xp: 70, gold: 14 });
+  assert.deepEqual(questOutcome(() => 0, 50), { success: true, xp: 560, gold: 63 }, "rewards grow with the level");
+  assert.deepEqual(questOutcome(() => 0.75, 1), { success: false, xp: 10, gold: 0 }, "75% base chance");
+  assert.equal(questOutcome(() => 0.8, 1, 10).success, true, "10 luck adds about 7 points");
+  assert.equal(questOutcome(() => 0.92, 1, 50).success, false, "luck diminishes: 50 luck adds under 17 points");
+  assert.equal(questOutcome(() => 0.8, 1, 0, 0, 10).success, true, "quest luck adds percentage points");
+  assert.equal(questOutcome(() => 0.95, 1, 1000, 0, 50).success, false, "capped at 95%");
 });

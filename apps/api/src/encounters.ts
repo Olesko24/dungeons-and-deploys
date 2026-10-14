@@ -26,8 +26,13 @@ import type { Character, PrismaClient } from "./generated/prisma/client.ts";
 const activeEncounter = (db: PrismaClient, characterId: number, t: Date) =>
   db.encounter.findFirst({ where: { characterId, foughtAt: null, expiresAt: { gt: t } } });
 
-/** Called on every accepted heartbeat. Spawns at most one monster at a time. */
+/** Called on every accepted heartbeat. Rolls once per minute and spawns at most one monster at a time. */
 export async function maybeSpawnEncounter(db: PrismaClient, character: Character, t: Date, random: () => number) {
+  const rolled = await db.character.updateMany({
+    where: { id: character.id, OR: [{ encounterRolledAt: null }, { encounterRolledAt: { lte: new Date(t.getTime() - 60_000) } }] },
+    data: { encounterRolledAt: t },
+  });
+  if (rolled.count === 0) return;
   const chance = ENCOUNTER_CHANCE * (1 + talentBonus(character.talents as Talents, await guildBuffs(db, character.id, t)).encounter / 100);
   if (random() >= chance || (await activeEncounter(db, character.id, t))) return;
   await db.encounter.create({

@@ -163,7 +163,7 @@ async function grantQuest(tx: Prisma.TransactionClient, questId: number, random:
 
   const { character } = quest;
   const bonus = playerBonus(character.items, character.talents as Talents, await guildBuffs(tx, character.id, t));
-  const outcome = questOutcome(random, bonus.gear.luck + bonus.questLuck, bonus.gear.fortune + bonus.questGold);
+  const outcome = questOutcome(random, levelFromXp(character.xp).level, bonus.gear.luck, bonus.gear.fortune + bonus.questGold, bonus.questLuck);
   outcome.xp = withBonus(outcome.success ? outcome.xp : outcome.xp + bonus.failXp, bonus.xp + bonus.questXp + (rested ? RESTED_BONUS : 0));
   if (rested) outcome.gold = withBonus(outcome.gold, RESTED_BONUS);
   const recent = await tx.quest.findMany({

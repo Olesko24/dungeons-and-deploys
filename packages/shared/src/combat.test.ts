@@ -1,15 +1,18 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { MONSTERS, buffEffects, fightRewards, guildShare, playerPower, recommendedPower, rollMonster, stageRecommendation, winChance } from "./index.ts";
+import { MONSTERS, buffEffects, fightRewards, guildShare, playerPower, recommendedPower, rollMonster, stageRecommendation, typicalGear, winChance } from "./index.ts";
 
 const none = { attack: 0, defense: 0, luck: 0, fortune: 0 };
+/** Typical gear without its luck, so only power decides. */
+const typical = (level: number) => ({ ...typicalGear(level), luck: 0 });
 
 test("win chance", () => {
-  assert.equal(winChance(1, none, "flakyTestGoblin"), 0.5, "an average monster is a coin flip without gear");
-  assert.equal(winChance(10, none, "flakyTestGoblin"), 0.5, "monsters level with the player");
-  assert.ok(winChance(10, { attack: 5, defense: 27, luck: 0, fortune: 0 }, "flakyTestGoblin") > 0.7, "gear helps");
-  assert.ok(winChance(10, none, "dependencyDragon") < 0.3, "dragons are dangerous");
-  assert.equal(winChance(10, { ...none, luck: 10 }, "flakyTestGoblin"), 0.6, "luck adds percentage points");
+  assert.equal(winChance(1, typical(1), "flakyTestGoblin"), 0.5, "an average monster is a coin flip in typical gear");
+  assert.equal(winChance(50, typical(50), "flakyTestGoblin"), 0.5, "monsters level with the player and their gear");
+  assert.ok(winChance(10, none, "flakyTestGoblin") < 0.35, "no gear falls behind");
+  assert.ok(winChance(10, { ...typical(10), attack: 2 * typical(10).attack, defense: 2 * typical(10).defense }, "flakyTestGoblin") > 0.6, "better gear than usual helps");
+  assert.ok(winChance(10, typical(10), "dependencyDragon") < 0.3, "dragons are dangerous");
+  assert.equal(winChance(10, { ...typical(10), luck: 25 }, "flakyTestGoblin"), 0.625, "25 luck adds 12.5 points");
   assert.equal(winChance(30, { attack: 50, defense: 200, luck: 20, fortune: 0 }, "bugSwarm"), 0.95, "never certain");
 });
 

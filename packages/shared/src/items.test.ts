@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { RARITIES, equipPlan, equipmentBonus, item, itemName, questOutcome, rollLoot, rollQuality, rollRarity, rollStats } from "./index.ts";
+import { RARITIES, WEAPONS, equipPlan, equipmentBonus, item, itemName, questOutcome, rollLoot, rollQuality, rollRarity, rollStats } from "./index.ts";
 
 /** Returns the given values in order, like a loaded die. */
 const dice = (...values: number[]) => () => values.shift() ?? 0;
@@ -21,14 +21,23 @@ test("item catalog", () => {
 
 test("rolled stats", () => {
   assert.deepEqual(rollStats("helm.common", () => 0.99), { attack: 0, defense: 2, luck: 0, fortune: 0 }, "common has no bonus");
-  assert.deepEqual(rollStats("greatsword.common", () => 0.99), { attack: 4, defense: 0, luck: 0, fortune: 0 }, "two-hander doubles attack");
+  assert.deepEqual(rollStats("greatsword.common", () => 0.99), { attack: 4, defense: 0, luck: 0, fortune: 3 }, "two-hander doubles attack, greatsword adds fortune");
   assert.deepEqual(rollStats("battleAxe.common", () => 0.99), { attack: 5, defense: 0, luck: 0, fortune: 0 }, "battle axe hits harder");
   assert.deepEqual(rollStats("dagger.common", () => 0.99), { attack: 1, defense: 0, luck: 1, fortune: 0 }, "dagger trades attack for luck, even when common");
   // Pick from [attack, luck, fortune], then one roll per stat for the split.
   assert.deepEqual(rollStats("helm.rare", dice(0, 0, 0.99)), { attack: 2, defense: 5, luck: 0, fortune: 0 });
   assert.deepEqual(rollStats("sword.legendary", () => 0), { attack: 13, defense: 5, luck: 4, fortune: 10 }, "legendary gets all three other stats");
-  assert.deepEqual(rollStats("spear.legendary", () => 0), { attack: 23, defense: 5, luck: 4, fortune: 10 }, "signature takes one bonus spot");
+  assert.deepEqual(rollStats("spear.legendary", () => 0), { attack: 20, defense: 10, luck: 4, fortune: 10 }, "signature takes one bonus spot, the spear doubles it");
   assert.deepEqual(rollStats("sword.eternal", () => 0), { attack: 74, defense: 36, luck: 7, fortune: 23 });
+});
+
+test("no weapon kind is strictly better than another", () => {
+  for (const [a, wa] of Object.entries(WEAPONS)) {
+    for (const [b, wb] of Object.entries(WEAPONS)) {
+      if (a === b || wa.hands !== wb.hands || wa.signature !== wb.signature) continue;
+      assert.ok(!(wa.attack >= wb.attack && wa.signatureScale >= wb.signatureScale), `${a} beats ${b} in everything`);
+    }
+  }
 });
 
 test("every roll of a key gets the same budget, only the split differs", () => {
@@ -77,9 +86,9 @@ test("loot roll", () => {
 });
 
 test("equipment changes quest odds and gold", () => {
-  assert.equal(questOutcome(() => 0.8).success, false);
-  assert.equal(questOutcome(() => 0.8, 10).success, true, "luck +10 lifts 75% to 85%");
-  assert.equal(questOutcome(() => 0, 0, 100).gold, 28, "fortune +100% doubles gold");
+  assert.equal(questOutcome(() => 0.8, 1).success, false);
+  assert.equal(questOutcome(() => 0.8, 1, 10).success, true, "luck 10 lifts 75% to about 82%");
+  assert.equal(questOutcome(() => 0, 1, 0, 100).gold, 28, "fortune +100% doubles gold");
 });
 
 test("equip plan", () => {

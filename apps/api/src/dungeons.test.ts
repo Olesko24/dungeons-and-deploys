@@ -82,6 +82,23 @@ test("a solo run: stages and boss loot", async () => {
   assert.match((await inbox(p.characterId, "dungeon"))[0], new RegExp(`^Dungeon ${code} cleared! You earned \\d+ XP, \\d+ gold and `));
 });
 
+test("dungeon rewards come once per 4 hours, helping stays possible", async () => {
+  clock = T0;
+  const p = await player("farmer");
+  const run = async (hours: number) => {
+    clock = T0 + hours * 3_600_000;
+    const { code } = (await p.call("POST", "/dungeons")).json();
+    const dungeon = await db.dungeon.findUniqueOrThrow({ where: { code } });
+    for (let stage = 0; stage < 4; stage++) await resolveStage(db, dungeon.id, stage, () => 0, new Date(clock));
+    return { code, member: await db.dungeonMember.findFirstOrThrow({ where: { dungeonId: dungeon.id } }) };
+  };
+  assert.ok((await run(0)).member.lootItemId);
+  const resting = await run(2);
+  assert.deepEqual([resting.member.xp, resting.member.gold, resting.member.lootItemId], [0, 0, null], "cleared, but nothing earned");
+  assert.equal((await inbox(p.characterId, "dungeon")).at(-1), `Dungeon ${resting.code} cleared! Your dungeon rewards are back in 2 hours.`);
+  assert.ok((await run(4)).member.lootItemId, "rewards are back 4 hours after the last boss loot");
+});
+
 test("a failed stage ends the run", async () => {
   const p = await player("unlucky");
   const { code } = (await p.call("POST", "/dungeons")).json();

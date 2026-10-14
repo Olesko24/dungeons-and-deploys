@@ -1,16 +1,18 @@
-import { MONSTERS, type MonsterKey, fightRewards, recommendedPower, winChance } from "./combat.ts";
+import { MONSTERS, type MonsterKey, fightRewards, luckPoints, recommendedPower, winChance } from "./combat.ts";
 import { type Stats, randomItemKey } from "./items.ts";
 
 export const DUNGEON_LOBBY_MS = 5 * 60 * 1000;
 export const DUNGEON_STAGE_MS = 15 * 60 * 1000;
 export const DUNGEON_MAX_PARTY = 5;
+/** Stage rewards, boss loot and shards come at most once per this time, counted from the last boss loot. */
+export const DUNGEON_REWARD_COOLDOWN_MS = 4 * 60 * 60 * 1000;
 
 /** Three stages and a boss. Each stage fights like its monster with the monster's power scaled by `power`. */
 export const DUNGEON_STAGES: { name: string; monster: MonsterKey; power: number }[] = [
-  { name: "Halls of Legacy Code", monster: "legacyCodeGolem", power: 0.5 },
-  { name: "Race Condition Crossing", monster: "raceConditionTwins", power: 0.6 },
-  { name: "Merge Conflict Depths", monster: "mergeConflictHydra", power: 0.5 },
-  { name: "Lair of the Dependency Dragon", monster: "dependencyDragon", power: 0.4 },
+  { name: "Halls of Legacy Code", monster: "legacyCodeGolem", power: 0.17 },
+  { name: "Race Condition Crossing", monster: "raceConditionTwins", power: 0.23 },
+  { name: "Merge Conflict Depths", monster: "mergeConflictHydra", power: 0.2 },
+  { name: "Lair of the Dependency Dragon", monster: "dependencyDragon", power: 0.18 },
 ];
 
 /** `power` adds percent combat power, `stageChance` percentage points on the stage. */
@@ -40,7 +42,7 @@ function scaledChance(m: DungeonMember, monster: MonsterKey, toughness: number) 
   const base = winChance(m.level, { ...m.gear, luck: 0 }, monster, m.power);
   const ratio = base / (1 - base);
   const scaled = ratio / (ratio + toughness);
-  return scaled + (m.gear.luck + (m.stageChance ?? 0)) / 100;
+  return scaled + (luckPoints(m.gear.luck) + (m.stageChance ?? 0)) / 100;
 }
 
 /** Rewards per member for one cleared stage, 10% more per extra member. */

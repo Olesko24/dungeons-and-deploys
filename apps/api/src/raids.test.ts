@@ -54,8 +54,8 @@ async function runRaid(players: Awaited<ReturnType<typeof player>>[], dice: numb
   const raid = await db.raid.findFirstOrThrow({ where: { members: { some: { characterId: players[0].characterId } } }, orderBy: { id: "desc" } });
   assert.equal(ticks.at(-1)!.at.getTime(), T0 + 10 * 60_000);
 
-  let result = await advanceRaid(db, raid.id, 0, () => dice);
-  for (let tick = 1; result?.next && tick <= RAID_TICKS; tick++) result = await advanceRaid(db, raid.id, tick, () => dice);
+  let result = await advanceRaid(db, raid.id, 0, () => dice, new Date(clock));
+  for (let tick = 1; result?.next && tick <= RAID_TICKS; tick++) result = await advanceRaid(db, raid.id, tick, () => dice, new Date(clock));
   return { raid, view: (await players[0].call("GET", "/raids/current")).json().raid };
 }
 
@@ -73,6 +73,21 @@ test("five raiders beat the boss in good phases and all get loot", async () => {
   const news = await inbox(players[1].characterId, "raid");
   assert.match(news[0], /^win0 scheduled a raid against The Monolith in \d+ minutes/);
   assert.match(news.at(-1)!, /^The Monolith was defeated! You dealt \d+ damage and earned/);
+});
+
+test("fortune adds to raid gold, rewards come once per 20 hours", async () => {
+  const players = await guildWith("again", 5);
+  await db.item.create({ data: { characterId: players[1].characterId, key: "necklace.common", fortune: 100, equippedSlot: "neck" } });
+  const gold = async (i: number) => (await db.character.findUniqueOrThrow({ where: { id: players[i].characterId } })).gold;
+  await runRaid(players, 0.9);
+  assert.deepEqual([await gold(0), await gold(1)], [70, 140], "+100% fortune doubles the raid gold");
+
+  const { raid, view } = await runRaid(players, 0.9, 0);
+  assert.equal(view.state, "won");
+  const members = await db.raidMember.findMany({ where: { raidId: raid.id } });
+  assert.ok(members.every((m) => m.damage > 0 && !m.lootItemId), "everyone helped, nobody earned loot");
+  assert.equal(await gold(1), 140);
+  assert.match((await inbox(players[1].characterId, "raid")).at(-1)!, /^The Monolith was defeated! You dealt \d+ damage\. Your raid rewards are back in 21 hours\.$/);
 });
 
 test("bosses unlock one by one and need more power", async () => {

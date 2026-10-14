@@ -27,7 +27,7 @@ export type Effects = {
   stageChance: number;
   /** Flat XP for a failed quest or a lost fight */
   failXp: number;
-  /** Percentage points on quest and fight success, like luck on gear */
+  /** Luck, like on gear */
   luck: number;
   /** Percentage points on quest success */
   questLuck: number;
@@ -94,13 +94,13 @@ export const TALENTS = {
   redundancy: { name: "Redundancy", tree: "defense", row: 3, col: 1, max: 5, effect: "stageChance", per: 2, text: "+{v}% chance on every dungeon stage", flavor: "Two of everything, especially the coffee machine.", icon: "server" },
   zeroDowntime: { name: "Zero Downtime", tree: "defense", row: 4, col: 1, max: 1, effect: "groupPower", per: 10, text: "+{v}% combat power in dungeons and raids", flavor: "Five nines, zero excuses.", icon: "crown", requires: "redundancy" },
 
-  luckyGuess: { name: "Lucky Guess", tree: "luck", row: 0, col: 0, max: 5, effect: "luck", per: 1, text: "+{v}% quest and fight success", flavor: "It works on my machine.", icon: "clover" },
+  luckyGuess: { name: "Lucky Guess", tree: "luck", row: 0, col: 0, max: 5, effect: "luck", per: 1, text: "+{v} luck", flavor: "It works on my machine.", icon: "clover" },
   scavenger: { name: "Scavenger", tree: "luck", row: 0, col: 2, max: 5, effect: "drop", per: 1, text: "+{v}% loot drop chance on quests and fights", flavor: "One dev's trash is another dev's legendary.", icon: "bag" },
   goldenTicket: { name: "Golden Ticket", tree: "luck", row: 1, col: 0, max: 5, effect: "rarityRoll", per: 2, text: "+{v}% chance for an extra rarity roll on loot", flavor: "Your PR got approved without comments.", icon: "ticket" },
   bugMagnet: { name: "Bug Magnet", tree: "luck", row: 1, col: 2, max: 5, effect: "encounter", per: 10, text: "+{v}% more monster encounters", flavor: "They find you. They always find you.", icon: "magnet" },
   luckyCommit: { name: "Lucky Commit", tree: "luck", row: 2, col: 0, max: 5, effect: "rarityRoll", per: 4, text: "+{v}% chance for an extra rarity roll on loot", flavor: "Hash starts with c0ffee. Must be a sign.", icon: "star", requires: "goldenTicket" },
   rubberDuck: { name: "Rubber Duck", tree: "luck", row: 2, col: 2, max: 5, effect: "questLuck", per: 2, text: "+{v}% quest success", flavor: "Explaining the quest to the duck already solved it.", icon: "duck" },
-  heisenbug: { name: "Heisenbug Whisperer", tree: "luck", row: 3, col: 1, max: 5, effect: "luck", per: 1, text: "+{v}% quest and fight success", flavor: "Bugs vanish the moment you look at them.", icon: "bug" },
+  heisenbug: { name: "Heisenbug Whisperer", tree: "luck", row: 3, col: 1, max: 5, effect: "luck", per: 1, text: "+{v} luck", flavor: "Bugs vanish the moment you look at them.", icon: "bug" },
   cosmicRay: { name: "Cosmic Ray", tree: "luck", row: 4, col: 1, max: 1, effect: "rarityRoll", per: 15, text: "+{v}% chance for an extra rarity roll on loot", flavor: "A single bit flip in your favor.", icon: "ring", requires: "heisenbug" },
 
   fastLearner: { name: "Fast Learner", tree: "general", row: 0, col: 0, max: 5, effect: "xp", per: 2, text: "+{v}% XP", flavor: "Reads the docs. All of them.", icon: "book" },
