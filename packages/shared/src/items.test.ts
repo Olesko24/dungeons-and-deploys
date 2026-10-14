@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { RARITIES, equipPlan, equipmentBonus, item, itemName, questOutcome, rollLoot, rollRarity, rollStats } from "./index.ts";
+import { RARITIES, equipPlan, equipmentBonus, item, itemName, questOutcome, rollLoot, rollQuality, rollRarity, rollStats } from "./index.ts";
 
 /** Returns the given values in order, like a loaded die. */
 const dice = (...values: number[]) => () => values.shift() ?? 0;
@@ -20,15 +20,26 @@ test("item catalog", () => {
 });
 
 test("rolled stats", () => {
-  assert.deepEqual(rollStats("helm.common", () => 0.99), { attack: 0, defense: 3, luck: 0, fortune: 0 }, "common has no bonus");
-  assert.deepEqual(rollStats("greatsword.common", () => 0.99), { attack: 6, defense: 0, luck: 0, fortune: 0 }, "two-hander doubles attack");
-  assert.deepEqual(rollStats("battleAxe.common", () => 0.99), { attack: 8, defense: 0, luck: 0, fortune: 0 }, "battle axe hits harder");
-  assert.deepEqual(rollStats("dagger.common", () => 0.99), { attack: 2, defense: 0, luck: 1, fortune: 0 }, "dagger trades attack for luck, even when common");
-  // Primary roll, then pick from [attack, luck, fortune] and roll its value.
-  assert.deepEqual(rollStats("helm.rare", dice(0, 0, 0.99)), { attack: 3, defense: 3, luck: 0, fortune: 0 });
-  assert.deepEqual(rollStats("sword.legendary", () => 0), { attack: 10, defense: 5, luck: 3, fortune: 8 }, "legendary gets all three other stats");
-  assert.deepEqual(rollStats("spear.legendary", () => 0), { attack: 18, defense: 5, luck: 3, fortune: 8 }, "signature takes one bonus spot");
-  assert.deepEqual(rollStats("sword.eternal", () => 0), { attack: 62, defense: 31, luck: 5, fortune: 20 });
+  assert.deepEqual(rollStats("helm.common", () => 0.99), { attack: 0, defense: 2, luck: 0, fortune: 0 }, "common has no bonus");
+  assert.deepEqual(rollStats("greatsword.common", () => 0.99), { attack: 4, defense: 0, luck: 0, fortune: 0 }, "two-hander doubles attack");
+  assert.deepEqual(rollStats("battleAxe.common", () => 0.99), { attack: 5, defense: 0, luck: 0, fortune: 0 }, "battle axe hits harder");
+  assert.deepEqual(rollStats("dagger.common", () => 0.99), { attack: 1, defense: 0, luck: 1, fortune: 0 }, "dagger trades attack for luck, even when common");
+  // Pick from [attack, luck, fortune], then one roll per stat for the split.
+  assert.deepEqual(rollStats("helm.rare", dice(0, 0, 0.99)), { attack: 2, defense: 5, luck: 0, fortune: 0 });
+  assert.deepEqual(rollStats("sword.legendary", () => 0), { attack: 13, defense: 5, luck: 4, fortune: 10 }, "legendary gets all three other stats");
+  assert.deepEqual(rollStats("spear.legendary", () => 0), { attack: 23, defense: 5, luck: 4, fortune: 10 }, "signature takes one bonus spot");
+  assert.deepEqual(rollStats("sword.eternal", () => 0), { attack: 74, defense: 36, luck: 7, fortune: 23 });
+});
+
+test("every roll of a key gets the same budget, only the split differs", () => {
+  assert.deepEqual(rollStats("earrings.uncommon", dice(0, 1, 0)), { attack: 1, defense: 0, luck: 0, fortune: 8 });
+  assert.deepEqual(rollStats("earrings.uncommon", dice(0, 0, 1)), { attack: 2, defense: 0, luck: 0, fortune: 4 });
+  for (const key of ["earrings.uncommon", "helm.rare", "scythe.mythic", "sword.eternal"]) {
+    for (let i = 0; i < 200; i++) {
+      const q = rollQuality(key, rollStats(key, Math.random));
+      assert.ok(Math.abs(q - 0.5) <= 0.1, `${key} quality ${q}`);
+    }
+  }
 });
 
 test("name prefix follows the strongest bonus stat", () => {

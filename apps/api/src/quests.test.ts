@@ -95,7 +95,7 @@ test("loot lands in the inventory and equipment raises the odds", async () => {
   await p.call("POST", "/quests");
   const inv = (await p.call("GET", "/inventory")).json();
   assert.equal(inv.items.length, 1);
-  assert.deepEqual(inv.items[0].stats, { attack: 0, defense: 1, luck: 0, fortune: 0 }, "stats are rolled on drop");
+  assert.deepEqual(inv.items[0].stats, { attack: 0, defense: 2, luck: 0, fortune: 0 }, "stats are rolled on drop");
   assert.equal((await p.call("GET", "/quests/current")).json().quest.loot.name, "Leather Cap");
 
   const { id: characterId } = await p.character();
@@ -106,7 +106,7 @@ test("loot lands in the inventory and equipment raises the odds", async () => {
     assert.equal((await p.call("POST", `/inventory/${i.id}/equip`)).statusCode, 200);
   }
   const sheet = (await p.call("GET", "/character")).json();
-  assert.deepEqual([sheet.attack, sheet.defense, sheet.luck, sheet.fortune], [8, 12, 15, 20]);
+  assert.deepEqual([sheet.attack, sheet.defense, sheet.luck, sheet.fortune], [8, 13, 15, 20]);
   const names = (await p.call("GET", "/inventory")).json().items.map((i: { name: string }) => i.name);
   assert.deepEqual(names, ["Leather Cap", "Merchant's Signet of Root", "Merchant's Ring of Caching", "Gambler's Chainmail"]);
 
@@ -167,7 +167,7 @@ test("scrapping pays gold, a full bag scraps new loot and refuses purchases", as
   await db.item.createMany({ data: Array.from({ length: 50 }, () => ({ characterId, key: "ring.common", luck: 1 })) });
   const quest = (await p.call("POST", "/quests")).json();
   assert.deepEqual([quest.loot.name, quest.loot.scrapped], ["Leather Cap", true], "loot beyond 50 items is scrapped on arrival");
-  assert.equal((await p.character()).gold, 37 + 14 + 3, "scrap gold, quest gold and the scrapped cap");
+  assert.equal((await p.character()).gold, 37 + 14 + 5, "scrap gold, quest gold and the scrapped cap");
   assert.equal((await p.call("GET", "/inventory")).json().items.length, 50);
   assert.equal((await p.call("GET", "/stats")).json().stats.itemsFound, 1, "scrapped loot still counts as found");
 
@@ -184,7 +184,7 @@ test("loot below the auto-scrap rarity is scrapped on arrival", async () => {
   assert.deepEqual((await p.call("POST", "/inventory/auto-scrap", { rarity: "uncommon" })).json(), { autoScrap: "uncommon" });
   const quest = (await p.call("POST", "/quests")).json();
   assert.deepEqual([quest.loot.name, quest.loot.scrapped], ["Leather Cap", true]);
-  assert.equal((await p.character()).gold, 14 + 3, "quest gold and the scrapped cap");
+  assert.equal((await p.character()).gold, 14 + 5, "quest gold and the scrapped cap");
   assert.equal((await p.call("GET", "/inventory")).json().items.length, 0);
   assert.equal((await p.call("POST", "/inventory/auto-scrap", { rarity: null })).statusCode, 200);
   assert.equal((await p.call("GET", "/inventory")).json().autoScrap, null);

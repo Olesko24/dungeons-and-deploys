@@ -45,7 +45,6 @@ export const PREFIX: Record<Stat, string> = {
 };
 
 const noStats = (): Stats => ({ attack: 0, defense: 0, luck: 0, fortune: 0 });
-const rollRange = ([min, max]: Range, random: () => number) => min + Math.floor(random() * (max - min + 1));
 
 type ArmorType = Exclude<ItemType, "weapon" | "twoHanded">;
 
@@ -107,20 +106,36 @@ export function item(key: string) {
   return { key, type: type as ItemType, rarity, baseName: NAMES[type][rarityIndex(rarity)], primary: PRIMARY[type], signature: null };
 }
 
-/** Rolls the primary stat, the signature stat of weapon kinds and the random bonus stats of a new item. */
+/**
+ * Rolls the primary stat, the signature stat of weapon kinds and the random bonus stats of a new item.
+ * Every item of a key gets the same budget: positions within each stat's range always average 0.5,
+ * only the split between the stats is random.
+ */
 export function rollStats(key: string, random: () => number): Stats {
   const { rarity, primary, signature } = item(key);
-  const stats = noStats();
   const kind = key.split(".")[0] as WeaponKind;
   const tier = rarityIndex(rarity);
-  const roll = rollRange(PRIMARY_RANGE[primary][tier], random);
-  stats[primary] = kind in WEAPONS ? Math.max(1, Math.round(roll * WEAPONS[kind].hands * WEAPONS[kind].attack)) : roll;
-  if (signature) stats[signature] = rollRange(BONUS_RANGE[signature][Math.max(1, tier)], random);
+  const ranges: [Stat, Range][] = [[primary, PRIMARY_RANGE[primary][tier]]];
+  if (signature) ranges.push([signature, BONUS_RANGE[signature][Math.max(1, tier)]]);
   const pool = STATS.filter((s) => s !== primary && s !== signature);
   for (let i = 0; i < BONUS_COUNT[tier] && pool.length; i++) {
     const [stat] = pool.splice(Math.floor(random() * pool.length), 1);
-    stats[stat] = rollRange(BONUS_RANGE[stat][tier], random);
+    ranges.push([stat, BONUS_RANGE[stat][tier]]);
   }
+  // Deviations from the mean sum to zero and stay within ±0.5, so positions stay in [0, 1].
+  const rolls = ranges.map(() => random());
+  const mean = rolls.reduce((sum, r) => sum + r, 0) / rolls.length;
+  // Rounding error carries over to the next stat, finest range last, so the budget survives integer values.
+  const order = ranges.map((_, i) => i).sort((a, b) => (ranges[a][1][1] - ranges[a][1][0]) - (ranges[b][1][1] - ranges[b][1][0]));
+  const stats = noStats();
+  let carry = 0;
+  for (const i of order) {
+    const [stat, [min, max]] = ranges[i];
+    const target = 0.5 + (rolls[i] - mean) / 2 + carry;
+    stats[stat] = Math.min(max, Math.max(min, Math.round(min + target * (max - min))));
+    carry = target - (max === min ? 1 : (stats[stat] - min) / (max - min));
+  }
+  if (kind in WEAPONS) stats.attack = Math.max(1, Math.round(stats.attack * WEAPONS[kind].hands * WEAPONS[kind].attack));
   return stats;
 }
 
