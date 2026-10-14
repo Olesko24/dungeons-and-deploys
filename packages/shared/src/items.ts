@@ -63,22 +63,24 @@ const NAMES: Record<ArmorType, string[]> = {
 
 /**
  * Weapon kinds drop in every rarity. `attack` scales the rolled attack, `signature` is a stat every
- * item of that kind rolls on top of its bonus stats. From legendary up a weapon carries its `legendary` name.
+ * item of that kind rolls on top of its bonus stats, scaled by `signatureScale`. Kinds that share a signature
+ * trade attack for a stronger signature, so no kind is strictly better than another. From legendary up a
+ * weapon carries its `legendary` name.
  */
 export const WEAPONS = {
-  dagger: { hands: 1, label: "Dagger", attack: 0.75, signature: "luck", legendary: "Dagger of the Hotfix" },
-  sword: { hands: 1, label: "Sword", attack: 1, signature: null, legendary: "Blade of the Last Commit" },
-  axe: { hands: 1, label: "Axe", attack: 1.25, signature: null, legendary: "Axe of Tech Debt" },
-  mace: { hands: 1, label: "Mace", attack: 0.9, signature: "defense", legendary: "Mace of Merge Conflicts" },
-  morningStar: { hands: 1, label: "Morning Star", attack: 1.1, signature: "fortune", legendary: "Morning Star of the Daily Standup" },
-  greatsword: { hands: 2, label: "Greatsword", attack: 1, signature: null, legendary: "Greatsword of Refactoring" },
-  battleAxe: { hands: 2, label: "Battle Axe", attack: 1.25, signature: null, legendary: "Battle Axe of Breaking Changes" },
-  scythe: { hands: 2, label: "Scythe", attack: 1.1, signature: "luck", legendary: "Reaper of Zombie Processes" },
-  spear: { hands: 2, label: "Spear", attack: 0.9, signature: "defense", legendary: "Spear of the Pull Request" },
-  staff: { hands: 2, label: "Staff", attack: 0.7, signature: "fortune", legendary: "Staff of Recursion" },
-  bow: { hands: 2, label: "Bow", attack: 0.85, signature: "luck", legendary: "Longbow of Long Polling" },
-  crossbow: { hands: 2, label: "Crossbow", attack: 0.95, signature: "defense", legendary: "Crossbow of the Cron Job" },
-} as const satisfies Record<string, { hands: 1 | 2; label: string; attack: number; signature: Stat | null; legendary: string }>;
+  dagger: { hands: 1, label: "Dagger", attack: 0.75, signature: "luck", signatureScale: 1, legendary: "Dagger of the Hotfix" },
+  sword: { hands: 1, label: "Sword", attack: 1, signature: "defense", signatureScale: 1, legendary: "Blade of the Last Commit" },
+  axe: { hands: 1, label: "Axe", attack: 1.25, signature: null, signatureScale: 1, legendary: "Axe of Tech Debt" },
+  mace: { hands: 1, label: "Mace", attack: 0.75, signature: "defense", signatureScale: 2, legendary: "Mace of Merge Conflicts" },
+  morningStar: { hands: 1, label: "Morning Star", attack: 1.1, signature: "fortune", signatureScale: 1, legendary: "Morning Star of the Daily Standup" },
+  greatsword: { hands: 2, label: "Greatsword", attack: 1, signature: "fortune", signatureScale: 1, legendary: "Greatsword of Refactoring" },
+  battleAxe: { hands: 2, label: "Battle Axe", attack: 1.25, signature: null, signatureScale: 1, legendary: "Battle Axe of Breaking Changes" },
+  scythe: { hands: 2, label: "Scythe", attack: 1.1, signature: "luck", signatureScale: 1, legendary: "Reaper of Zombie Processes" },
+  spear: { hands: 2, label: "Spear", attack: 0.75, signature: "defense", signatureScale: 2, legendary: "Spear of the Pull Request" },
+  staff: { hands: 2, label: "Staff", attack: 0.7, signature: "fortune", signatureScale: 2, legendary: "Staff of Recursion" },
+  bow: { hands: 2, label: "Bow", attack: 0.85, signature: "luck", signatureScale: 2, legendary: "Longbow of Long Polling" },
+  crossbow: { hands: 2, label: "Crossbow", attack: 0.95, signature: "defense", signatureScale: 1, legendary: "Crossbow of the Cron Job" },
+} as const satisfies Record<string, { hands: 1 | 2; label: string; attack: number; signature: Stat | null; signatureScale: number; legendary: string }>;
 export type WeaponKind = keyof typeof WEAPONS;
 const WEAPON_KINDS = Object.keys(WEAPONS) as WeaponKind[];
 /** Weapon name prefix per rarity. Up to epic it goes before the kind, from legendary up before the legendary name. */
@@ -135,13 +137,17 @@ export function rollStats(key: string, random: () => number): Stats {
     stats[stat] = Math.min(max, Math.max(min, Math.round(min + target * (max - min))));
     carry = target - (max === min ? 1 : (stats[stat] - min) / (max - min));
   }
-  if (kind in WEAPONS) stats.attack = Math.max(1, Math.round(stats.attack * WEAPONS[kind].hands * WEAPONS[kind].attack));
+  if (kind in WEAPONS) {
+    const w = WEAPONS[kind];
+    stats.attack = Math.max(1, Math.round(stats.attack * w.hands * w.attack));
+    if (w.signature) stats[w.signature] = Math.round(stats[w.signature] * w.signatureScale);
+  }
   return stats;
 }
 
 /**
  * How good a roll is within its rarity, from 0 (every stat at its minimum) to 1 (every stat at its maximum).
- * The average position of each rolled stat in its range, weapon attack measured before the kind's multiplier.
+ * The average position of each rolled stat in its range, weapon attack and signature measured before the kind's multipliers.
  */
 export function rollQuality(key: string, stats: Stats) {
   const { rarity, primary, signature } = item(key);
@@ -150,7 +156,7 @@ export function rollQuality(key: string, stats: Stats) {
   const position = (value: number, [min, max]: Range) => (max === min ? 1 : Math.min(1, Math.max(0, (value - min) / (max - min))));
   const base = kind in WEAPONS ? stats[primary] / (WEAPONS[kind].hands * WEAPONS[kind].attack) : stats[primary];
   const scores = [position(base, PRIMARY_RANGE[primary][tier])];
-  if (signature) scores.push(position(stats[signature], BONUS_RANGE[signature][Math.max(1, tier)]));
+  if (signature) scores.push(position(stats[signature] / WEAPONS[kind].signatureScale, BONUS_RANGE[signature][Math.max(1, tier)]));
   for (const stat of STATS) {
     if (stat !== primary && stat !== signature && stats[stat]) scores.push(position(stats[stat], BONUS_RANGE[stat][tier]));
   }
@@ -193,8 +199,10 @@ const LOOT_TABLE: [minLevel: number, weights: number[]][] = [
 /** The level from which a rarity can drop. */
 export const DROP_CHANCE = 0.4;
 
+const lootWeights = (level: number) => LOOT_TABLE.find(([min]) => level >= min)![1];
+
 export function rollRarity(level: number, rolls: number, random: () => number): Rarity {
-  const weights = LOOT_TABLE.find(([min]) => level >= min)![1];
+  const weights = lootWeights(level);
   let best = 0;
   for (let i = 0; i < rolls; i++) {
     let r = random() * 100;
@@ -203,6 +211,25 @@ export function rollRarity(level: number, rolls: number, random: () => number): 
     best = Math.max(best, index);
   }
   return RARITIES[best];
+}
+
+/**
+ * Stats of a full set as a typical player of `level` wears it: every slot an average roll in the rarity mix
+ * of a single drop at that level, with a one-handed weapon and a shield. Monsters and dungeon stages measure against it.
+ */
+export function typicalGear(level: number): Stats {
+  const mid = ([min, max]: Range) => (min + max) / 2;
+  const gear = noStats();
+  const slots = [...ITEM_TYPES.filter((t) => t !== "twoHanded"), "ring" as const].map((t) => PRIMARY[t]);
+  lootWeights(level).forEach((weight, tier) => {
+    for (const primary of slots) {
+      gear[primary] += (weight / 100) * mid(PRIMARY_RANGE[primary][tier]);
+      for (const stat of STATS) {
+        if (stat !== primary) gear[stat] += (((weight / 100) * mid(BONUS_RANGE[stat][tier])) * BONUS_COUNT[tier]) / 3;
+      }
+    }
+  });
+  return gear;
 }
 
 /**

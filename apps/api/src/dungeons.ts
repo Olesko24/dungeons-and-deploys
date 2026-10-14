@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import {
   DUNGEON_LOBBY_MS,
   DUNGEON_MAX_PARTY,
+  DUNGEON_REWARD_COOLDOWN_MS,
   DUNGEON_STAGES,
   DUNGEON_STAGE_MS,
   bossLoot,
@@ -21,7 +22,7 @@ import type { Deps } from "./app.ts";
 import { randomCode } from "./auth.ts";
 import { equippedItems, giveLoot, giveShard, requireCharacter, scrappedNote, shardNote } from "./characters.ts";
 import { guildBuffs } from "./guilds.ts";
-import { levelUpNote, notify } from "./inbox.ts";
+import { cooldownNote, levelUpNote, notify } from "./inbox.ts";
 import type { Prisma, PrismaClient } from "./generated/prisma/client.ts";
 
 const STAGES = DUNGEON_STAGES.length;
@@ -65,6 +66,17 @@ export async function dungeonView(db: PrismaClient, characterId: number, t: Date
   };
 }
 
+/** When a character gets dungeon rewards again after their last boss loot, or null if they get them now. */
+async function rewardsAt(tx: Prisma.TransactionClient, characterId: number, dungeonId: number, t: Date) {
+  const last = await tx.dungeonMember.findFirst({
+    where: { characterId, dungeonId: { not: dungeonId }, lootItemId: { not: null } },
+    orderBy: { dungeon: { endedAt: "desc" } },
+    select: { dungeon: { select: { endedAt: true } } },
+  });
+  const at = last?.dungeon.endedAt && new Date(last.dungeon.endedAt.getTime() + DUNGEON_REWARD_COOLDOWN_MS);
+  return at && at > t ? at : null;
+}
+
 /** Resolves one stage. Returns whether the run goes on. Safe to run twice: a resolved stage changes nothing. */
 export function resolveStage(db: PrismaClient, dungeonId: number, stage: number, random = Math.random, t = new Date()) {
   return db.$transaction(async (tx) => {
@@ -78,7 +90,10 @@ export function resolveStage(db: PrismaClient, dungeonId: number, stage: number,
     for (const m of dungeon.members) {
       const bonus = playerBonus(m.character.items, m.character.talents as Talents, await guildBuffs(tx, m.characterId, t));
       const power = bonus.power + bonus.groupPower + (stage === STAGES - 1 ? bonus.bossPower : 0);
-      members.push({ m, level: levelFromXp(m.character.xp).level, gear: bonus.gear, power, stageChance: bonus.stageChance, bonus });
+      members.push({
+        m, level: levelFromXp(m.character.xp).level, gear: bonus.gear, power, stageChance: bonus.stageChance, bonus,
+        resting: await rewardsAt(tx, m.characterId, dungeonId, t),
+      });
     }
     const chance = stageChance(stage, members);
     const cleared = random() < chance;
@@ -91,7 +106,12 @@ export function resolveStage(db: PrismaClient, dungeonId: number, stage: number,
     if (advanced.count === 0) return null;
 
     if (cleared) {
-      for (const { m, level, gear, bonus } of members) {
+      for (const { m, level, gear, bonus, resting } of members) {
+        // On cooldown a member still helps the party, but earns nothing.
+        if (resting) {
+          if (last) await notify(tx, [m.characterId], "dungeon", `Dungeon ${dungeon.code} cleared!` + cooldownNote("dungeon", resting, t));
+          continue;
+        }
         const reward = stageRewards(stage, level, members.length, gear.fortune + bonus.dungeonRewards);
         reward.xp = withBonus(reward.xp, bonus.xp + bonus.dungeonRewards);
         await tx.character.update({ where: { id: m.characterId }, data: { xp: { increment: reward.xp }, gold: { increment: reward.gold } } });

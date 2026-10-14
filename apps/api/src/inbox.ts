@@ -18,6 +18,12 @@ export const levelUpNote = (xpBefore: number, xpAfter: number) => {
   return level > levelFromXp(xpBefore).level ? ` You reached level ${level}!` : "";
 };
 
+/** " Your dungeon rewards are back in 3 hours." for rewards on cooldown until `at`. */
+export const cooldownNote = (what: string, at: Date, t: Date) => {
+  const hours = Math.ceil((at.getTime() - t.getTime()) / 3_600_000);
+  return ` Your ${what} rewards are back in ${hours} ${hours === 1 ? "hour" : "hours"}.`;
+};
+
 export const unreadCount = (db: PrismaClient, characterId: number, seenAt: Date) =>
   db.notification.count({ where: { characterId, createdAt: { gt: seenAt } } });
 

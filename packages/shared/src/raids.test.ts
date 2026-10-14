@@ -25,9 +25,9 @@ test("boss phase and damage", () => {
 test("rewards and loot scale with the boss", () => {
   assert.deepEqual(raidRewards(10, 0), { xp: 200, gold: 70 });
   assert.deepEqual(raidRewards(10, 5), { xp: 1200, gold: 420 });
-  // The last roll is the best rarity on the boss's loot table: harder bosses use higher tables and more rolls.
+  // The last roll is the best rarity on the raider's loot table: harder bosses roll more often.
   const rolls = (n: number) => { const v = [0, ...Array(n - 1).fill(0.1), 0.99]; return () => v.shift() ?? 0; };
-  assert.equal(raidLoot(1, 0, rolls(3)), "helm.rare", "boss 1 uses loot level 5 at least");
-  assert.equal(raidLoot(1, 5, rolls(8)), "helm.mythic");
-  assert.equal(raidLoot(1, RAID_BOSSES.length - 1, rolls(12)), "helm.celestial");
+  assert.equal(raidLoot(30, 5, rolls(8)), "helm.mythic");
+  assert.equal(raidLoot(90, RAID_BOSSES.length - 1, rolls(12)), "helm.celestial");
+  assert.equal(raidLoot(1, RAID_BOSSES.length - 1, rolls(12)), "helm.uncommon", "loot follows the raider's level, carried low levels stay low");
 });

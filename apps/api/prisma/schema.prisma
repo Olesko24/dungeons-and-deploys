@@ -75,6 +75,8 @@ model Character {
   restedQuests Int             @default(0) @map("rested_quests")
   /// Loot below this rarity is scrapped on arrival. Null keeps everything.
   autoScrap    String?         @map("auto_scrap")
+  /// The last heartbeat that rolled for a monster. One roll per minute, however many sources send heartbeats.
+  encounterRolledAt DateTime?    @map("encounter_rolled_at")
   quests       Quest[]
   items        Item[]
   shards       Shard[]

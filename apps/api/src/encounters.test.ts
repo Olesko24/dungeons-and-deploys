@@ -35,13 +35,24 @@ test("a heartbeat can spawn one monster at a time", async () => {
   const p = await player("ranger");
   const status = (await p.call("POST", "/heartbeat")).json();
   assert.equal(status.encounter.name, "Bug Swarm");
-  assert.equal(status.encounter.winChance, 0.625, "unequipped level 1 against a bug swarm");
+  assert.equal(status.encounter.winChance.toFixed(3), "0.393", "unequipped level 1 against a bug swarm, measured against typical gear");
   await p.call("POST", "/heartbeat");
   assert.equal(await db.encounter.count({ where: { characterId: p.characterId } }), 1, "no second monster while one is around");
 
   dice = () => 0.5;
   const other = await player("bard");
   assert.equal((await other.call("POST", "/heartbeat")).json().encounter, null, "98% of heartbeats spawn nothing");
+});
+
+test("several sources roll for a monster once per minute", async () => {
+  clock = T0;
+  dice = () => 0.5;
+  const p = await player("multi");
+  await p.call("POST", "/heartbeat");
+  dice = () => 0;
+  assert.equal((await p.call("POST", "/heartbeat")).json().encounter, null, "the second heartbeat in the same minute does not roll");
+  clock = T0 + 60_000;
+  assert.equal((await p.call("POST", "/heartbeat")).json().encounter.name, "Bug Swarm");
 });
 
 test("fight a monster once", async () => {

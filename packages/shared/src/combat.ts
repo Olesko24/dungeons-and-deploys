@@ -1,9 +1,9 @@
-import type { Stats } from "./items.ts";
+import { type Stats, typicalGear } from "./items.ts";
 
 export const ENCOUNTER_CHANCE = 0.02;
 export const ENCOUNTER_MS = 5 * 60 * 1000;
 
-/** `power` scales a monster against an unequipped player of the same level. Rarer monsters are tougher and pay more. */
+/** `power` scales a monster against a player of the same level in typical gear. Rarer monsters are tougher and pay more. */
 export const MONSTERS = {
   bugSwarm: { name: "Bug Swarm", power: 0.6, weight: 20 },
   memoryLeakSlime: { name: "Memory Leak Slime", power: 0.8, weight: 18 },
@@ -35,21 +35,28 @@ export const powerScore = (power: number) => Math.round(power * 10);
 /** A player's shown combat power. `percent` is the talent and buff bonus that applies in that context. */
 export const playerPower = (level: number, gear: Stats, percent = 0) => powerScore(combatPower(level, gear) * (1 + percent / 100));
 
-/**
- * Shown power for a 60% chance, before luck, against an opponent `strength` times as strong as an
- * unequipped player of `level`: winChance is power / (power + opponent), so 60% needs 1.5 times the opponent.
- */
-export const recommendedPower = (level: number, strength: number) =>
-  powerScore(1.5 * combatPower(level, { attack: 0, defense: 0, luck: 0, fortune: 0 }) * strength);
+/** Combat power of a player of `level` in typical gear, the yardstick for monsters and dungeon stages. */
+export const typicalPower = (level: number) => combatPower(level, typicalGear(level));
 
 /**
- * Win chance against a monster of the player's level, plus luck in percentage points, kept within 5-95%.
+ * Shown power for a 60% chance, before luck, against an opponent `strength` times as strong as a player
+ * of `level` in typical gear: winChance is power / (power + opponent), so 60% needs 1.5 times the opponent.
+ */
+export const recommendedPower = (level: number, strength: number) => powerScore(1.5 * typicalPower(level) * strength);
+
+/**
+ * Percentage points that luck adds to quest and fight success. About one point per luck at first, then
+ * diminishing towards 25, so the 95% cap stays out of reach until the late game.
+ */
+export const luckPoints = (luck: number) => (25 * luck) / (luck + 25);
+
+/**
+ * Win chance against a monster of the player's level, plus luck points, kept within 5-95%.
  * `power` adds percent to the player's combat power.
  */
 export function winChance(level: number, gear: Stats, monster: MonsterKey, power = 0) {
   const player = combatPower(level, gear) * (1 + power / 100);
-  const naked = combatPower(level, { attack: 0, defense: 0, luck: 0, fortune: 0 });
-  const chance = player / (player + naked * MONSTERS[monster].power) + gear.luck / 100;
+  const chance = player / (player + typicalPower(level) * MONSTERS[monster].power) + luckPoints(gear.luck) / 100;
   return Math.min(0.95, Math.max(0.05, chance));
 }
 

@@ -76,15 +76,15 @@ RPROMPT='$(dnd_prompt)'
 
 Heartbeats are optional. Quests, dungeons and raids work without them.
 
-A heartbeat comes from Claude Code (your prompts), the shell integration (your commands) or an open website tab (once a minute). Each source sends at most one per minute, in the background, and the server accepts three per minute per player. Heartbeats refresh your status line and can spawn [random monsters](#random-encounters).
+A heartbeat comes from Claude Code (your prompts), the shell integration (your commands) or an open website tab (once a minute). Each source sends at most one per minute, in the background, and the server accepts three per minute per player. Heartbeats refresh your status line and can spawn [random monsters](#random-encounters), with one roll per minute however many sources you use.
 
 ## Quests
 
 Start a quest with `quest` or the **Start quest** button on the website. The dice decide at once and you see the quest, its rewards and any loot right away:
 
 - 75% success chance, plus your **Luck**, at most 95%
-- Success: 70 XP and 14–19 gold. **Fortune** adds percent to that gold
-- Failure: 10 XP
+- Success: 60 + 10 × level XP and 13–18 + level gold, so 70 XP and 14–19 gold at level 1. **Fortune** adds percent to that gold
+- Failure: 9 + level XP
 - A successful quest has a 40% chance to drop an item, with two rarity rolls (the better one counts). After three
   successful quests without loot, the next successful quest always drops one.
 
@@ -106,9 +106,10 @@ quest status --short    # the one-line status used by status lines, no network
 
 | Level | Total XP | Roughly |
 |---|---|---|
-| 5 | ~1,700 | 30 quests |
-| 10 | ~11,000 | 200 quests |
-| 20 | ~67,000 | 1,200 quests |
+| 5 | ~1,700 | 25 quests |
+| 10 | ~11,000 | 110 quests |
+| 20 | ~67,000 | 430 quests |
+| 50 | ~690,000 | 2,200 quests |
 
 Higher levels mainly mean better loot (see below) and talent points. The level cap is 100.
 
@@ -123,7 +124,8 @@ power = (4 + level + attack) × (1 + (level + defense) / 20) × 10
 
 `quest char` and the website header show it. Monsters and dungeon stages show a **recommended** power: with it
 your chance is about 60% before luck. Green means you reach it, yellow at least 75% of it, red below. Monsters
-grow with your level, so only gear, talents and buffs move you past the recommendation.
+grow with your level and the gear players of your level typically wear, so only gear better than usual, talents
+and buffs move you past the recommendation.
 
 ### Talents
 
@@ -149,13 +151,13 @@ On the website every talent is a tile: click it for the details and to learn a r
 | Defense | 3 (10) | Disaster Recovery | +4% XP and gold from raids per rank | 5 | |
 | Defense | 4 (15) | Redundancy | +2% chance on every dungeon stage per rank | 5 | |
 | Defense | 5 (20) | Zero Downtime | +10% combat power in dungeons and raids per rank | 1 | Redundancy |
-| Luck | 1 (0) | Lucky Guess | +1% quest and fight success per rank | 5 | |
+| Luck | 1 (0) | Lucky Guess | +1 luck per rank | 5 | |
 | Luck | 1 (0) | Scavenger | +1% loot drop chance on quests and fights per rank | 5 | |
 | Luck | 2 (5) | Golden Ticket | +2% chance for an extra rarity roll on loot per rank | 5 | |
 | Luck | 2 (5) | Bug Magnet | +10% more monster encounters per rank | 5 | |
 | Luck | 3 (10) | Lucky Commit | +4% chance for an extra rarity roll on loot per rank | 5 | Golden Ticket |
 | Luck | 3 (10) | Rubber Duck | +2% quest success per rank | 5 | |
-| Luck | 4 (15) | Heisenbug Whisperer | +1% quest and fight success per rank | 5 | |
+| Luck | 4 (15) | Heisenbug Whisperer | +1 luck per rank | 5 | |
 | Luck | 5 (20) | Cosmic Ray | +15% chance for an extra rarity roll on loot per rank | 1 | Heisenbug Whisperer |
 | General | 1 (0) | Fast Learner | +2% XP per rank | 5 | |
 | General | 1 (0) | Haggler | +2% gold per rank | 5 | |
@@ -191,7 +193,7 @@ quest talents reset           # all points back, 10 gold each
 |---|---|
 | **ATK** Attack | Fights, dungeons and raids |
 | **DEF** Defense | Fights, dungeons and raids, with diminishing returns |
-| **LCK** Luck | Percentage points on quest and fight success, capped at 95% |
+| **LCK** Luck | Quest and fight success: about one percentage point per luck at first, less the more you have, never more than 25 points. Success stays capped at 95% |
 | **FOR** Fortune | Percent more gold from quests and fights |
 
 ### Rarities and rolled stats
@@ -213,27 +215,27 @@ There are ten rarities. Each one rolls higher stats than the one below.
 | Celestial | 45–62 | 3 | 75 |
 | Eternal | 62–85 | 3 | 90 |
 
-Luck and fortune grow more slowly, since luck is capped at 95% anyway. On the website every rarity has its own color and symbol.
+Luck and fortune grow more slowly than attack and defense. On the website every rarity has its own color and symbol.
 
 Bonus stats are always different from the primary stat. The strongest bonus gives the item a name prefix: **Slaughterer's** (attack), **Defender's** (defense), **Gambler's** (luck) or **Merchant's** (fortune).
 
 ### Weapons
 
-Twelve weapon kinds drop in every rarity. They differ in attack and in a **signature stat** they always roll, even as common.
+Twelve weapon kinds drop in every rarity. They differ in attack and in a **signature stat** they always roll, even as common. Kinds with the same signature trade attack for a stronger signature (×2), so no kind is better than another in everything.
 
 | Kind | Hands | Attack | Signature |
 |---|---|---|---|
 | Dagger | 1 | ×0.75 | Luck |
-| Sword | 1 | ×1.0 | – |
+| Sword | 1 | ×1.0 | Defense |
 | Axe | 1 | ×1.25 | – |
-| Mace | 1 | ×0.9 | Defense |
+| Mace | 1 | ×0.75 | Defense ×2 |
 | Morning Star | 1 | ×1.1 | Fortune |
-| Greatsword | 2 | ×1.0 | – |
+| Greatsword | 2 | ×1.0 | Fortune |
 | Battle Axe | 2 | ×1.25 | – |
 | Scythe | 2 | ×1.1 | Luck |
-| Spear | 2 | ×0.9 | Defense |
-| Staff | 2 | ×0.7 | Fortune |
-| Bow | 2 | ×0.85 | Luck |
+| Spear | 2 | ×0.75 | Defense ×2 |
+| Staff | 2 | ×0.7 | Fortune ×2 |
+| Bow | 2 | ×0.85 | Luck ×2 |
 | Crossbow | 2 | ×0.95 | Defense |
 
 Two-handed weapons roll double attack but keep the shield slot empty.
@@ -285,13 +287,13 @@ quest forge <rarity>              # shard → random item of its rarity, shards 
 
 ## Random encounters
 
-Every heartbeat has a 2% chance to spawn a monster, at most one at a time. Your status line and the website show it. You have 5 minutes to fight, in the terminal or with the **Fight** button:
+Every minute with a heartbeat has a 2% chance to spawn a monster, at most one at a time. Your status line and the website show it. You have 5 minutes to fight, in the terminal or with the **Fight** button:
 
 ```sh
 quest fight
 ```
 
-Your win chance compares your combat power with the monster and adds your luck. It is always between 5% and 95%. Without gear an average monster is a coin flip. The status shows your power next to the recommended power for this monster.
+Your win chance compares your combat power with the monster and adds your luck. It is always between 5% and 95%. Monsters are measured against the gear players of your level typically wear: with such gear an average monster is a coin flip, without gear you lose most fights. The status shows your power next to the recommended power for this monster.
 
 | Monster | Toughness |
 |---|---|
@@ -385,6 +387,8 @@ Each stage succeeds or fails for the whole party. The chance depends on everyone
 
 Every cleared stage pays XP and gold. A failed stage ends the run, you keep what you earned. Beating the boss gives every member a guaranteed item, with more rarity rolls in bigger parties, and a 30% chance for a shard.
 
+Dungeon rewards come at most once every **4 hours**, counted from your last boss loot. During that time you can still join runs and help your party, but you earn no XP, gold, loot or shards from them.
+
 ## Guilds
 
 ```sh
@@ -433,23 +437,26 @@ beating the strongest it has unlocked. Without a boss number, the leader schedul
 
 | Boss | Name | Recommended power | Loot | XP and gold |
 |---|---|---|---|---|
-| 1 | The Monolith | 250 | 3 rolls, loot level 5+ | ×1 |
-| 2 | The Legacy Mainframe | 600 | 4 rolls, loot level 10+ | ×1.5 |
-| 3 | The Kubernetes Kraken | 1400 | 5 rolls, loot level 15+ | ×2 |
-| 4 | The Infinite Loop | 3000 | 6 rolls, loot level 20+ | ×3 |
-| 5 | The Production Outage | 6000 | 7 rolls, loot level 25+ | ×4 |
-| 6 | The Big Rewrite | 12000 | 8 rolls, loot level 30+ | ×6 |
-| 7 | The Debt Collector | 18000 | 9 rolls, loot level 45+ | ×8 |
-| 8 | The Distributed Monolith | 35000 | 10 rolls, loot level 60+ | ×10 |
-| 9 | The Halting Problem | 65000 | 11 rolls, loot level 75+ | ×13 |
-| 10 | The Final Migration | 120000 | 12 rolls, loot level 90+ | ×16 |
+| 1 | The Monolith | 250 | 3 rolls | ×1 |
+| 2 | The Legacy Mainframe | 600 | 4 rolls | ×1.5 |
+| 3 | The Kubernetes Kraken | 1400 | 5 rolls | ×2 |
+| 4 | The Infinite Loop | 3000 | 6 rolls | ×3 |
+| 5 | The Production Outage | 6000 | 7 rolls | ×4 |
+| 6 | The Big Rewrite | 12000 | 8 rolls | ×6 |
+| 7 | The Debt Collector | 18000 | 9 rolls | ×8 |
+| 8 | The Distributed Monolith | 35000 | 10 rolls | ×10 |
+| 9 | The Halting Problem | 65000 | 11 rolls | ×13 |
+| 10 | The Final Migration | 120000 | 12 rolls | ×16 |
 
 Boss HP depends only on the boss and the number of raiders, so it does not grow with your gear. If the raiders'
 average power matches the recommendation, the raid wins about 60% of the time. The odds drop fast below it:
 at 90% of the recommendation only about one raid in five wins, so stronger raiders carry weaker ones.
 
-A win gives every raider who dealt damage XP, gold, an item and a 30% chance for a shard. Harder bosses roll the rarity more often and use at
-least their loot level, so their average loot is better.
+A win gives every raider who dealt damage XP, gold, an item and a 30% chance for a shard. **Fortune** adds percent to that gold. The item
+rolls on your own level's loot table, harder bosses roll the rarity more often, so their average loot is better.
+
+Raid rewards come at most once every **20 hours**, counted from the start of your last rewarded raid. During that time
+you can still raid and help your guild, but you earn no XP, gold, loot or shards from it.
 
 ## Achievements, statistics and leaderboards
 

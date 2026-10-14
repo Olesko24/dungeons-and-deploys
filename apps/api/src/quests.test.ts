@@ -110,9 +110,9 @@ test("loot lands in the inventory and equipment raises the odds", async () => {
   const names = (await p.call("GET", "/inventory")).json().items.map((i: { name: string }) => i.name);
   assert.deepEqual(names, ["Leather Cap", "Merchant's Signet of Root", "Merchant's Ring of Caching", "Gambler's Chainmail"]);
 
-  // 75% base + 15 luck = 90%: a roll of 0.85 fails without the gear and succeeds with it.
+  // 75% base + 15 luck (about 9.4 points) = 84.4%: a roll of 0.83 fails without the gear and succeeds with it.
   at(COOLDOWN_MS);
-  dice = 0.85;
+  dice = 0.83;
   assert.equal((await p.call("POST", "/quests")).json().success, true);
 });
 

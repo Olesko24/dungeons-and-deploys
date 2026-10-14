@@ -2,12 +2,14 @@ import type { FastifyInstance } from "fastify";
 import {
   RAID_BOSSES,
   RAID_MIN_PLAYERS,
+  RAID_REWARD_COOLDOWN_MS,
   RAID_TICKS,
   RAID_TICK_MS,
   type Talents,
   combatPower,
   equipmentBonus,
   levelFromXp,
+  playerBonus,
   playerPower,
   raidBossHp,
   raidDamage,
@@ -23,8 +25,8 @@ import {
 import type { Deps } from "./app.ts";
 import { equippedItems, giveLoot, giveShard, requireCharacter, scrappedNote, shardNote } from "./characters.ts";
 import { guildBuffs, guildMates } from "./guilds.ts";
-import { levelUpNote, notify } from "./inbox.ts";
-import type { Character, PrismaClient } from "./generated/prisma/client.ts";
+import { cooldownNote, levelUpNote, notify } from "./inbox.ts";
+import type { Character, Prisma, PrismaClient } from "./generated/prisma/client.ts";
 
 /** Talents and buffs in raids, as one percent: combat power and raid damage multiply. */
 const raidPercent = (b: { power: number; groupPower: number; raidDamage: number }) =>
@@ -35,6 +37,17 @@ async function raidPower(db: PrismaClient, character: Character, t: Date) {
   const items = await equippedItems(db, character.id);
   const bonus = talentBonus(character.talents as Talents, await guildBuffs(db, character.id, t));
   return playerPower(levelFromXp(character.xp).level, equipmentBonus(items), raidPercent(bonus));
+}
+
+/** When a character gets raid rewards again after their last rewarded raid, or null if they get them now. */
+async function rewardsAt(tx: Prisma.TransactionClient, characterId: number, raidId: number, t: Date) {
+  const last = await tx.raidMember.findFirst({
+    where: { characterId, raidId: { not: raidId }, lootItemId: { not: null } },
+    orderBy: { raid: { startsAt: "desc" } },
+    select: { raid: { select: { startsAt: true } } },
+  });
+  const at = last && new Date(last.raid.startsAt.getTime() + RAID_REWARD_COOLDOWN_MS);
+  return at && at > t ? at : null;
 }
 
 export const raidTickAt = (startsAt: Date, tick: number) => new Date(startsAt.getTime() + tick * RAID_TICK_MS);
@@ -71,7 +84,7 @@ async function raidView(db: PrismaClient, guildId: number) {
  * Tick 0 starts the raid or cancels it below the minimum. Ticks 1-6 roll a boss phase and apply every raider's
  * damage. Returns whether another tick follows. Safe to run twice.
  */
-export function advanceRaid(db: PrismaClient, raidId: number, tick: number, random = Math.random) {
+export function advanceRaid(db: PrismaClient, raidId: number, tick: number, random = Math.random, t = new Date()) {
   return db.$transaction(async (tx) => {
     const raid = await tx.raid.findUnique({
       where: { id: raidId },
@@ -83,8 +96,8 @@ export function advanceRaid(db: PrismaClient, raidId: number, tick: number, rand
     const fighters = [];
     for (const m of raid.members) {
       const level = levelFromXp(m.character.xp).level;
-      const bonus = talentBonus(m.character.talents as Talents, await guildBuffs(tx, m.characterId, new Date()));
-      const power = combatPower(level, equipmentBonus(m.character.items)) * (1 + raidPercent(bonus) / 100);
+      const bonus = playerBonus(m.character.items, m.character.talents as Talents, await guildBuffs(tx, m.characterId, t));
+      const power = combatPower(level, bonus.gear) * (1 + raidPercent(bonus) / 100);
       fighters.push({ m, level, bonus, power });
     }
 
@@ -129,8 +142,13 @@ export function advanceRaid(db: PrismaClient, raidId: number, tick: number, rand
           await notify(tx, [f.m.characterId], "raid", `${boss} was defeated, but you dealt no damage and get no rewards.`);
           continue;
         }
+        const resting = await rewardsAt(tx, f.m.characterId, raidId, t);
+        if (resting) {
+          await notify(tx, [f.m.characterId], "raid", `${boss} was defeated! You dealt ${damage.get(f.m.characterId)} damage.` + cooldownNote("raid", resting, t));
+          continue;
+        }
         const raw = raidRewards(f.level, raid.tier);
-        const reward = { xp: withBonus(raw.xp, f.bonus.xp + f.bonus.raidRewards), gold: withBonus(raw.gold, f.bonus.raidRewards) };
+        const reward = { xp: withBonus(raw.xp, f.bonus.xp + f.bonus.raidRewards), gold: withBonus(raw.gold, f.bonus.gear.fortune + f.bonus.raidRewards) };
         guildXp += reward.xp;
         await tx.character.update({ where: { id: f.m.characterId }, data: { xp: { increment: reward.xp }, gold: { increment: reward.gold } } });
         const key = raidLoot(f.level, raid.tier, random);
