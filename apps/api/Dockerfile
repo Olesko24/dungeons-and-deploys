@@ -1,5 +1,5 @@
 # Build context: repository root. docker build -f apps/api/Dockerfile .
-FROM node:24-slim AS web
+FROM node:25-slim AS web
 RUN npm install -g pnpm@12.9.1 && rm -rf /root/.npm
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -15,7 +15,7 @@ COPY packages/shared packages/shared
 COPY apps/web apps/web
 RUN pnpm --filter @dnd/web build
 
-FROM node:24-slim
+FROM node:25-slim
 
 RUN npm install -g pnpm@12.9.1 && rm -rf /root/.npm
 WORKDIR /app
