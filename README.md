@@ -2,6 +2,11 @@
 
 # Dungeons & Deploys
 
+[![CI](https://github.com/Olesko24/dungeons-and-deploys/actions/workflows/ci.yml/badge.svg)](https://github.com/Olesko24/dungeons-and-deploys/actions/workflows/ci.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Olesko24/dungeons-and-deploys/badge)](https://scorecard.dev/viewer/?uri=github.com/Olesko24/dungeons-and-deploys)
+[![npm](https://img.shields.io/npm/v/dungeons-and-deploys)](https://www.npmjs.com/package/dungeons-and-deploys)
+[![License: MIT](https://img.shields.io/github/license/Olesko24/dungeons-and-deploys)](LICENSE)
+
 An idle RPG for the terminal. Runs alongside Claude Code or any shell. Start a quest, keep working, collect loot.
 Inspired by Twitch idle RPGs: luck and patience, not performance.
 
